@@ -1,0 +1,1516 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Adventure Cart Workshop</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: workbench — map board left, inspector center, a little TV on the right. Single dark "console" theme on purpose. */
+:root {
+  color-scheme: dark;
+  --bg: #15130f;          /* console black with a woodgrain-brown bias */
+  --panel: #1e1b16;
+  --panel-2: #26221c;
+  --line: #3a342b;
+  --fg: #ebe4d6;
+  --muted: #a39a88;
+  --amber: #e8a33c;       /* accent: the console's switch-label amber */
+  --amber-ink: #1a1206;
+  --tv-red: #9c2020;      /* NTSC $42 — the engine's text window */
+  --tv-yellow: #d0d050;   /* NTSC $1A — text */
+  --tv-menu: #b0589c;     /* NTSC $56 — menu bar */
+  --ok: #7cc47a;
+  --warn: #e3c14f;
+  --bad: #ef6b5b;
+  --font-display: "Silkscreen", "Courier New", monospace;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { background: var(--bg); color: var(--fg); }
+body { font: 14px/1.45 var(--font-body); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.wrap { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* top bar */
+header.top { border-bottom: 1px solid var(--line); background: linear-gradient(180deg, #221e18, var(--bg)); }
+header.top .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-block: 14px; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand h1 { font: 400 18px/1 var(--font-display); letter-spacing: .04em; margin: 0; color: var(--amber); white-space: nowrap; }
+.brand .sub { color: var(--muted); font-size: 12px; }
+.title-input { background: transparent; border: 1px solid transparent; border-radius: 4px; padding: 4px 6px; font-weight: 600; font-size: 15px; min-width: 0; width: 24ch; max-width: 100%; }
+.title-input:hover, .title-input:focus { border-color: var(--line); background: var(--panel); }
+.spacer { flex: 1; }
+.btn { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: #5a5042; }
+.btn.primary { background: var(--amber); color: var(--amber-ink); border-color: var(--amber); font-weight: 600; }
+.btn.primary:disabled { opacity: .45; cursor: not-allowed; }
+.btn.small { padding: 4px 8px; font-size: 12px; }
+.btn.ghost { background: transparent; }
+.menu-wrap { position: relative; }
+.menu-pop { position: absolute; right: 0; top: calc(100% + 6px); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px; display: grid; gap: 2px; min-width: 240px; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.menu-pop button { text-align: left; background: transparent; border: 0; padding: 8px 10px; border-radius: 5px; }
+.menu-pop button:hover { background: var(--panel); }
+.menu-pop .hint { color: var(--muted); font-size: 12px; display: block; }
+
+/* engine strip */
+.strip { border-bottom: 1px solid var(--line); background: var(--panel); }
+.strip .wrap { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; padding-block: 10px; font-size: 13px; }
+.engine-state { display: flex; align-items: center; gap: 8px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bad); flex: none; }
+.dot.on { background: var(--ok); }
+.meter { display: grid; gap: 3px; min-width: 170px; }
+.meter .lbl { display: flex; justify-content: space-between; gap: 10px; font: 11px var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.meter .bar { height: 6px; background: #0e0c09; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.meter .fill { height: 100%; background: var(--ok); width: 0; transition: width .2s; }
+.meter.tight .fill { background: var(--warn); }
+.meter.over .fill { background: var(--bad); }
+.pill { font: 600 11px var(--font-mono); padding: 3px 8px; border-radius: 99px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.ok { color: var(--ok); border-color: #3c5b3a; }
+.pill.bad { color: var(--bad); border-color: #6b3029; }
+.pill.warn { color: var(--warn); border-color: #6b5a24; }
+
+/* main grid */
+main.bench { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 360px); gap: 18px; padding-block: 18px 40px; align-items: start; }
+@media (max-width: 1180px) { main.bench { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .tvcol { grid-column: 1 / -1; } }
+@media (max-width: 760px) { main.bench { grid-template-columns: minmax(0, 1fr); } }
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.card-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.card-h h2 { font: 400 12px/1 var(--font-display); letter-spacing: .08em; margin: 0; color: var(--amber); text-transform: uppercase; }
+.card-b { padding: 14px; display: grid; gap: 14px; min-width: 0; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.tab { background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 10px; font-size: 13px; color: var(--muted); }
+.tab[aria-selected="true"] { color: var(--fg); background: var(--panel-2); border-color: var(--line); }
+
+/* map board */
+.board-scroll { overflow-x: auto; padding-bottom: 4px; }
+.board { display: grid; gap: 4px; min-width: max-content; }
+.tile { position: relative; width: 84px; height: 66px; border-radius: 5px; border: 1px solid var(--line); background: var(--panel-2); padding: 5px 6px; text-align: left; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; font-size: 11px; line-height: 1.2; }
+.tile .nm { font-weight: 600; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
+.tile .bd { font: 500 10px var(--font-mono); color: var(--amber); letter-spacing: .05em; white-space: nowrap; }
+.tile.wall { background: repeating-linear-gradient(135deg, #1a1712 0 6px, #211d17 6px 12px); color: var(--muted); }
+.tile.wall .nm { font-weight: 400; font: 10px var(--font-mono); }
+.tile.portal { background: #1b1a26; border: 1px dashed #7b74b8; color: #c9c3ff; }
+.tile.start::after { content: "START"; position: absolute; top: 4px; right: 4px; font: 9px var(--font-display); background: var(--amber); color: var(--amber-ink); padding: 1px 3px; border-radius: 3px; }
+.tile.err { box-shadow: inset 0 0 0 1px var(--bad); }
+.tile[aria-pressed="true"] { outline: 2px solid var(--amber); outline-offset: 1px; }
+.tile:hover { border-color: #6a5e4c; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; color: var(--muted); font-size: 12px; }
+.legend b { font: 500 11px var(--font-mono); color: var(--amber); }
+.axis { font: 10px var(--font-mono); color: var(--muted); display: grid; gap: 4px; }
+.row-ctl { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12px; color: var(--muted); }
+
+/* inspector */
+.crumbs { font: 12px var(--font-mono); color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { background: transparent; border: 0; padding: 5px 12px; font-size: 13px; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--amber); color: var(--amber-ink); font-weight: 600; }
+.field { display: grid; gap: 5px; min-width: 0; }
+.field > label, .flabel { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.field .help { font-size: 12px; color: var(--muted); }
+input[type="text"], input[type="number"], select { background: #120f0c; border: 1px solid var(--line); border-radius: 5px; padding: 6px 8px; min-width: 0; }
+select { padding-right: 24px; }
+.tvtext-row { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+textarea.tvtext { background: #120f0c; border: 1px solid var(--line); border-radius: 5px; padding: 8px 10px; font: 15px/1.35 var(--font-mono); width: calc(12ch + 24px); min-width: calc(12ch + 24px); resize: vertical; text-transform: uppercase; white-space: pre; overflow-x: auto; background-image: linear-gradient(90deg, transparent calc(12ch + 10px), rgba(239,107,91,.13) calc(12ch + 10px)); }
+textarea.tvtext.bad { border-color: var(--bad); }
+.tvmeta { font: 11px var(--font-mono); color: var(--muted); display: grid; gap: 6px; }
+.tvmeta .bad { color: var(--bad); }
+.tvmeta .warn { color: var(--warn); }
+.feature { border: 1px solid var(--line); border-radius: 8px; background: var(--panel-2); }
+.feature > .fh { display: flex; align-items: center; gap: 10px; padding: 9px 12px; }
+.feature > .fh .ft { font-weight: 600; }
+.feature > .fh .fd { color: var(--muted); font-size: 12px; }
+.feature > .fb { padding: 4px 12px 12px; display: grid; gap: 12px; }
+.feature.off > .fb { display: none; }
+.switch { appearance: none; width: 32px; height: 18px; border-radius: 9px; background: #3a342b; position: relative; flex: none; cursor: pointer; transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--fg); transition: transform .15s; }
+.switch:checked { background: var(--amber); }
+.switch:checked::after { transform: translateX(14px); background: var(--amber-ink); }
+.inline { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; }
+.exits { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 13px; }
+.exits dt { font: 600 12px var(--font-mono); color: var(--amber); }
+.exits dd { margin: 0; color: var(--muted); }
+.exits dd a { color: var(--fg); cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; }
+.list-ed { display: grid; gap: 8px; }
+.list-ed .li { display: grid; grid-template-columns: 28px minmax(0,1fr) auto; gap: 8px; align-items: center; }
+.list-ed .li .n { font: 11px var(--font-mono); color: var(--muted); }
+
+/* TV */
+.tvcol { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: grid; gap: 18px; }
+.tv { background: #0b0a08; border-radius: 14px; padding: 14px; border: 1px solid var(--line); box-shadow: inset 0 0 0 6px #191612; }
+.tv canvas { display: block; width: 100%; max-width: 100%; aspect-ratio: 320 / 228; image-rendering: pixelated; border-radius: 6px; background: #000; }
+.tv-cap { font: 11px var(--font-mono); color: var(--muted); padding-top: 8px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.pad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 40px); gap: 4px; }
+.pad button, .fire { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; font: 600 13px var(--font-mono); touch-action: none; user-select: none; -webkit-user-select: none; }
+.pad button.held, .fire.held { background: var(--amber); color: var(--amber-ink); }
+.fire { width: 76px; height: 76px; border-radius: 50%; background: #5b1c16; border-color: #8a2a20; color: #ffd7cf; font-family: var(--font-display); font-weight: 400; }
+.controls { display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.state { font: 12px/1.6 var(--font-mono); color: var(--muted); display: grid; gap: 2px; }
+.state b { color: var(--fg); font-weight: 500; }
+.problems { display: grid; gap: 6px; font-size: 12.5px; max-height: 280px; overflow: auto; }
+.problems .p { display: grid; grid-template-columns: 14px minmax(0,1fr); gap: 8px; align-items: baseline; }
+.problems .p i { font-style: normal; font: 700 11px var(--font-mono); }
+.problems .p.e i { color: var(--bad); }
+.problems .p.w i { color: var(--warn); }
+.problems .p a { cursor: pointer; text-decoration: underline; text-decoration-color: var(--line); }
+.empty { color: var(--muted); font-size: 13px; }
+.notes { font-size: 13.5px; max-width: 70ch; }
+.notes h3 { font: 400 12px var(--font-display); color: var(--amber); letter-spacing: .06em; margin: 18px 0 6px; }
+.notes p { margin: 0 0 8px; }
+.notes code, .mono { font: 12.5px var(--font-mono); }
+.tbl-scroll { overflow-x: auto; }
+table.rec { border-collapse: collapse; font-size: 12.5px; width: 100%; min-width: 460px; }
+table.rec th, table.rec td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+table.rec th { color: var(--muted); font-weight: 600; font-size: 11.5px; }
+table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); white-space: nowrap; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 50; max-width: calc(100% - 32px); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.dropzone { border: 1px dashed #5a5042; border-radius: 8px; padding: 12px; color: var(--muted); font-size: 13px; }
+.dropzone.drag { border-color: var(--amber); color: var(--fg); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><h1>ADVENTURE CART</h1><span class="sub">2600 text-adventure workshop · Dark Mage engine</span></div>
+  <input id="title" class="title-input" type="text" aria-label="Adventure title" spellcheck="false">
+  <div class="spacer"></div>
+  <div class="menu-wrap">
+    <button class="btn" id="projBtn" aria-haspopup="true" aria-expanded="false">Project ▾</button>
+    <div class="menu-pop" id="projMenu" hidden>
+      <button data-act="demo">Open the sample adventure<span class="hint">The Last Lighthouse, 12 rooms</span></button>
+      <button data-act="blank">New blank adventure<span class="hint">Two empty maps, walls everywhere</span></button>
+      <button data-act="import">Open Dark Mage's world<span class="hint">Edit the original game (needs the engine ROM)</span></button>
+      <button data-act="open">Open project file…<span class="hint">A .json saved from here</span></button>
+      <button data-act="save">Save project file<span class="hint">Download this adventure as .json</span></button>
+    </div>
+  </div>
+  <button class="btn primary" id="buildBtn">Build cartridge</button>
+</div></header>
+
+<div class="strip"><div class="wrap">
+  <div class="engine-state"><span class="dot" id="engDot"></span><span id="engTxt">Engine ROM not loaded</span>
+    <button class="btn small" id="engBtn">Load engine ROM…</button>
+    <input type="file" id="engFile" accept=".a26,.bin,.rom" hidden>
+    <input type="file" id="projFile" accept=".json,application/json" hidden>
+  </div>
+  <div class="meter" id="mA"><div class="lbl"><span>Map A bank</span><span class="v">–</span></div><div class="bar"><div class="fill"></div></div></div>
+  <div class="meter" id="mB"><div class="lbl"><span>Map B bank</span><span class="v">–</span></div><div class="bar"><div class="fill"></div></div></div>
+  <span class="pill" id="statusPill">checking…</span>
+</div></div>
+
+<main class="bench wrap">
+  <section class="card" id="leftCard">
+    <div class="card-h">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" data-tab="map0" id="t-map0">Map A</button>
+        <button class="tab" role="tab" data-tab="map1" id="t-map1">Map B</button>
+        <button class="tab" role="tab" data-tab="story" id="t-story">Story &amp; items</button>
+        <button class="tab" role="tab" data-tab="engine" id="t-engine">Engine notes</button>
+      </div>
+    </div>
+    <div class="card-b" id="leftBody"></div>
+  </section>
+
+  <section class="card" id="inspCard">
+    <div class="card-h"><h2 id="inspTitle">Inspector</h2><span class="crumbs" id="inspCrumbs"></span></div>
+    <div class="card-b" id="inspBody"></div>
+  </section>
+
+  <div class="tvcol">
+    <section class="card">
+      <div class="card-h">
+        <div class="tabs" role="tablist">
+          <button class="tab" data-tv="preview" id="tv-preview" aria-selected="true">Preview</button>
+          <button class="tab" data-tv="play" id="tv-play">Playtest</button>
+        </div>
+        <div class="spacer"></div>
+        <button class="btn small" id="restartBtn" hidden>Restart</button>
+      </div>
+      <div class="card-b">
+        <div class="tv" id="tvBox" tabindex="0" aria-label="Television preview"><canvas id="tv" width="320" height="228"></canvas>
+          <div class="tv-cap"><span id="tvCap">Click any text box to preview it</span><span id="tvCap2"></span></div>
+        </div>
+        <div id="playUi" hidden>
+          <div class="controls">
+            <div class="pad" aria-label="Joystick">
+              <span></span><button data-dir="N" aria-label="Up">▲</button><span></span>
+              <button data-dir="W" aria-label="Left">◀</button><span></span><button data-dir="E" aria-label="Right">▶</button>
+              <span></span><button data-dir="S" aria-label="Down">▼</button><span></span>
+            </div>
+            <button class="fire" id="fireBtn">FIRE</button>
+          </div>
+          <p class="empty" style="margin:10px 0 0">Keys: arrows are the joystick, Space is fire. To walk, hold a direction and press fire. Fire alone is LOOK, which opens the action menu (←/→ to choose).</p>
+          <div class="state" id="playState" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-h"><h2>Checks</h2><span class="crumbs" id="probCount"></span></div>
+      <div class="card-b"><div class="problems" id="problems"></div></div>
+    </section>
+  </div>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// TAK — Atari 2600 Text Adventure Kit
+// Parser / rebuilder for the Dark Mage (Greg Troutman, 1997) 8K F8 text-adventure engine,
+// plus a small 6502 + RIOT emulator for play-testing the real ROM code.
+(function (root) {
+  'use strict';
+
+  // ---------- Character set (glyph offsets into page $F5) ----------
+  const CHAR = {
+    A: 0x60, B: 0x2F, C: 0x3A, D: 0x34, E: 0x40, F: 0x48, G: 0x4E, H: 0x5C, I: 0x93, J: 0x0A,
+    K: 0x66, L: 0x45, M: 0x70, N: 0x75, O: 0x54, P: 0x7B, Q: 0xF2, R: 0x2A, S: 0x81, T: 0x12,
+    U: 0x59, V: 0x6C, W: 0x87, X: 0x8D, Y: 0x95, Z: 0x9B,
+    ' ': 0x1E, '.': 0x1C, ',': 0x1B, "'": 0x18, '"': 0x18, '!': 0x10, '?': 0x05, ':': 0x24, '-': 0xF8,
+  };
+  const DECODE = {};
+  for (const [k, v] of Object.entries(CHAR)) if (k !== '"') DECODE[v] = k;
+  // extra glyphs this kit adds in the unused tail of the font page ($F5F2-$F5FD)
+  const EXTRA_GLYPHS = [0x76, 0xCC, 0xD6, 0xC6, 0xC6, 0x7C, /* Q (bottom row first) */
+                        0x00, 0x00, 0x00, 0x7C, 0x00, 0x00  /* - */];
+  const LINE_W = 12, MAX_LINES = 10;
+  const SUBST = { '0': 'O', '1': 'I', '5': 'S', '8': 'B', '(': '-', ')': '-', ';': ',', '`': "'" };
+
+  function normText(s) {
+    return String(s || '').toUpperCase().replace(/\r/g, '');
+  }
+  function badChars(s) {
+    const bad = new Set();
+    for (const ch of normText(s)) if (ch !== '\n' && !(ch in CHAR)) bad.add(ch);
+    return [...bad];
+  }
+  // encode a page of text (lines joined with \n) -> bytes (each line + $FF, then $FE)
+  function encodePage(s, menuWord) {
+    const lines = normText(s).split('\n');
+    const out = [];
+    for (const line of lines) {
+      for (const ch of line.slice(0, LINE_W)) out.push(CHAR[ch] !== undefined ? CHAR[ch] : (CHAR[SUBST[ch]] !== undefined ? CHAR[SUBST[ch]] : CHAR[' ']));
+      out.push(0xFF);
+      if (menuWord) break;
+    }
+    if (!menuWord) out.push(0xFE);
+    return out;
+  }
+  function checkPage(s, label, errs, warns, opts = {}) {
+    const lines = normText(s).split('\n');
+    const maxL = opts.menuWord ? 1 : MAX_LINES;
+    if (opts.menuWord && lines.length > 1) errs.push(`${label}: menu words must be a single line`);
+    else if (lines.length > maxL) errs.push(`${label}: ${lines.length} lines (max ${maxL})`);
+    lines.forEach((l, i) => { if (l.length > LINE_W) errs.push(`${label}: line ${i + 1} is ${l.length} characters (max ${LINE_W})`); });
+    const bad = badChars(s);
+    if (bad.length) warns.push(`${label}: no glyph for ${bad.map(c => JSON.stringify(c)).join(' ')} (${bad.map(c => SUBST[c] ? c + '→' + SUBST[c] : c + '→space').join(', ')})`);
+  }
+
+  // ---------- Engine knowledge ----------
+  const BASE = 0xF000;
+  // code sites holding "LDA #lo / STA zp / LDA #hi / STA zp+1"  (lo at +1, hi at +5)
+  const SITE = {
+    bootText: 0xF039, startText: 0xF074, firstMenuWord: 0xF07C, nothingSpecial: 0xF29F,
+    nothingToTake: 0xF2F5, talkDefault: 0xF328, selectGive: 0xF33D, cantGive: 0xF37D,
+    selectUse: 0xF392, cantUse: 0xF3C0, carrying: 0xF3D5, itemTable: 0xF3FB, roomTable: 0xF5A1,
+    introMenuWord: 0xF5D5,
+  };
+  const IMM = { introPages: 0xF046 - 1, startRoom: 0xF06D, startInv: 0xF071, portalB: 0xF259, portalA: 0xF261, widthN: 0xF212, widthS: 0xF21C };
+  // IMM.introPages: LDA #$04 at F044 -> operand F045
+  IMM.introPages = 0xF045;
+  const TBL = { introMenu: 0xF4C6, introHandlers: 0xF4CA, introPages: 0xF4CE, moveMenu: 0xF4D8, actMenu: 0xF4EC };
+  const DATA_START = 0xF5F2, LIMIT = 0xFFF8; // never place data on bank-switch hotspots
+  const MOVE_WORDS = ['look', 'north', 'east', 'south', 'west'];
+  const ACT_WORDS = ['go', 'take', 'give', 'use', 'talk', 'inventory'];
+  const SYS_MSGS = ['nothingSpecial', 'nothingToTake', 'talkDefault', 'selectGive', 'cantGive', 'selectUse', 'cantUse', 'carrying'];
+
+  function rd(bk, a) { return bk[a - BASE]; }
+  function rw(bk, a) { return bk[a - BASE] | (bk[a - BASE + 1] << 8); }
+  function sitePtr(bk, site) { return bk[site + 1 - BASE] | (bk[site + 5 - BASE] << 8); }
+  function setSite(bk, site, v) { bk[site + 1 - BASE] = v & 0xFF; bk[site + 5 - BASE] = v >> 8; }
+
+  function isEngine(rom) {
+    if (!rom || rom.length !== 8192) return 'ROM must be an 8K (8192-byte) F8 image';
+    for (let b = 0; b < 2; b++) {
+      const bk = rom.subarray(b * 4096, b * 4096 + 4096);
+      // text kernel / room lookup / bank-switch compare signatures
+      const want = [[0xF43B, [0xA2, 0x04, 0x85, 0x02]], [0xF5A9, [0xA4, 0xA2, 0xC8, 0xB1, 0xA3]], [0xF258, [0xC9]], [0xF25C, [0xAE, 0xF8, 0xFF]], [0xF264, [0xAE, 0xF9, 0xFF]], [0xF17F, [0xB1, 0x9C, 0xC8, 0xC9, 0xFF]]];
+      for (const [a, bytes] of want) for (let i = 0; i < bytes.length; i++) if (rd(bk, a + i) !== bytes[i]) return 'This ROM does not contain the Dark Mage text engine (signature mismatch in bank ' + b + ')';
+    }
+    return null;
+  }
+
+  function readText(bk, a, menuWord) {
+    let s = '', i = a - BASE, n = 0;
+    while (i >= 0 && i < 4096 && n++ < 400) {
+      const v = bk[i++];
+      if (v === 0xFE) break;
+      if (v === 0xFF) { if (menuWord) break; s += '\n'; continue; }
+      s += DECODE[v] !== undefined ? DECODE[v] : ' ';
+    }
+    return s.replace(/\n$/, '');
+  }
+  function maskToIdx(m) { if (!m) return null; for (let i = 0; i < 8; i++) if (m & (1 << i)) return i; return null; }
+
+  // ---------- Parse a ROM into an editable project ----------
+  function parseRom(rom) {
+    const err = isEngine(rom); if (err) throw new Error(err);
+    const banks = [rom.subarray(0, 4096), rom.subarray(4096, 8192)];
+    const A = banks[1], B = banks[0]; // Map A = bank 1 (power-on / start), Map B = bank 0
+    const width = rd(A, IMM.widthN) >> 1;
+    const sys = {};
+    MOVE_WORDS.forEach((k, i) => sys[k] = readText(A, rw(A, TBL.moveMenu + 2 * i), true));
+    ACT_WORDS.forEach((k, i) => sys[k] = readText(A, rw(A, TBL.actMenu + 2 * i), true));
+    sys.more = readText(A, rw(A, TBL.introMenu), true);
+    sys.start = readText(A, rw(A, TBL.introMenu + 2), true);
+    for (const k of SYS_MSGS) sys[k] = readText(A, sitePtr(A, SITE[k]));
+    sys.bootB = readText(B, sitePtr(B, SITE.bootText)).split('\n').slice(0, MAX_LINES).join('\n');
+    if (!sys.bootB.trim()) sys.bootB = '';
+    const itemTbl = sitePtr(A, SITE.itemTable);
+    const items = [];
+    for (let i = 0; i < 8; i++) items.push(readText(A, rw(A, itemTbl + 2 * i), true));
+    // intro pages: first page from boot pointer; then table[n-1] .. table[0]
+    const nPages = rd(A, IMM.introPages);
+    const intro = [readText(A, sitePtr(A, SITE.bootText))];
+    for (let k = nPages - 1; k >= 0; k--) intro.push(readText(A, rw(A, TBL.introPages + 2 * k)));
+    const portalA = rd(A, IMM.portalB) >> 1; // index in Map A that leads into Map B (CMP #$2C -> bank0)
+    const portalB = rd(A, IMM.portalA) >> 1; // index in Map B that leads into Map A (CMP #$2A -> bank1)
+    const maps = [];
+    for (const [bk, name, portal] of [[A, 'Map A', portalA], [B, 'Map B', portalB]]) {
+      const tbl = sitePtr(bk, SITE.roomTable);
+      // table length: entries until we hit something that isn't a plausible record pointer
+      let n = 0;
+      while (n < 128) {
+        const p = rw(bk, tbl + 2 * n);
+        if (p < DATA_START || p >= LIMIT) break;
+        const f = rd(bk, p);
+        if (f === 0) { const m = rw(bk, p + 1); if (m < DATA_START || m >= LIMIT) break; }
+        n++;
+      }
+      n = Math.floor(n / width) * width;
+      const cells = [];
+      for (let i = 0; i < n; i++) {
+        const p = rw(bk, tbl + 2 * i);
+        const b = [...bk.subarray(p - BASE, p - BASE + 8)];
+        const ptr = k => rw(bk, p + 8 + 2 * k);
+        if (b[0] === 0) { cells.push({ type: 'wall', text: readText(bk, rw(bk, p + 1)) }); continue; }
+        const f = b[0];
+        const c = {
+          type: 'room', name: '',
+          desc: readText(bk, ptr(0)), look: readText(bk, ptr(1)),
+          lookReveals: !(f & 0x80) && !!b[1],
+          item: maskToIdx(b[2] || b[1]),
+          take: { on: !!(f & 0x40), text: (f & 0x40) ? readText(bk, ptr(2)) : '' },
+          use: { on: !!(f & 0x10), item: maskToIdx(b[3]), text: (f & 0x10) ? readText(bk, ptr(3)) : '' },
+          give: { on: !!(f & 0x20), item: maskToIdx(b[4]), text: (f & 0x20) ? readText(bk, ptr(4)) : '' },
+          talk: { on: !!(f & 0x08), needUsed: maskToIdx(b[5]), ok: (f & 0x08) ? readText(bk, ptr(5)) : '', no: (f & 0x08) ? readText(bk, ptr(7)) : '' },
+          sets: maskToIdx(b[6]),
+          door: { on: !!(f & 0x02), needEvent: maskToIdx(b[7]), text: (f & 0x02) ? readText(bk, ptr(6)) : '' },
+        };
+        c.name = c.desc.replace(/\n/g, ' ').replace(/^YOU ARE (IN|ON|AT|STANDING ON)( A| THE)?\s*/i, '').replace(/\s+/g, ' ').trim().slice(0, 28) || 'Room ' + i;
+        cells.push(c);
+      }
+      maps.push({ name, rows: n / width, cells });
+    }
+    return {
+      kit: 'tak', version: 1, title: 'Untitled adventure',
+      settings: { width, portalA, portalB },
+      start: { room: rd(A, IMM.startRoom) >> 1, inventory: [0, 1, 2, 3, 4, 5, 6, 7].filter(i => rd(A, IMM.startInv) & (1 << i)) },
+      items, events: ['Event 1', 'Event 2', 'Event 3', 'Event 4', 'Event 5', 'Event 6', 'Event 7', 'Event 8'],
+      system: sys, intro, maps,
+    };
+  }
+
+  // ---------- Exits / validation helpers ----------
+  function neighbors(project, mapIdx, idx) {
+    const W = project.settings.width, a = idx * 2;
+    const res = {};
+    for (const [dir, d] of [['N', -2 * W], ['E', 2], ['S', 2 * W], ['W', -2]]) {
+      const t = (a + d) & 0xFF;
+      let map = mapIdx;
+      if ((t >> 1) === project.settings.portalA && (t & 1) === 0) map = 1;          // entering portalA index => Map B
+      else if ((t >> 1) === project.settings.portalB && (t & 1) === 0) map = 0;     // entering portalB index => Map A
+      // engine checks portalA (CMP #$2C) first, then portalB
+      const ti = t >> 1;
+      const cells = project.maps[map].cells;
+      const wrap = (dir === 'E' && (idx % W) === W - 1) || (dir === 'W' && (idx % W) === 0);
+      res[dir] = { map, idx: ti, valid: ti < cells.length && (t & 1) === 0, wrap, cell: cells[ti] };
+    }
+    return res;
+  }
+
+  function validate(project) {
+    const errs = [], warns = [];
+    const P = project, W = P.settings.width;
+    if (!(W >= 2 && W <= 21)) errs.push('Map width must be between 2 and 21');
+    P.maps.forEach((m, mi) => {
+      if (m.cells.length !== m.rows * W) errs.push(`${m.name}: cell count mismatch`);
+      if (m.cells.length * 2 > 256) errs.push(`${m.name}: too many cells (max 128)`);
+    });
+    const pA = P.settings.portalA, pB = P.settings.portalB;
+    if (pA === pB) errs.push('The two portal cells must be different grid positions');
+    if (pA >= P.maps[1].cells.length) errs.push('Portal into Map B points outside Map B');
+    if (pB >= P.maps[0].cells.length) errs.push('Portal into Map A points outside Map A');
+    if (P.maps[1].cells[pA] && P.maps[1].cells[pA].type !== 'room') warns.push('The Map B cell that the portal leads to is a wall');
+    if (P.maps[0].cells[pB] && P.maps[0].cells[pB].type !== 'room') warns.push('The Map A cell that the portal leads to is a wall');
+    const sr = P.start.room;
+    if (!P.maps[0].cells[sr] || P.maps[0].cells[sr].type !== 'room') errs.push('Start room must be a room in Map A');
+    if (sr === pA || sr === pB) errs.push('Start room cannot be a portal cell');
+    if (P.intro.length < 2 || P.intro.length > 6) errs.push('Intro must have 2 to 6 pages');
+    // The engine crashes if GIVE / USE / INVENTORY is opened with nothing carried (Dark Mage's
+    // hammer exists for exactly this reason), so one starting item must never be given away.
+    const given = new Set();
+    P.maps.forEach(m => m.cells.forEach(c => { if (c.type === 'room' && c.give.on && c.give.item != null) given.add(c.give.item); }));
+    if (!P.start.inventory.some(i => !given.has(i)))
+      errs.push('The player must always carry something: start with at least one item that no GIVE puzzle takes (like Dark Mage\'s hammer). An empty inventory crashes the engine.');
+    P.intro.forEach((t, i) => checkPage(t, `Intro page ${i + 1}`, errs, warns));
+    P.items.forEach((t, i) => checkPage(t, `Item ${i + 1} name`, errs, warns, { menuWord: true }));
+    for (const k of [...MOVE_WORDS, ...ACT_WORDS, 'more', 'start']) checkPage(P.system[k], `Menu word "${k}"`, errs, warns, { menuWord: true });
+    for (const k of SYS_MSGS) checkPage(P.system[k], `System message "${k}"`, errs, warns);
+    checkPage(P.system.bootB, 'Bank-0 power-on text', errs, warns);
+    P.maps.forEach((m, mi) => m.cells.forEach((c, i) => {
+      const portalHere = (mi === 0 && i === pA) || (mi === 1 && i === pB);
+      if (portalHere) return; // never read by the engine
+      const lbl = `${m.name} r${Math.floor(i / W) + 1}c${(i % W) + 1}`;
+      if (c.type === 'wall') { checkPage(c.text, lbl + ' wall text', errs, warns); return; }
+      const L = lbl + ` (${c.name || 'room'})`;
+      checkPage(c.desc, L + ' description', errs, warns);
+      checkPage(c.look, L + ' LOOK text', errs, warns);
+      if (c.take.on) { checkPage(c.take.text, L + ' TAKE text', errs, warns); if (c.item == null) errs.push(L + ': TAKE is on but no item is set'); }
+      if (c.use.on) { checkPage(c.use.text, L + ' USE text', errs, warns); if (c.use.item == null) errs.push(L + ': USE is on but no item chosen'); }
+      if (c.give.on) { checkPage(c.give.text, L + ' GIVE text', errs, warns); if (c.give.item == null) errs.push(L + ': GIVE is on but no item chosen'); }
+      if (c.talk.on) { checkPage(c.talk.ok, L + ' TALK (success) text', errs, warns); checkPage(c.talk.no, L + ' TALK (default) text', errs, warns); }
+      if (c.door.on) { checkPage(c.door.text, L + ' blocked text', errs, warns); if (c.door.needEvent == null) errs.push(L + ': locked room needs an event'); }
+      const nb = neighbors(P, mi, i);
+      for (const [d, n] of Object.entries(nb)) {
+        if (!n.valid) errs.push(`${L}: going ${d} leaves the map (put a wall cell there)`);
+        else if (n.wrap && n.cell && n.cell.type === 'room') warns.push(`${L}: going ${d} wraps around to the other edge of the map`);
+      }
+    }));
+    return { errs, warns };
+  }
+
+  // ---------- Build ----------
+  class Writer {
+    constructor(bk, start, limit) { this.bk = bk; this.pc = start; this.strStart = start; this.cache = new Map(); this.limit = limit || LIMIT; }
+    put(bytes) { const a = this.pc; if (a + bytes.length > this.limit) throw new Error('OUT_OF_SPACE'); for (const b of bytes) this.bk[this.pc++ - BASE] = b; return a; }
+    // place a string, reusing any identical byte run already in the string area
+    str(bytes, searchFrom) {
+      const key = bytes.join(',');
+      if (this.cache.has(key)) return this.cache.get(key);
+      const from = searchFrom - BASE, to = this.pc - BASE;
+      outer: for (let i = from; i + bytes.length <= to; i++) {
+        for (let j = 0; j < bytes.length; j++) if (this.bk[i + j] !== bytes[j]) continue outer;
+        this.cache.set(key, i + BASE); return i + BASE;
+      }
+      const a = this.put(bytes); this.cache.set(key, a); return a;
+    }
+  }
+
+  function bit(i) { return i == null ? 0 : (1 << i); }
+
+  // opts.measure: only measure space (no engine needed, ignores validation errors)
+  function buildRom(project, engine, opts = {}) {
+    const measure = !!opts.measure;
+    if (!measure) { const e = isEngine(engine); if (e) throw new Error(e); }
+    const P = project, W = P.settings.width;
+    const { errs, warns } = measure ? { errs: [], warns: [] } : validate(P);
+    if (errs.length) return { ok: false, errs, warns };
+    const lim = measure ? 0x30000 : LIMIT;
+    const rom = measure ? new Uint8Array(0x40000) : new Uint8Array(engine);
+    const banks = measure ? [rom.subarray(0, 0x20000), rom.subarray(0x20000, 0x40000)] : [rom.subarray(0, 4096), rom.subarray(4096, 8192)];
+    // wipe data area of both banks
+    for (const bk of banks) for (let a = DATA_START; a < LIMIT; a++) bk[a - BASE] = 0xFF;
+
+    // ---- common block (identical in both banks, same addresses) ----
+    const cb = banks[1];
+    // the extra Q / - glyphs take 12 bytes of the font page; only reserve them if used
+    const allText = JSON.stringify([P.intro, P.items, P.system, P.maps]).toUpperCase();
+    const usesExtra = /[Q\-()]/.test(allText);
+    let cstart = DATA_START;
+    if (usesExtra) { for (let i = 0; i < EXTRA_GLYPHS.length; i++) cb[0xF5F2 + i - BASE] = EXTRA_GLYPHS[i]; cstart = 0xF5FE; }
+    const cw = new Writer(cb, cstart, lim);
+    const commonStr = [];
+    const words = {};
+    // longest strings first so shorter ones can reuse their tails
+    const pending = [];
+    for (const k of [...MOVE_WORDS, ...ACT_WORDS, 'more', 'start']) pending.push(['w:' + k, encodePage(P.system[k], true)]);
+    for (const k of SYS_MSGS) pending.push(['m:' + k, encodePage(P.system[k])]);
+    P.items.forEach((t, i) => pending.push(['i:' + i, encodePage(t, true)]));
+    pending.sort((a, b) => b[1].length - a[1].length);
+    const caddr = {};
+    try {
+      for (const [k, bytes] of pending) caddr[k] = cw.str(bytes, cstart);
+      // item pointer table
+      caddr.itemTable = cw.put(P.items.flatMap((_, i) => [caddr['i:' + i] & 0xFF, caddr['i:' + i] >> 8]));
+    } catch (x) { if (x.message === 'OUT_OF_SPACE') return { ok: false, errs: ['Out of space in the shared text block'], warns }; throw x; }
+    const commonEnd = cw.pc;
+    for (let a = 0xF5F2; a < commonEnd; a++) banks[0][a - BASE] = cb[a - BASE];
+
+    // ---- code patches common to both banks ----
+    for (const bk of banks) {
+      setSite(bk, SITE.firstMenuWord, caddr['w:look']);
+      setSite(bk, SITE.introMenuWord, caddr['w:more']);
+      for (const k of SYS_MSGS) setSite(bk, SITE[k], caddr['m:' + k]);
+      setSite(bk, SITE.itemTable, caddr.itemTable);
+      MOVE_WORDS.forEach((k, i) => { bk[TBL.moveMenu + 2 * i - BASE] = caddr['w:' + k] & 0xFF; bk[TBL.moveMenu + 2 * i + 1 - BASE] = caddr['w:' + k] >> 8; });
+      ACT_WORDS.forEach((k, i) => { bk[TBL.actMenu + 2 * i - BASE] = caddr['w:' + k] & 0xFF; bk[TBL.actMenu + 2 * i + 1 - BASE] = caddr['w:' + k] >> 8; });
+      bk[TBL.introMenu - BASE] = caddr['w:more'] & 0xFF; bk[TBL.introMenu + 1 - BASE] = caddr['w:more'] >> 8;
+      bk[TBL.introMenu + 2 - BASE] = caddr['w:start'] & 0xFF; bk[TBL.introMenu + 3 - BASE] = caddr['w:start'] >> 8;
+      bk[IMM.portalB - BASE] = (P.settings.portalA * 2) & 0xFF; // CMP #pA -> switch to bank 0 (Map B)
+      bk[IMM.portalA - BASE] = (P.settings.portalB * 2) & 0xFF; // CMP #pB -> switch to bank 1 (Map A)
+      bk[IMM.widthN - BASE] = 2 * W; bk[IMM.widthS - BASE] = 2 * W;
+      bk[IMM.startRoom - BASE] = P.start.room * 2;
+      bk[IMM.startInv - BASE] = P.start.inventory.reduce((m, i) => m | bit(i), 0);
+      bk[IMM.introPages - BASE] = P.intro.length - 1;
+    }
+    // bank 0: both intro-menu entries reboot into bank 1 (original quirk fix)
+    for (const off of [0, 2]) { banks[0][TBL.introHandlers + off - BASE] = 0x5D; banks[0][TBL.introHandlers + off + 1 - BASE] = 0xF0; }
+
+    // ---- per-bank world data ----
+    const usage = [];
+    const mapForBank = [P.maps[1], P.maps[0]]; // bank0 = Map B, bank1 = Map A
+    for (let b = 0; b < 2; b++) {
+      const bk = banks[b], map = mapForBank[b];
+      const w = new Writer(bk, commonEnd, lim);
+      w.cache = new Map(cw.cache); // shared strings are present in both banks
+      try {
+        const table = w.put(new Array(map.cells.length * 2).fill(0));
+        setSite(bk, SITE.roomTable, table);
+        const strFrom = cstart;
+        // gather all strings for this bank, place longest first
+        const S = [];
+        const want = (t) => { const bytes = encodePage(t); S.push(bytes); return bytes.join(','); };
+        const deadIdx = b === 0 ? P.settings.portalB : P.settings.portalA;
+        const recs = map.cells.map((c, i) => {
+          if (i === deadIdx) return null;
+          if (c.type === 'wall') return { wall: want(c.text) };
+          const r = { c, k: [want(c.desc), want(c.look)] };
+          r.k[2] = c.take.on ? want(c.take.text) : null;
+          r.k[3] = c.use.on ? want(c.use.text) : null;
+          r.k[4] = c.give.on ? want(c.give.text) : null;
+          r.k[5] = c.talk.on ? want(c.talk.ok) : null;
+          r.k[6] = c.door.on ? want(c.door.text) : null;
+          r.k[7] = c.talk.on ? want(c.talk.no) : null;
+          return r;
+        });
+        let introKeys = [];
+        if (b === 1) introKeys = P.intro.map(want);
+        else want(P.system.bootB);
+        S.sort((x, y) => y.length - x.length);
+        const addr = {};
+        for (const bytes of S) addr[bytes.join(',')] = w.str(bytes, strFrom);
+        // records
+        const recCache = new Map();
+        const recAddr = recs.map(r => {
+          if (!r) return null;
+          let bytes;
+          if (r.wall) { const a = addr[r.wall]; bytes = [0, a & 0xFF, a >> 8]; }
+          else {
+            const c = r.c;
+            let f = 0;
+            if (c.door.on) f |= 0x02;
+            if (c.talk.on) f |= 0x08;
+            if (c.use.on) f |= 0x10;
+            if (c.give.on) f |= 0x20;
+            if (c.take.on) f |= 0x40;
+            const reveal = c.lookReveals && c.item != null;
+            if (!reveal) f |= 0x80;
+            bytes = [f, reveal ? bit(c.item) : 0, bit(c.item), c.use.on ? bit(c.use.item) : 0, c.give.on ? bit(c.give.item) : 0,
+              c.talk.on ? bit(c.talk.needUsed) : 0, bit(c.sets), c.door.on ? bit(c.door.needEvent) : 0];
+            let last = 1; r.k.forEach((k, i) => { if (k) last = i; });
+            for (let i = 0; i <= last; i++) { const a = r.k[i] ? addr[r.k[i]] : 0xFFFF; bytes.push(a & 0xFF, a >> 8); }
+          }
+          const key = bytes.join(',');
+          if (!recCache.has(key)) recCache.set(key, w.put(bytes));
+          return recCache.get(key);
+        });
+        // dead (portal) slot: point at any wall/record so the table is well-formed
+        const any = recAddr.find(a => a != null);
+        recAddr.forEach((a, i) => { const v = a == null ? any : a; bk[table + 2 * i - BASE] = v & 0xFF; bk[table + 2 * i + 1 - BASE] = v >> 8; });
+        if (b === 1) {
+          const ptrs = introKeys.map(k => addr[k]);
+          setSite(bk, SITE.bootText, ptrs[0]);
+          // pages 2..n come from table[n-2] down to table[0]
+          const n = ptrs.length - 1;
+          for (let k = 0; k < 5; k++) {
+            const v = k < n ? ptrs[n - k] : ptrs[ptrs.length - 1];
+            bk[TBL.introPages + 2 * k - BASE] = v & 0xFF; bk[TBL.introPages + 2 * k + 1 - BASE] = v >> 8;
+          }
+          const sc = P.maps[0].cells[P.start.room];
+          setSite(bk, SITE.startText, addr[encodePage(sc.desc).join(',')]);
+        } else {
+          const a = addr[encodePage(P.system.bootB).join(',')];
+          setSite(bk, SITE.bootText, a); setSite(bk, SITE.startText, a);
+          for (let k = 0; k < 5; k++) { bk[TBL.introPages + 2 * k - BASE] = a & 0xFF; bk[TBL.introPages + 2 * k + 1 - BASE] = a >> 8; }
+        }
+      } catch (x) {
+        if (x.message === 'OUT_OF_SPACE') return { ok: false, errs: [`${map.name} does not fit in its 4K bank — shorten some text or reuse identical messages`], warns };
+        throw x;
+      }
+      usage[b] = { used: w.pc - DATA_START, total: LIMIT - DATA_START, free: LIMIT - w.pc };
+    }
+    return { ok: true, rom: measure ? null : rom, warns, usage: { mapA: usage[1], mapB: usage[0] }, extraGlyphs: usesExtra };
+  }
+
+  // ---------- Space estimate without building (fast) ----------
+
+
+  // ---------- New blank project ----------
+  function room(name, desc, look) {
+    return { type: 'room', name, desc, look, lookReveals: false, item: null, take: { on: false, text: '' }, use: { on: false, item: null, text: '' },
+      give: { on: false, item: null, text: '' }, talk: { on: false, needUsed: null, ok: '', no: '' }, sets: null, door: { on: false, needEvent: null, text: '' } };
+  }
+  function wall(text) { return { type: 'wall', text }; }
+  function newProject(opts = {}) {
+    const W = opts.width || 6, rA = opts.rowsA || 5, rB = opts.rowsB || 5;
+    const mk = (rows) => Array.from({ length: rows * W }, () => wall('YOU CAN\'T GO\nTHAT WAY.'));
+    const A = mk(rA), B = mk(rB);
+    const pA = (opts.portalRow != null ? opts.portalRow : 2) * W + Math.floor(W / 2);   // cell in Map A that leads into Map B
+    const pB = pA - 1;                                                                   // cell in Map B that leads into Map A
+    A[W + 1] = room('Start', 'YOU ARE IN A\nSMALL ROOM.', 'IT IS VERY\nQUIET HERE.');
+    A[pB] = room('Portal path (Map A side)', 'A NARROW\nPASSAGE\nLEADS EAST.', 'YOU FEEL A\nCOLD DRAFT.');
+    B[pA] = room('Portal path (Map B side)', 'YOU HAVE\nCROSSED INTO\nA NEW LAND.', 'THE PASSAGE\nWEST LEADS\nBACK HOME.');
+    return {
+      kit: 'tak', version: 1, title: opts.title || 'My adventure',
+      settings: { width: W, portalA: pA, portalB: pB },
+      start: { room: W + 1, inventory: [0] },
+      items: ['A LAMP', 'A KEY', 'A COIN', 'A ROPE', 'A SCROLL', 'A SWORD', 'AN APPLE', 'A GEM'],
+      events: ['Event 1', 'Event 2', 'Event 3', 'Event 4', 'Event 5', 'Event 6', 'Event 7', 'Event 8'],
+      system: { look: 'LOOK', north: 'NORTH', east: 'EAST', south: 'SOUTH', west: 'WEST', go: 'GO', take: 'TAKE', give: 'GIVE', use: 'USE', talk: 'TALK', inventory: 'INVENTORY',
+        more: 'MORE...', start: 'START', nothingSpecial: 'YOU SEE\nNOTHING\nSPECIAL', nothingToTake: 'YOU SEE\nNOTHING\nWORTH\nTAKING', talkDefault: 'NO ONE\nANSWERS.',
+        selectGive: 'SELECT ITEM\nTO GIVE:', cantGive: "CAN'T GIVE\nTHAT", selectUse: 'SELECT ITEM\nTO USE:', cantUse: "CAN'T USE\nTHAT", carrying: 'YOU ARE\nCARRYING:', bootB: '' },
+      intro: ['\n\n  MY GAME\n\n\n    BY\n   ME', 'YOUR QUEST\nBEGINS NOW.'],
+      maps: [{ name: 'Map A', rows: rA, cells: A }, { name: 'Map B', rows: rB, cells: B }],
+    };
+  }
+
+  // ---------- 6502 + F8 + RIOT emulator (enough for this engine) ----------
+  class Emu {
+    constructor(rom) {
+      this.rom = rom; this.ram = new Uint8Array(128); this.bank = 1;
+      this.a = 0; this.x = 0; this.y = 0; this.sp = 0xFD; this.p = 0x24; this.cyc = 0;
+      this.swcha = 0xFF; this.inpt4 = 0x80; this.swchb = 0x0B;
+      this.tStart = 0; this.tVal = 0; this.tShift = 1024; this.vsync = 0; this.frames = 0;
+      this.pc = this.r16(0xFFFC);
+    }
+    access(a) { a &= 0x1FFF; if (a === 0x1FF8) this.bank = 0; else if (a === 0x1FF9) this.bank = 1; return a; }
+    read(addr) {
+      const a = this.access(addr);
+      if (a & 0x1000) return this.rom[this.bank * 4096 + (a & 0xFFF)];
+      if ((a & 0x80) && !(a & 0x200)) return this.ram[a & 0x7F];
+      if (a & 0x80) { // RIOT
+        const r = a & 0x2FF;
+        if ((r & 0x7) === 0 && !(r & 0x4)) return this.swcha;          // 280
+        if ((r & 0x7) === 2) return this.swchb;                         // 282
+        if ((r & 0x5) === 4) return this.intim();                       // 284
+        return 0;
+      }
+      const t = a & 0x0F; // TIA read
+      if (t === 0x0C) return this.inpt4;
+      if (t === 0x0D) return 0x80;
+      return 0;
+    }
+    intim() {
+      const el = this.cyc - this.tStart, ticks = Math.floor(el / this.tShift);
+      if (ticks <= this.tVal) return this.tVal - ticks;
+      return (0xFF - (el - (this.tVal + 1) * this.tShift)) & 0xFF;
+    }
+    write(addr, v) {
+      const a = this.access(addr);
+      if (a & 0x1000) return;
+      if ((a & 0x80) && !(a & 0x200)) { this.ram[a & 0x7F] = v; return; }
+      if (a & 0x80) { // RIOT
+        if (a & 0x10) { const s = [1, 8, 64, 1024][a & 3]; this.tShift = s; this.tVal = v; this.tStart = this.cyc; }
+        return;
+      }
+      const t = a & 0x3F;
+      if (t === 0x02) { this.cyc += (76 - (this.cyc % 76)) % 76; } // WSYNC
+      else if (t === 0x00) { const on = v & 2; if (on && !this.vsync) this.frames++; this.vsync = on; }
+    }
+    r16(a) { return this.read(a) | (this.read(a + 1) << 8); }
+    push(v) { this.write(0x100 | this.sp, v); this.sp = (this.sp - 1) & 0xFF; }
+    pull() { this.sp = (this.sp + 1) & 0xFF; return this.read(0x100 | this.sp); }
+    nz(v) { this.p = (this.p & 0x7D) | (v & 0x80) | (v ? 0 : 2); return v; }
+    step() {
+      const op = this.read(this.pc); this.pc = (this.pc + 1) & 0xFFFF;
+      const I = OPS[op];
+      if (!I) throw new Error('Illegal opcode $' + op.toString(16) + ' at $' + ((this.pc - 1) & 0xFFFF).toString(16));
+      I(this); this.cyc += CYC[op];
+    }
+    runFrame(maxCyc = 200000) {
+      const f = this.frames, lim = this.cyc + maxCyc;
+      while (this.frames === f && this.cyc < lim) this.step();
+    }
+    // engine state helpers
+    textPtr() { return this.ram[0x1C] | (this.ram[0x1D] << 8); }
+    menuPtr() { return this.ram[0x1E] | (this.ram[0x1F] << 8); }
+    bankBytes() { return this.rom.subarray(this.bank * 4096, this.bank * 4096 + 4096); }
+    screenText() { return readText(this.bankBytes(), this.textPtr()); }
+    menuText() { return readText(this.bankBytes(), this.menuPtr(), true); }
+    state() { const r = this.ram; return { room: r[0x22] >> 1, bank: this.bank, inv: r[0x27], taken: r[0x26], seen: r[0x28], used: r[0x29], events: r[0x2C] }; }
+  }
+  // addressing helpers
+  const imm = c => { const v = c.pc; c.pc = (c.pc + 1) & 0xFFFF; return v; };
+  const zp = c => c.read(imm(c));
+  const zpx = c => (c.read(imm(c)) + c.x) & 0xFF;
+  const zpy = c => (c.read(imm(c)) + c.y) & 0xFF;
+  const abs = c => { const v = c.r16(c.pc); c.pc = (c.pc + 2) & 0xFFFF; return v; };
+  const abx = c => { const b = abs(c), v = (b + c.x) & 0xFFFF; if ((b & 0xFF00) !== (v & 0xFF00)) c.cyc++; return v; };
+  const aby = c => { const b = abs(c), v = (b + c.y) & 0xFFFF; if ((b & 0xFF00) !== (v & 0xFF00)) c.cyc++; return v; };
+  const izx = c => { const z = (c.read(imm(c)) + c.x) & 0xFF; return c.read(z) | (c.read((z + 1) & 0xFF) << 8); };
+  const izy = c => { const z = c.read(imm(c)); const b = c.read(z) | (c.read((z + 1) & 0xFF) << 8); const v = (b + c.y) & 0xFFFF; if ((b & 0xFF00) !== (v & 0xFF00)) c.cyc++; return v; };
+  const OPS = new Array(256), CYC = new Array(256).fill(2);
+  const AM = { imm: c => imm(c), zp: c => c.read(imm(c)), zpx, zpy, abs, abx, aby, izx, izy };
+  function def(list, fn) { for (const [op, m, cy] of list) { const am = AM[m]; OPS[op] = c => fn(c, am ? am(c) : null); CYC[op] = cy; } }
+  const adc = (c, v) => { const C = c.p & 1, r = c.a + v + C; c.p = (c.p & ~0x41) | (r > 0xFF ? 1 : 0) | ((~(c.a ^ v) & (c.a ^ r) & 0x80) ? 0x40 : 0); c.a = c.nz(r & 0xFF); };
+  const cmp = (c, r, v) => { const t = (r - v) & 0xFF; c.p = (c.p & ~1) | (r >= v ? 1 : 0); c.nz(t); };
+  def([[0x69, 'imm', 2], [0x65, 'zp', 3], [0x75, 'zpx', 4], [0x6D, 'abs', 4], [0x7D, 'abx', 4], [0x79, 'aby', 4], [0x61, 'izx', 6], [0x71, 'izy', 5]], (c, a) => adc(c, c.read(a)));
+  def([[0xE9, 'imm', 2], [0xE5, 'zp', 3], [0xF5, 'zpx', 4], [0xED, 'abs', 4], [0xFD, 'abx', 4], [0xF9, 'aby', 4], [0xE1, 'izx', 6], [0xF1, 'izy', 5]], (c, a) => adc(c, c.read(a) ^ 0xFF));
+  def([[0x29, 'imm', 2], [0x25, 'zp', 3], [0x35, 'zpx', 4], [0x2D, 'abs', 4], [0x3D, 'abx', 4], [0x39, 'aby', 4], [0x21, 'izx', 6], [0x31, 'izy', 5]], (c, a) => { c.a = c.nz(c.a & c.read(a)); });
+  def([[0x09, 'imm', 2], [0x05, 'zp', 3], [0x15, 'zpx', 4], [0x0D, 'abs', 4], [0x1D, 'abx', 4], [0x19, 'aby', 4], [0x01, 'izx', 6], [0x11, 'izy', 5]], (c, a) => { c.a = c.nz(c.a | c.read(a)); });
+  def([[0x49, 'imm', 2], [0x45, 'zp', 3], [0x55, 'zpx', 4], [0x4D, 'abs', 4], [0x5D, 'abx', 4], [0x59, 'aby', 4], [0x41, 'izx', 6], [0x51, 'izy', 5]], (c, a) => { c.a = c.nz(c.a ^ c.read(a)); });
+  def([[0xC9, 'imm', 2], [0xC5, 'zp', 3], [0xD5, 'zpx', 4], [0xCD, 'abs', 4], [0xDD, 'abx', 4], [0xD9, 'aby', 4], [0xC1, 'izx', 6], [0xD1, 'izy', 5]], (c, a) => cmp(c, c.a, c.read(a)));
+  def([[0xE0, 'imm', 2], [0xE4, 'zp', 3], [0xEC, 'abs', 4]], (c, a) => cmp(c, c.x, c.read(a)));
+  def([[0xC0, 'imm', 2], [0xC4, 'zp', 3], [0xCC, 'abs', 4]], (c, a) => cmp(c, c.y, c.read(a)));
+  def([[0xA9, 'imm', 2], [0xA5, 'zp', 3], [0xB5, 'zpx', 4], [0xAD, 'abs', 4], [0xBD, 'abx', 4], [0xB9, 'aby', 4], [0xA1, 'izx', 6], [0xB1, 'izy', 5]], (c, a) => { c.a = c.nz(c.read(a)); });
+  def([[0xA2, 'imm', 2], [0xA6, 'zp', 3], [0xB6, 'zpy', 4], [0xAE, 'abs', 4], [0xBE, 'aby', 4]], (c, a) => { c.x = c.nz(c.read(a)); });
+  def([[0xA0, 'imm', 2], [0xA4, 'zp', 3], [0xB4, 'zpx', 4], [0xAC, 'abs', 4], [0xBC, 'abx', 4]], (c, a) => { c.y = c.nz(c.read(a)); });
+  def([[0x85, 'zp', 3], [0x95, 'zpx', 4], [0x8D, 'abs', 4], [0x9D, 'abx', 5], [0x99, 'aby', 5], [0x81, 'izx', 6], [0x91, 'izy', 6]], (c, a) => c.write(a, c.a));
+  def([[0x86, 'zp', 3], [0x96, 'zpy', 4], [0x8E, 'abs', 4]], (c, a) => c.write(a, c.x));
+  def([[0x84, 'zp', 3], [0x94, 'zpx', 4], [0x8C, 'abs', 4]], (c, a) => c.write(a, c.y));
+  def([[0x24, 'zp', 3], [0x2C, 'abs', 4]], (c, a) => { const v = c.read(a); c.p = (c.p & 0x3D) | (v & 0xC0) | ((c.a & v) ? 0 : 2); });
+  const rmw = (list, f) => def(list, (c, a) => { if (a === null) { c.a = f(c, c.a); } else { c.write(a, f(c, c.read(a))); } });
+  rmw([[0x0A, null, 2], [0x06, 'zp', 5], [0x16, 'zpx', 6], [0x0E, 'abs', 6], [0x1E, 'abx', 7]], (c, v) => { c.p = (c.p & ~1) | (v >> 7); return c.nz((v << 1) & 0xFF); });
+  rmw([[0x4A, null, 2], [0x46, 'zp', 5], [0x56, 'zpx', 6], [0x4E, 'abs', 6], [0x5E, 'abx', 7]], (c, v) => { c.p = (c.p & ~1) | (v & 1); return c.nz(v >> 1); });
+  rmw([[0x2A, null, 2], [0x26, 'zp', 5], [0x36, 'zpx', 6], [0x2E, 'abs', 6], [0x3E, 'abx', 7]], (c, v) => { const C = c.p & 1; c.p = (c.p & ~1) | (v >> 7); return c.nz(((v << 1) | C) & 0xFF); });
+  rmw([[0x6A, null, 2], [0x66, 'zp', 5], [0x76, 'zpx', 6], [0x6E, 'abs', 6], [0x7E, 'abx', 7]], (c, v) => { const C = c.p & 1; c.p = (c.p & ~1) | (v & 1); return c.nz((v >> 1) | (C << 7)); });
+  rmw([[0xE6, 'zp', 5], [0xF6, 'zpx', 6], [0xEE, 'abs', 6], [0xFE, 'abx', 7]], (c, v) => c.nz((v + 1) & 0xFF));
+  rmw([[0xC6, 'zp', 5], [0xD6, 'zpx', 6], [0xCE, 'abs', 6], [0xDE, 'abx', 7]], (c, v) => c.nz((v - 1) & 0xFF));
+  const br = (op, test) => { OPS[op] = c => { const o = c.read(imm(c)); if (test(c)) { const t = (c.pc + (o < 128 ? o : o - 256)) & 0xFFFF; c.cyc += ((t & 0xFF00) !== (c.pc & 0xFF00)) ? 2 : 1; c.pc = t; } }; CYC[op] = 2; };
+  br(0x10, c => !(c.p & 0x80)); br(0x30, c => c.p & 0x80); br(0x50, c => !(c.p & 0x40)); br(0x70, c => c.p & 0x40);
+  br(0x90, c => !(c.p & 1)); br(0xB0, c => c.p & 1); br(0xD0, c => !(c.p & 2)); br(0xF0, c => c.p & 2);
+  const imp = (op, cy, f) => { OPS[op] = f; CYC[op] = cy; };
+  imp(0xEA, 2, () => { }); imp(0x18, 2, c => c.p &= ~1); imp(0x38, 2, c => c.p |= 1); imp(0x58, 2, c => c.p &= ~4); imp(0x78, 2, c => c.p |= 4);
+  imp(0xB8, 2, c => c.p &= ~0x40); imp(0xD8, 2, c => c.p &= ~8); imp(0xF8, 2, c => c.p |= 8);
+  imp(0xAA, 2, c => c.x = c.nz(c.a)); imp(0x8A, 2, c => c.a = c.nz(c.x)); imp(0xA8, 2, c => c.y = c.nz(c.a)); imp(0x98, 2, c => c.a = c.nz(c.y));
+  imp(0xBA, 2, c => c.x = c.nz(c.sp)); imp(0x9A, 2, c => c.sp = c.x);
+  imp(0xE8, 2, c => c.x = c.nz((c.x + 1) & 0xFF)); imp(0xCA, 2, c => c.x = c.nz((c.x - 1) & 0xFF));
+  imp(0xC8, 2, c => c.y = c.nz((c.y + 1) & 0xFF)); imp(0x88, 2, c => c.y = c.nz((c.y - 1) & 0xFF));
+  imp(0x48, 3, c => c.push(c.a)); imp(0x68, 4, c => c.a = c.nz(c.pull())); imp(0x08, 3, c => c.push(c.p | 0x30)); imp(0x28, 4, c => c.p = c.pull() | 0x20);
+  imp(0x4C, 3, c => { c.pc = abs(c); });
+  imp(0x6C, 5, c => { const a = abs(c); c.pc = c.read(a) | (c.read((a & 0xFF00) | ((a + 1) & 0xFF)) << 8); });
+  imp(0x20, 6, c => { const t = abs(c), r = (c.pc - 1) & 0xFFFF; c.push(r >> 8); c.push(r & 0xFF); c.pc = t; });
+  imp(0x60, 6, c => { const l = c.pull(), h = c.pull(); c.pc = (((h << 8) | l) + 1) & 0xFFFF; });
+  imp(0x40, 6, c => { c.p = c.pull() | 0x20; const l = c.pull(), h = c.pull(); c.pc = (h << 8) | l; });
+  imp(0x00, 7, c => { throw new Error('BRK at $' + ((c.pc - 1) & 0xFFFF).toString(16)); });
+
+  // High-level input driver. The engine samples the stick once every 8 frames and acts on
+  // the fire button's press edge, so: 'left'/'right' step the action menu by one;
+  // 'N','E','S','W' hold that direction and press fire; 'fire' presses fire alone.
+  const JOY = { N: 0xEF, S: 0xDF, W: 0xBF, E: 0x7F, left: 0xBF, right: 0x7F };
+  function act(emu, what) {
+    const idle = n => { for (let i = 0; i < n; i++) emu.runFrame(); };
+    if (what === 'reset') { emu.swchb = 0x0A; idle(4); emu.swchb = 0x0B; idle(12); return; }
+    if (what === 'left' || what === 'right') { emu.swcha = JOY[what]; idle(8); emu.swcha = 0xFF; idle(1); return; }
+    if (JOY[what]) { emu.swcha = JOY[what]; idle(9); }
+    emu.inpt4 = 0x00; idle(3); emu.inpt4 = 0x80; emu.swcha = 0xFF; idle(9);
+  }
+  root.TAK = { newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, BASE };
+})(typeof window !== 'undefined' ? window : globalThis);
+if (typeof module !== 'undefined') module.exports = globalThis.TAK;
+
+</script>
+<script>
+// Original sample adventure used as the editor's starting project ("The Last Lighthouse").
+(function (root) {
+  function makeDemo(TAK) {
+    const P = TAK.newProject({ width: 6, rowsA: 5, rowsB: 4, portalRow: 2, title: 'The Last Lighthouse' });
+    // portalA = 15 (Map A cell that leads to Map B), portalB = 14 (Map B cell that leads to Map A)
+    const R = (name, desc, look, extra) => Object.assign(TAK.room(name, desc, look), extra || {});
+    const W = TAK.wall;
+    const sea = "ICY WAVES\nCRASH ON\nTHE ROCKS.", dunes = "SAND DUNES\nROLL ON\nFOREVER.\n\nYOU TURN\nBACK.", cliff = "A SHEER\nCLIFF DROPS\nTO THE SEA.";
+    P.title = 'The Last Lighthouse';
+    P.items = ['A LANTERN', 'A SHELL', 'A FISH', 'SOME ROPE', 'A CAN OF OIL', 'A COIN', 'A KEY', 'A MAP'];
+    P.events = ['Stairs open', 'Keeper helps', 'Event 3', 'Event 4', 'Event 5', 'Event 6', 'Event 7', 'Event 8'];
+    P.start = { room: 7, inventory: [0] };
+    P.intro = [
+      '\n\n THE LAST\n LIGHTHOUSE\n\n\n  AN ATARI\n ADVENTURE',
+      'THE LAMP ON\nGULL ROCK\nHAS GONE\nDARK.',
+      'SHIPS ARE\nLOST IN THE\nQUIET FOG.\n\nONLY YOU\nCAN LIGHT\nIT AGAIN.',
+    ];
+    const A = P.maps[0].cells, B = P.maps[1].cells;
+    for (let i = 0; i < A.length; i++) A[i] = W(i < 12 ? sea : i < 24 ? cliff : dunes);
+    for (let i = 0; i < B.length; i++) B[i] = W(i < 12 ? sea : cliff);
+    A[7] = R('Harbor', 'YOU ARE ON\nTHE HARBOR\nWALL.', 'A HARBOR-\nMASTER IS\nMENDING A\nTORN NET.', {
+      use: { on: true, item: 3, text: 'YOU HELP HIM\nPATCH THE\nNET WITH\nYOUR ROPE.' },
+      talk: { on: true, needUsed: 3, ok: "'THANKS!\nI'VE OPENED\nTHE GATE TO\nTHE CLIFF\nSTAIRS.'", no: "'NETS DON'T\nMEND THEM-\nSELVES. GOT\nANY ROPE?'" },
+      sets: 0,
+    });
+    A[8] = R('Fish market', 'YOU ARE IN\nTHE FISH\nMARKET.', 'A FISHWIFE\nGUTS HER\nCATCH.', {
+      item: 2, take: { on: true, text: 'YOU WRAP UP\nTHE FISH.' },
+      give: { on: true, item: 1, text: "'A PRETTY\nSHELL! HERE,\nHAVE A FISH\nFOR IT.'" },
+      talk: { on: true, needUsed: null, ok: '', no: "'FRESH FISH!\nI TRADE FOR\nSHELLS.'" },
+    });
+    A[9] = R('Tavern', 'YOU ARE IN\nTHE SALTY\nDOG TAVERN.', 'AN OLD\nSAILOR\nSTARES AT\nHIS EMPTY\nPLATE.', {
+      item: 3, take: { on: true, text: 'YOU COIL\nTHE ROPE\nOVER YOUR\nSHOULDER.' },
+      give: { on: true, item: 2, text: "HE WOLFS\nDOWN THE\nFISH.\n\n'TAKE MY\nROPE, LAD.'" },
+      talk: { on: true, needUsed: null, ok: '', no: "'SO HUNGRY\nI COULD EAT\nA WHALE...'" },
+    });
+    A[13] = R('Beach', 'YOU ARE ON\nA PEBBLE\nBEACH.', 'SOMETHING\nGLINTS AT\nTHE WATER\'S\nEDGE.', {
+      item: 1, lookReveals: true, take: { on: true, text: 'YOU PICK UP\nA PINK\nSHELL.' },
+    });
+    A[14] = R('Cliff stairs', 'YOU ARE AT\nTHE CLIFF\nSTAIRS.', 'THE STAIRS\nCLIMB EAST\nTOWARD THE\nLIGHTHOUSE.', {
+      door: { on: true, needEvent: 0, text: 'A LOCKED\nGATE BARS\nTHE CLIFF\nSTAIRS.' },
+    });
+    A[19] = R('Dunes', 'YOU ARE IN\nWINDY\nDUNES.', 'A HUT\nSTANDS TO\nTHE EAST.');
+    A[20] = R('Old hut', 'YOU ARE IN\nAN OLD HUT.', 'ON A SHELF\nSITS A CAN\nOF LAMP OIL.', {
+      item: 4, lookReveals: true, take: { on: true, text: 'YOU TAKE\nTHE OIL.' },
+    });
+    // Map B (the island)
+    B[15] = R('Lighthouse base', 'YOU ARE AT\nTHE FOOT OF\nTHE LIGHT-\nHOUSE.', 'STAIRS WIND\nUPWARD.\nA DOOR\nLEADS EAST.');
+    B[16] = R("Keeper's room", "YOU ARE IN\nTHE KEEPER'S\nROOM.", 'IT IS TOO\nDARK TO SEE\nMUCH.', {
+      use: { on: true, item: 0, text: 'YOUR LANTERN\nREVEALS AN\nOLD KEEPER\nIN A CHAIR.' },
+      talk: { on: true, needUsed: 0, ok: "'THE LAMP\nIS DRY. FILL\nIT AND THE\nSHIPS WILL\nFIND THEIR\nWAY HOME.'", no: 'ONLY QUIET\nBREATHING\nIN THE DARK.' },
+      sets: 1,
+    });
+    B[9] = R('Lamp room', 'YOU ARE IN\nTHE LAMP\nROOM.', 'A GREAT\nDARK LAMP.\n\nIT NEEDS\nOIL.', {
+      door: { on: true, needEvent: 1, text: "A VOICE:\n'NOT UP\nTHERE,\nSTRANGER!'" },
+      use: { on: true, item: 4, text: 'YOU FILL THE\nLAMP. LIGHT\nSWEEPS THE\nSEA ONCE\nMORE.\n\n  THE END' },
+    });
+    P.system.talkDefault = 'NO ONE\nANSWERS.';
+    return P;
+  }
+  root.TAK_DEMO = makeDemo;
+  if (typeof module !== 'undefined') module.exports = makeDemo;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+(function () {
+'use strict';
+const $ = s => document.querySelector(s);
+const el = (tag, attrs, ...kids) => {
+  const e = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v === true) e.setAttribute(k, ''); else if (v !== false && v != null) e.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) e.append(k.nodeType ? k : document.createTextNode(k));
+  return e;
+};
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { } },
+};
+function toast(msg, ms = 3200) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, ms); }
+
+// ---------------- state ----------------
+let P = null;               // project
+let engine = null;          // Uint8Array (8K)
+let sel = { map: 0, idx: 0 };
+let leftTab = 'map0';
+let tvMode = 'preview';
+let preview = { text: '', label: '', menu: '' };
+let report = { errs: [], warns: [] };
+
+function cloneDeep(o) { return JSON.parse(JSON.stringify(o)); }
+function loadEngineFromStore() {
+  const b64 = store.get('tak.engine'); if (!b64) return;
+  try { const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < a.length; i++) a[i] = bin.charCodeAt(i); if (!TAK.isEngine(a)) engine = a; } catch (e) { }
+}
+function saveEngine(a) { let s = ''; for (const b of a) s += String.fromCharCode(b); store.set('tak.engine', btoa(s)); }
+function setProject(p, keepSel) {
+  P = p;
+  if (!P.events) P.events = Array.from({ length: 8 }, (_, i) => 'Event ' + (i + 1));
+  if (!keepSel) { sel = { map: 0, idx: P.start.room }; }
+  $('#title').value = P.title || '';
+  renderAll(); changed(true);
+}
+function autosave() { store.set('tak.project', JSON.stringify(P)); }
+
+// ---------------- helpers ----------------
+const W = () => P.settings.width;
+const cellAt = (m, i) => P.maps[m].cells[i];
+const rc = i => [Math.floor(i / W()) + 1, (i % W()) + 1];
+const isPortal = (m, i) => (m === 0 && i === P.settings.portalA) || (m === 1 && i === P.settings.portalB);
+const mapName = m => P.maps[m].name;
+function cellLabel(m, i) { const c = cellAt(m, i); const [r, cc] = rc(i); return `${mapName(m)} r${r}c${cc}` + (c && c.type === 'room' && !isPortal(m, i) ? ` · ${c.name || 'room'}` : ''); }
+function firstLine(t) { return (t || '').split('\n').map(s => s.trim()).filter(Boolean)[0] || ''; }
+function wrap12(text) {
+  const out = [];
+  for (const para of TAK.normText(text).split('\n')) {
+    if (!para.trim()) { out.push(''); continue; }
+    let line = '';
+    for (const word of para.trim().split(/\s+/)) {
+      let w = word;
+      while (w.length > 12) { if (line) { out.push(line); line = ''; } out.push(w.slice(0, 12)); w = w.slice(12); }
+      if (!w) continue;
+      if (!line) line = w; else if ((line + ' ' + w).length <= 12) line += ' ' + w; else { out.push(line); line = w; }
+    }
+    if (line) out.push(line);
+  }
+  return out.join('\n');
+}
+function itemOptions(sel, noneLabel) {
+  const s = el('select');
+  if (noneLabel) s.append(el('option', { value: '' , text: noneLabel }));
+  P.items.forEach((n, i) => s.append(el('option', { value: i, text: `${i + 1}. ${n}` })));
+  s.value = sel == null ? '' : String(sel);
+  return s;
+}
+function eventOptions(sel, noneLabel) {
+  const s = el('select');
+  if (noneLabel) s.append(el('option', { value: '', text: noneLabel }));
+  P.events.forEach((n, i) => s.append(el('option', { value: i, text: `${i + 1}. ${n}` })));
+  s.value = sel == null ? '' : String(sel);
+  return s;
+}
+const numOrNull = v => v === '' ? null : Number(v);
+
+// ---------------- text field with TV preview ----------------
+function tvField(label, get, set, opts = {}) {
+  const ta = el('textarea', { class: 'tvtext', spellcheck: 'false', rows: Math.max(3, Math.min(10, (get() || '').split('\n').length + 1)), 'aria-label': label });
+  ta.value = get() || '';
+  const meta = el('div', { class: 'tvmeta' });
+  const upd = () => {
+    const t = TAK.normText(ta.value), lines = t.split('\n'), longest = Math.max(0, ...lines.map(l => l.length));
+    const maxL = opts.menu ? 1 : 10;
+    const bad = TAK.badChars(t);
+    meta.replaceChildren(...[
+      el('span', { class: lines.length > maxL ? 'bad' : '', text: `${lines.length}/${maxL} line${maxL > 1 ? 's' : ''}` }),
+      el('span', { class: longest > 12 ? 'bad' : '', text: `widest ${longest}/12` }),
+      bad.length ? el('span', { class: 'warn', text: 'no glyph: ' + bad.join(' ') }) : null,
+      el('button', { class: 'btn small ghost', type: 'button', text: 'Wrap to 12', onclick: () => { ta.value = opts.menu ? TAK.normText(ta.value).replace(/\n/g, ' ').slice(0, 12) : wrap12(ta.value); input(); } }),
+    ].filter(Boolean));
+    ta.classList.toggle('bad', lines.length > maxL || longest > 12);
+  };
+  const showPrev = () => { preview = { text: opts.menu ? '' : TAK.normText(ta.value), menu: opts.menu ? TAK.normText(ta.value) : (opts.menuWord || P.system.look), label }; if (tvMode === 'preview') drawPreview(); };
+  const input = () => {
+    const pos = ta.selectionStart; const up = ta.value.toUpperCase();
+    if (up !== ta.value) { ta.value = up; ta.setSelectionRange(pos, pos); }
+    set(ta.value); upd(); showPrev(); changed();
+  };
+  ta.addEventListener('input', input);
+  ta.addEventListener('focus', showPrev);
+  upd();
+  const f = el('div', { class: 'field' }, el('label', { text: label }), el('div', { class: 'tvtext-row' }, ta, meta));
+  if (opts.help) f.append(el('div', { class: 'help', text: opts.help }));
+  return f;
+}
+
+// ---------------- left: map board ----------------
+function renderLeft() {
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === leftTab)));
+  const body = $('#leftBody'); body.replaceChildren();
+  if (leftTab === 'map0' || leftTab === 'map1') renderBoard(body, leftTab === 'map0' ? 0 : 1);
+  else if (leftTab === 'story') renderStory(body);
+  else renderEngineNotes(body);
+}
+function badges(c) {
+  let s = '';
+  if (c.item != null && (c.take.on || c.lookReveals)) s += '◆';
+  if (c.take.on) s += 'T'; if (c.use.on) s += 'U'; if (c.give.on) s += 'G'; if (c.talk.on) s += '“';
+  if (c.door.on) s += '■'; if (c.sets != null && (c.give.on || c.talk.on)) s += '★';
+  return s;
+}
+function errorCells() {
+  const set = new Set();
+  for (const e of report.errs) { const m = /^(Map [AB]) r(\d+)c(\d+)/.exec(e); if (m) set.add((m[1] === 'Map A' ? 0 : 1) + ':' + ((+m[2] - 1) * W() + (+m[3] - 1))); }
+  return set;
+}
+function renderBoard(body, m) {
+  const map = P.maps[m], w = W();
+  const errs = errorCells();
+  const board = el('div', { class: 'board', style: `grid-template-columns: repeat(${w}, 84px)` });
+  map.cells.forEach((c, i) => {
+    let cls = 'tile', nm, bd = '';
+    if (isPortal(m, i)) { cls += ' portal'; nm = `→ ${mapName(1 - m)}`; bd = `r${rc(i)[0]}c${rc(i)[1]} there`; }
+    else if (c.type === 'wall') { cls += ' wall'; nm = firstLine(c.text) || '(wall)'; }
+    else { nm = c.name || firstLine(c.desc) || 'Room'; bd = badges(c); }
+    if (m === 0 && i === P.start.room) cls += ' start';
+    if (errs.has(m + ':' + i)) cls += ' err';
+    const t = el('button', { class: cls, type: 'button', 'aria-pressed': String(sel.map === m && sel.idx === i), title: cellLabel(m, i), onclick: () => select(m, i) },
+      el('span', { class: 'nm', text: nm }), el('span', { class: 'bd', text: bd }));
+    board.append(t);
+  });
+  body.append(el('div', { class: 'board-scroll' }, board));
+  body.append(el('div', { class: 'legend' },
+    el('span', {}, el('b', { text: '◆' }), ' item'), el('span', {}, el('b', { text: 'T' }), ' take'), el('span', {}, el('b', { text: 'U' }), ' use'),
+    el('span', {}, el('b', { text: 'G' }), ' give'), el('span', {}, el('b', { text: '“' }), ' talk'), el('span', {}, el('b', { text: '■' }), ' locked'),
+    el('span', {}, el('b', { text: '★' }), ' sets an event'), el('span', {}, 'hatched = wall (the message you see when bumping into it)')));
+  const rows = el('input', { type: 'number', min: 1, max: Math.floor(128 / w), value: map.rows, style: 'width:64px', 'aria-label': 'Rows' });
+  rows.addEventListener('change', () => resizeMap(m, Math.max(1, Math.min(Math.floor(128 / w), +rows.value || 1))));
+  body.append(el('div', { class: 'row-ctl' },
+    el('span', { text: `${mapName(m)} lives in ${m === 0 ? 'bank 1 (where the game starts)' : 'bank 0'} · ${map.rows} rows × ${w} columns ·` }),
+    el('label', { class: 'check' }, 'Rows', rows)));
+  body.append(el('p', { class: 'empty', style: 'margin:0', text: m === 0
+    ? 'Walking into the dashed cell takes the player into Map B at the same grid position. Keep the outer ring as walls: walking off the grid crashes the cartridge.'
+    : 'Walking into the dashed cell returns the player to Map A at the same grid position.' }));
+}
+function resizeMap(m, rows) {
+  const map = P.maps[m], w = W();
+  const cells = [];
+  for (let i = 0; i < rows * w; i++) cells.push(map.cells[i] || TAK.wall("YOU CAN'T GO\nTHAT WAY."));
+  map.cells = cells; map.rows = rows;
+  if (sel.map === m && sel.idx >= cells.length) sel.idx = 0;
+  renderAll(); changed();
+}
+function setWidth(nw) {
+  const ow = W(); if (nw === ow) return;
+  for (const map of P.maps) {
+    const cells = [];
+    for (let r = 0; r < map.rows; r++) for (let c = 0; c < nw; c++) cells.push(c < ow ? map.cells[r * ow + c] : TAK.wall("YOU CAN'T GO\nTHAT WAY."));
+    map.cells = cells;
+    while (map.rows * nw > 128) { map.rows--; map.cells.length = map.rows * nw; }
+  }
+  const remap = i => { const r = Math.floor(i / ow), c = i % ow; return r * nw + Math.min(c, nw - 1); };
+  P.settings.portalA = remap(P.settings.portalA); P.settings.portalB = remap(P.settings.portalB); P.start.room = remap(P.start.room);
+  sel.idx = Math.min(remap(sel.idx), P.maps[sel.map].cells.length - 1);
+  P.settings.width = nw;
+  renderAll(); changed();
+}
+
+// ---------------- left: story & items ----------------
+function renderStory(body) {
+  // intro
+  const intro = el('div', { class: 'list-ed' });
+  P.intro.forEach((t, i) => {
+    const f = tvField(`Intro page ${i + 1}${i === 0 ? ' (title screen)' : ''}`, () => P.intro[i], v => P.intro[i] = v, { menuWord: i === P.intro.length - 1 ? P.system.start : P.system.more });
+    if (P.intro.length > 2) f.append(el('div', {}, el('button', { class: 'btn small ghost', type: 'button', text: 'Remove page', onclick: () => { P.intro.splice(i, 1); renderLeft(); changed(); } })));
+    intro.append(f);
+  });
+  body.append(el('div', { class: 'flabel', text: 'INTRO PAGES · 2 TO 6, ADVANCED WITH MORE... / START' }), intro);
+  if (P.intro.length < 6) body.append(el('div', {}, el('button', { class: 'btn small', type: 'button', text: 'Add intro page', onclick: () => { P.intro.push(''); renderLeft(); changed(); } })));
+
+  // items
+  const items = el('div', { class: 'list-ed' });
+  P.items.forEach((n, i) => {
+    const inp = el('input', { type: 'text', value: n, maxlength: 12, spellcheck: 'false', 'aria-label': `Item ${i + 1}`, style: 'text-transform:uppercase;font-family:var(--font-mono)' });
+    inp.addEventListener('input', () => { P.items[i] = inp.value.toUpperCase(); changed(); });
+    inp.addEventListener('focus', () => { preview = { text: P.system.carrying, menu: P.items[i], label: 'Inventory menu' }; if (tvMode === 'preview') drawPreview(); });
+    const cb = el('input', { type: 'checkbox', checked: P.start.inventory.includes(i) });
+    cb.addEventListener('change', () => { P.start.inventory = cb.checked ? [...new Set([...P.start.inventory, i])].sort() : P.start.inventory.filter(x => x !== i); changed(); });
+    items.append(el('div', { class: 'li' }, el('span', { class: 'n', text: `#${i + 1}` }), inp, el('label', { class: 'check', title: 'Carried at the start' }, cb, 'start')));
+  });
+  body.append(el('div', { class: 'flabel', text: 'ITEMS · 8 SLOTS, 12 CHARACTERS EACH' }), items,
+    el('p', { class: 'empty', style: 'margin:0', text: 'Tick "start" for items the player begins with. Keep at least one that no GIVE puzzle takes away (Dark Mage\'s hammer): opening the item menu with an empty inventory crashes the engine.' }));
+
+  // events
+  const evs = el('div', { class: 'list-ed' });
+  P.events.forEach((n, i) => {
+    const inp = el('input', { type: 'text', value: n, spellcheck: 'false', 'aria-label': `Event ${i + 1} name` });
+    inp.addEventListener('input', () => { P.events[i] = inp.value; autosave(); });
+    evs.append(el('div', { class: 'li' }, el('span', { class: 'n', text: `#${i + 1}` }), inp, el('span')));
+  });
+  body.append(el('div', { class: 'flabel', text: 'EVENT FLAGS · NAMES ARE ONLY FOR YOU' }), evs);
+
+  // menu words
+  const words = el('div', { class: 'two' });
+  for (const [k, lbl] of [['look', 'LOOK'], ['north', 'NORTH'], ['east', 'EAST'], ['south', 'SOUTH'], ['west', 'WEST'], ['go', 'GO (back)'], ['take', 'TAKE'], ['give', 'GIVE'], ['use', 'USE'], ['talk', 'TALK'], ['inventory', 'INVENTORY'], ['more', 'MORE...'], ['start', 'START']])
+    words.append(tvField(`Menu word: ${lbl}`, () => P.system[k], v => P.system[k] = v, { menu: true }));
+  body.append(el('div', { class: 'flabel', text: 'MENU WORDS · ONE LINE EACH' }), words);
+  const msgs = el('div', { class: 'two' });
+  for (const [k, lbl] of [['nothingSpecial', 'LOOK, item already taken'], ['nothingToTake', 'TAKE, nothing here'], ['talkDefault', 'TALK, nobody here'], ['selectGive', 'GIVE item prompt'], ['cantGive', 'GIVE refused'], ['selectUse', 'USE item prompt'], ['cantUse', 'USE refused'], ['carrying', 'INVENTORY heading'], ['bootB', 'Power-on screen if the console starts in bank 0']])
+    msgs.append(tvField(lbl, () => P.system[k], v => P.system[k] = v));
+  body.append(el('div', { class: 'flabel', text: 'SYSTEM MESSAGES' }), msgs);
+
+  // geometry
+  const wIn = el('input', { type: 'number', min: 2, max: 16, value: W(), style: 'width:64px', 'aria-label': 'Map width' });
+  wIn.addEventListener('change', () => setWidth(Math.max(2, Math.min(16, +wIn.value || 6))));
+  const pr = (key, m) => {
+    const sel2 = el('select', { 'aria-label': 'Portal cell' });
+    const n = Math.min(P.maps[0].cells.length, P.maps[1].cells.length);
+    for (let i = 0; i < n; i++) sel2.append(el('option', { value: i, text: `row ${rc(i)[0]}, col ${rc(i)[1]}` }));
+    sel2.value = P.settings[key];
+    sel2.addEventListener('change', () => { P.settings[key] = +sel2.value; renderLeft(); changed(); });
+    return sel2;
+  };
+  body.append(el('div', { class: 'flabel', text: 'MAP GEOMETRY' }),
+    el('div', { class: 'inline' }, el('label', { class: 'check' }, 'Columns (both maps)', wIn)),
+    el('div', { class: 'two' },
+      el('div', { class: 'field' }, el('label', { text: 'Map A cell that leads into Map B' }), pr('portalA')),
+      el('div', { class: 'field' }, el('label', { text: 'Map B cell that leads into Map A' }), pr('portalB'))),
+    el('p', { class: 'empty', style: 'margin:0', text: 'The engine switches ROM banks when you walk into one of these two grid positions, and you arrive at that same position on the other map.' }));
+}
+
+// ---------------- left: engine notes ----------------
+function renderEngineNotes(body) {
+  const n = el('div', { class: 'notes' });
+  n.innerHTML = `
+<p>Dark Mage (Greg Troutman, 1997) is an 8K cartridge with F8 bank switching: two 4K banks that each hold an identical copy of the engine code and the font, plus that bank's half of the world. Everything about the adventure is data, so this workshop keeps the engine code and regenerates the data area (<code>$F5F2–$FFF7</code>) in both banks.</p>
+<h3>THE SCREEN</h3>
+<p>Ten lines of twelve characters, plus a one-line menu bar. The kernel draws six characters per scanline from two triple-copy sprites and shifts them 8 pixels on alternate lines to reach twelve, so each letter's rows are interlaced across two frames. A text byte is simply the offset of a 6-byte glyph in page <code>$F5</code>; <code>$FF</code> ends a line and <code>$FE</code> ends a message. The font has A–Z without Q, plus <code>. , ' ! ? :</code>. This workshop adds Q and a hyphen in 12 spare bytes of the font page (only when you use them). There are no digits.</p>
+<h3>CONTROLS</h3>
+<p>Walking mode: push the stick to pick NORTH/EAST/SOUTH/WEST, or leave it centered for LOOK, then press fire. LOOK switches to the action menu (GO, TAKE, GIVE, USE, TALK, INVENTORY), cycled with left/right. GIVE and USE open a second menu of the items you carry.</p>
+<h3>THE MAP</h3>
+<p>Each bank has a table of 2-byte pointers at <code>$F748</code>, one per grid cell, indexed by room number × 2. NORTH subtracts 12 (2 × width), EAST adds 2. Nothing checks the edges, so the border cells must be walls. Walking into cell <code>$2C</code> switches to bank 0 and walking into <code>$2A</code> switches to bank 1; the code continues in the other bank because both copies are identical. A wall cell is a 3-byte record: <code>00</code> followed by a pointer to its message.</p>
+<h3>A ROOM RECORD</h3>
+<div class="tbl-scroll"><table class="rec">
+<tr><th>Byte</th><th>Meaning</th></tr>
+<tr><td>0</td><td>Feature flags: <code>$40</code> TAKE, <code>$20</code> GIVE, <code>$10</code> USE, <code>$08</code> TALK, <code>$02</code> locked, <code>$80</code> no LOOK reveal (any non-zero value means "room")</td></tr>
+<tr><td>1</td><td>Item bit that LOOK reveals</td></tr>
+<tr><td>2</td><td>Item bit TAKE gives (also revealed by a successful GIVE)</td></tr>
+<tr><td>3</td><td>Item USE accepts; success marks it "used"</td></tr>
+<tr><td>4</td><td>Item GIVE accepts; it leaves the inventory</td></tr>
+<tr><td>5</td><td>"Used" bit TALK needs for the success reply</td></tr>
+<tr><td>6</td><td>Event bit set by a successful GIVE or TALK</td></tr>
+<tr><td>7</td><td>Event bit needed to enter (locked rooms)</td></tr>
+<tr><td>8–23</td><td>Text pointers: description, LOOK, TAKE, USE, GIVE, TALK success, locked message, TALK default</td></tr>
+</table></div>
+<h3>GAME STATE</h3>
+<p>Five bytes of RAM hold everything: inventory (<code>$A7</code>), taken items (<code>$A6</code>), revealed items (<code>$A8</code>), used items (<code>$A9</code>) and events (<code>$AC</code>). Eight bits each means eight items and eight events.</p>
+<h3>WHAT GETS PATCHED</h3>
+<p>Fourteen <code>LDA #lo / LDA #hi</code> pairs that point at the menu words and system messages, the menu tables at <code>$F4C6–$F4F7</code>, the room-table pointer, the start room and inventory, the intro page count, the portal cells, and the map width. Shared strings sit at the same address in both banks, because their pointers stay in RAM across a bank switch.</p>`;
+  body.append(n);
+}
+
+// ---------------- inspector ----------------
+function select(m, i) {
+  sel = { map: m, idx: i };
+  if (leftTab !== 'map0' && leftTab !== 'map1') leftTab = 'map' + m;
+  else if (leftTab !== 'map' + m) leftTab = 'map' + m;
+  renderLeft(); renderInspector();
+  const c = cellAt(m, i);
+  preview = { text: isPortal(m, i) ? '' : c.type === 'wall' ? TAK.normText(c.text) : TAK.normText(c.desc), menu: P.system.look, label: cellLabel(m, i) };
+  if (tvMode === 'preview') drawPreview();
+}
+function renderInspector() {
+  const body = $('#inspBody'); body.replaceChildren();
+  const m = sel.map, i = sel.idx, c = cellAt(m, i);
+  if (!c) return;
+  const [r, cc] = rc(i);
+  $('#inspTitle').textContent = isPortal(m, i) ? 'Portal' : c.type === 'wall' ? 'Wall' : (c.name || 'Room');
+  $('#inspCrumbs').textContent = `${mapName(m)} · row ${r}, col ${cc} · room $${(i * 2).toString(16).toUpperCase().padStart(2, '0')}`;
+  if (isPortal(m, i)) {
+    body.append(el('p', { text: `Walking into this cell takes the player to ${mapName(1 - m)}, row ${r}, col ${cc}. The engine never reads this cell on ${mapName(m)}, so there is nothing to edit here.` }),
+      el('div', {}, el('button', { class: 'btn', type: 'button', text: `Go to ${mapName(1 - m)} row ${r}, col ${cc}`, onclick: () => select(1 - m, i) })),
+      el('p', { class: 'empty', text: 'Move the portal under Story & items › Map geometry.' }));
+    return;
+  }
+  const seg = el('div', { class: 'seg', role: 'group', 'aria-label': 'Cell type' },
+    el('button', { type: 'button', 'aria-pressed': String(c.type === 'room'), text: 'Room', onclick: () => setType('room') }),
+    el('button', { type: 'button', 'aria-pressed': String(c.type === 'wall'), text: 'Wall', onclick: () => setType('wall') }));
+  const head = el('div', { class: 'inline' }, seg);
+  if (c.type === 'room' && m === 0) head.append(P.start.room === i ? el('span', { class: 'pill ok', text: 'START ROOM' }) : el('button', { class: 'btn small', type: 'button', text: 'Make this the start room', onclick: () => { P.start.room = i; renderAll(); changed(); } }));
+  body.append(head);
+  if (c.type === 'wall') {
+    body.append(tvField('Message when the player walks into this wall', () => c.text, v => c.text = v, { help: 'Identical messages are stored once, so reusing the same wording costs nothing.' }));
+    body.append(exitsBlock(m, i));
+    return;
+  }
+  const nm = el('input', { type: 'text', value: c.name || '', 'aria-label': 'Room name' });
+  nm.addEventListener('input', () => { c.name = nm.value; $('#inspTitle').textContent = c.name || 'Room'; changedLight(); });
+  body.append(el('div', { class: 'field' }, el('label', { text: 'Name (only shown in this editor)' }), nm));
+  body.append(tvField('Description, shown on arrival', () => c.desc, v => c.desc = v));
+  body.append(tvField('LOOK text', () => c.look, v => c.look = v, { menuWord: P.system.go }));
+
+  // item here
+  const itemSel = itemOptions(c.item, 'No item here');
+  itemSel.addEventListener('change', () => { c.item = numOrNull(itemSel.value); renderInspector(); changed(); });
+  const rev = el('input', { type: 'checkbox', checked: !!c.lookReveals });
+  rev.addEventListener('change', () => { c.lookReveals = rev.checked; changed(); });
+  body.append(el('div', { class: 'field' }, el('label', { text: 'Item found here' }),
+    el('div', { class: 'inline' }, itemSel, c.item != null ? el('label', { class: 'check' }, rev, 'LOOK reveals it') : null),
+    el('div', { class: 'help', text: 'The player must discover an item before TAKE works: either LOOK reveals it, or a successful GIVE in this room does (a trade).' })));
+
+  body.append(feature('TAKE', 'Pick up the item found here', c.take, () => [
+    tvField('Text when taken', () => c.take.text, v => c.take.text = v),
+  ]));
+  body.append(feature('USE', 'Use a carried item here (it stays in the inventory and counts as "used")', c.use, () => {
+    const s = itemOptions(c.use.item, 'Choose item…'); s.addEventListener('change', () => { c.use.item = numOrNull(s.value); changed(); });
+    return [el('div', { class: 'field' }, el('label', { text: 'Item that works here' }), s), tvField('Text on success', () => c.use.text, v => c.use.text = v)];
+  }));
+  body.append(feature('GIVE', 'Hand over a carried item (it leaves the inventory)', c.give, () => {
+    const s = itemOptions(c.give.item, 'Choose item…'); s.addEventListener('change', () => { c.give.item = numOrNull(s.value); changed(); });
+    return [el('div', { class: 'field' }, el('label', { text: 'Item accepted' }), s, el('div', { class: 'help', text: 'Success also reveals the item found here, so the player can TAKE it as a reward, and sets this room\'s event.' })),
+      tvField('Text on success', () => c.give.text, v => c.give.text = v)];
+  }));
+  body.append(feature('TALK', 'Speak to someone here', c.talk, () => {
+    const s = itemOptions(c.talk.needUsed, 'Never (always the default reply)'); s.addEventListener('change', () => { c.talk.needUsed = numOrNull(s.value); renderInspector(); changed(); });
+    const out = [el('div', { class: 'field' }, el('label', { text: 'Success reply needs this item to have been USEd' }), s)];
+    if (c.talk.needUsed != null) out.push(tvField('Success reply (also sets this room\'s event)', () => c.talk.ok, v => c.talk.ok = v));
+    out.push(tvField('Default reply', () => c.talk.no, v => c.talk.no = v));
+    return out;
+  }));
+  const evSel = eventOptions(c.sets, 'None');
+  evSel.addEventListener('change', () => { c.sets = numOrNull(evSel.value); changed(); });
+  body.append(el('div', { class: 'field' }, el('label', { text: 'Event this room sets (on a successful GIVE or TALK)' }), evSel));
+  body.append(feature('LOCKED', 'The player can only enter once an event has happened', c.door, () => {
+    const s = eventOptions(c.door.needEvent, 'Choose event…'); s.addEventListener('change', () => { c.door.needEvent = numOrNull(s.value); changed(); });
+    return [el('div', { class: 'field' }, el('label', { text: 'Event needed' }), s), tvField('Message when blocked (the player stays put)', () => c.door.text, v => c.door.text = v)];
+  }));
+  body.append(exitsBlock(m, i));
+  function setType(t) {
+    if (t === c.type) return;
+    const cells = P.maps[m].cells;
+    if (t === 'wall') cells[i] = TAK.wall(c.look || "YOU CAN'T GO\nTHAT WAY.");
+    else { cells[i] = TAK.room('New room', 'YOU ARE IN A\nNEW ROOM.', c.text || 'NOTHING\nSPECIAL.'); }
+    renderAll(); changed();
+  }
+}
+function feature(title, desc, obj, build) {
+  const sw = el('input', { type: 'checkbox', class: 'switch', checked: !!obj.on, 'aria-label': title });
+  const box = el('div', { class: 'feature' + (obj.on ? '' : ' off') }, el('div', { class: 'fh' }, sw, el('div', {}, el('div', { class: 'ft', text: title }), el('div', { class: 'fd', text: desc }))));
+  const fb = el('div', { class: 'fb' }); box.append(fb);
+  if (obj.on) fb.append(...build());
+  sw.addEventListener('change', () => { obj.on = sw.checked; renderInspector(); changed(); });
+  return box;
+}
+function exitsBlock(m, i) {
+  const nb = TAK.neighbors(P, m, i);
+  const dl = el('dl', { class: 'exits' });
+  for (const [d, label] of [['N', 'NORTH'], ['E', 'EAST'], ['S', 'SOUTH'], ['W', 'WEST']]) {
+    const n = nb[d];
+    let dd;
+    if (!n.valid) dd = el('dd', { style: 'color:var(--bad)', text: 'off the map: the cartridge would crash' });
+    else {
+      const tc = n.cell; const what = tc.type === 'wall' ? `wall: “${firstLine(tc.text)}”` : `${tc.name || 'room'}${tc.door.on ? ' (locked)' : ''}`;
+      dd = el('dd', {}, el('a', { text: `${n.map !== m ? mapName(n.map) + ' · ' : ''}${what}`, onclick: () => select(n.map, n.idx) }), n.wrap ? ' (wraps around the edge)' : '');
+    }
+    dl.append(el('dt', { text: label }), dd);
+  }
+  return el('div', { class: 'field' }, el('div', { class: 'flabel', text: 'EXITS' }), dl);
+}
+
+// ---------------- TV ----------------
+const tv = $('#tv'), g = tv.getContext('2d');
+const COL = { bg: '#000', win: '#9c2020', text: '#d0d050', menu: '#b0589c', menuText: '#e8e85c' };
+function glyphRows(code) { // rows top..bottom from the engine font
+  if (!engine) return null;
+  const base = 4096 + 0x500; const rows = [];
+  for (let y = 5; y >= 0; y--) rows.push(engine[base + code + y]);
+  return rows;
+}
+const EXTRA = {}; // Q and - (added glyphs) from the kit
+(function () { const e = TAK.EXTRA_GLYPHS; EXTRA[0xF2] = [5, 4, 3, 2, 1, 0].map(y => e[y]); EXTRA[0xF8] = [5, 4, 3, 2, 1, 0].map(y => e[6 + y]); })();
+function drawChar(ch, x, y, color) {
+  const code = TAK.CHAR[ch] !== undefined ? TAK.CHAR[ch] : TAK.CHAR[TAK.SUBST[ch]];
+  if (code === undefined || ch === ' ') return;
+  const rows = EXTRA[code] || glyphRows(code);
+  g.fillStyle = color;
+  if (!rows) { g.save(); g.translate(x, y); g.scale(1.6, 0.75); g.font = '8px "Silkscreen", monospace'; g.textBaseline = 'top'; g.fillText(ch, 0, 0); g.restore(); return; }
+  // one 2600 pixel = 2 canvas pixels wide, one glyph row = 1 scanline (matches Stella's output)
+  for (let r = 0; r < 6; r++) for (let b = 0; b < 8; b++) if (rows[r] & (0x80 >> b)) g.fillRect(x + b * 2, y + r, 2, 1);
+}
+function drawScreen(text, menu, note) {
+  g.fillStyle = COL.bg; g.fillRect(0, 0, 320, 228);
+  g.fillStyle = COL.win; g.fillRect(0, 24, 320, 168);
+  const lines = TAK.normText(text || '').split('\n');
+  for (let l = 0; l < Math.min(10, lines.length); l++) {
+    const s = lines[l];
+    for (let k = 0; k < Math.min(12, s.length); k++) drawChar(s[k], 27 + k * 16, 34 + l * 16, COL.text);
+    if (s.length > 12) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(27 + 12 * 16, 34 + l * 16, 3, 6); }
+  }
+  g.fillStyle = COL.menu; g.fillRect(0, 192, 320, 22);
+  const mw = TAK.normText(menu || '').split('\n')[0];
+  for (let k = 0; k < Math.min(12, mw.length); k++) drawChar(mw[k], 27 + k * 16, 201, COL.menuText);
+  if (note) { g.fillStyle = 'rgba(0,0,0,.6)'; g.fillRect(0, 0, 320, 22); g.fillStyle = '#fff'; g.font = '11px "IBM Plex Mono", monospace'; g.textBaseline = 'middle'; g.fillText(note, 8, 11); }
+}
+function drawPreview() {
+  drawScreen(preview.text, preview.menu);
+  $('#tvCap').textContent = preview.label ? 'Previewing: ' + preview.label : 'Click any text box to preview it';
+  $('#tvCap2').textContent = engine ? 'engine font' : 'stand-in font: load the engine for the real one';
+}
+
+// ---------------- playtest ----------------
+let emu = null, raf = 0, keys = { N: 0, S: 0, E: 0, W: 0, fire: 0 };
+function setTvMode(m) {
+  tvMode = m;
+  $('#tv-preview').setAttribute('aria-selected', String(m === 'preview'));
+  $('#tv-play').setAttribute('aria-selected', String(m === 'play'));
+  $('#playUi').hidden = m !== 'play'; $('#restartBtn').hidden = m !== 'play';
+  if (m === 'play') startPlay(); else { stopPlay(); drawPreview(); }
+}
+function startPlay() {
+  stopPlay();
+  if (!engine) { drawScreen('LOAD THE\nENGINE ROM\nTO PLAYTEST', ''); $('#tvCap').textContent = 'Playtest runs the real cartridge code'; $('#playState').textContent = 'Use "Load engine ROM…" in the bar above (your Dark Mage .a26).'; return; }
+  const res = TAK.buildRom(P, engine);
+  if (!res.ok) { drawScreen('FIX THE\nPROBLEMS\nLISTED BELOW\nTO PLAYTEST', ''); $('#tvCap').textContent = res.errs.length + ' problem(s) block the build'; $('#playState').textContent = ''; return; }
+  emu = new TAK.Emu(res.rom);
+  $('#tvCap').textContent = 'Running the built ROM\'s 6502 code';
+  $('#tvCap2').textContent = '';
+  const loop = () => {
+    try {
+      let sw = 0xFF; if (keys.E) sw &= 0x7F; if (keys.W) sw &= 0xBF; if (keys.S) sw &= 0xDF; if (keys.N) sw &= 0xEF;
+      emu.swcha = sw; emu.inpt4 = keys.fire ? 0x00 : 0x80;
+      emu.runFrame();
+      drawScreen(emu.screenText(), emu.menuText());
+      if ((emu.frames & 7) === 0) showPlayState();
+      raf = requestAnimationFrame(loop);
+    } catch (e) { drawScreen('THE CART\nCRASHED', ''); $('#playState').textContent = 'Crash: ' + e.message + '. Usually a missing wall at the map edge or an empty inventory.'; }
+  };
+  raf = requestAnimationFrame(loop);
+}
+function stopPlay() { cancelAnimationFrame(raf); raf = 0; }
+function showPlayState() {
+  const s = emu.state(); const m = s.bank === 1 ? 0 : 1; const c = P.maps[m].cells[s.room];
+  const bits = (v, names) => names.filter((_, i) => v & (1 << i)).join(', ') || 'nothing';
+  $('#playState').replaceChildren(
+    el('div', {}, 'Where: ', el('b', { text: `${mapName(m)} · ${c && c.type === 'room' ? (c.name || 'room') : '?'} (row ${rc(s.room)[0]}, col ${rc(s.room)[1]})` })),
+    el('div', {}, 'Carrying: ', el('b', { text: bits(s.inv, P.items) })),
+    el('div', {}, 'Events: ', el('b', { text: bits(s.events, P.events) })));
+}
+document.querySelectorAll('.pad button').forEach(b => {
+  const d = b.dataset.dir;
+  const on = e => { e.preventDefault(); keys[d] = 1; b.classList.add('held'); b.setPointerCapture && b.setPointerCapture(e.pointerId); };
+  const off = () => { keys[d] = 0; b.classList.remove('held'); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
+});
+(function () {
+  const b = $('#fireBtn');
+  const on = e => { e.preventDefault(); keys.fire = 1; b.classList.add('held'); };
+  const off = () => { keys.fire = 0; b.classList.remove('held'); };
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('pointerleave', off);
+})();
+const KEYMAP = { ArrowUp: 'N', ArrowDown: 'S', ArrowLeft: 'W', ArrowRight: 'E', ' ': 'fire', Enter: 'fire' };
+function typing(e) { const t = e.target; return t && (t.tagName === 'TEXTAREA' || t.tagName === 'INPUT' || t.tagName === 'SELECT'); }
+window.addEventListener('keydown', e => { if (tvMode !== 'play' || typing(e) || !KEYMAP[e.key]) return; e.preventDefault(); keys[KEYMAP[e.key]] = 1; });
+window.addEventListener('keyup', e => { if (!KEYMAP[e.key]) return; keys[KEYMAP[e.key]] = 0; });
+$('#restartBtn').addEventListener('click', startPlay);
+$('#tv-preview').addEventListener('click', () => setTvMode('preview'));
+$('#tv-play').addEventListener('click', () => setTvMode('play'));
+
+// ---------------- checks / meters ----------------
+let chkT = 0;
+function changed(now) { autosave(); clearTimeout(chkT); chkT = setTimeout(runChecks, now ? 0 : 250); }
+function changedLight() { autosave(); clearTimeout(chkT); chkT = setTimeout(() => { runChecks(); }, 250); }
+function runChecks() {
+  report = TAK.validate(P);
+  let usage = null;
+  try { const r = TAK.buildRom(P, null, { measure: true }); usage = r.usage; } catch (e) { }
+  for (const [id, u] of [['#mA', usage && usage.mapA], ['#mB', usage && usage.mapB]]) {
+    const m = $(id); if (!u) continue;
+    const pct = u.used / u.total;
+    m.querySelector('.v').textContent = `${u.used.toLocaleString()} / ${u.total.toLocaleString()} B`;
+    m.querySelector('.fill').style.width = Math.min(100, pct * 100) + '%';
+    m.classList.toggle('over', pct > 1); m.classList.toggle('tight', pct > .9 && pct <= 1);
+    if (pct > 1) report.errs.push(`${id === '#mA' ? 'Map A' : 'Map B'} is ${u.used - u.total} bytes over its 4K bank. Shorten text or reuse identical messages.`);
+  }
+  const pill = $('#statusPill');
+  if (report.errs.length) { pill.className = 'pill bad'; pill.textContent = `${report.errs.length} problem${report.errs.length > 1 ? 's' : ''}`; }
+  else if (report.warns.length) { pill.className = 'pill warn'; pill.textContent = `ready · ${report.warns.length} note${report.warns.length > 1 ? 's' : ''}`; }
+  else { pill.className = 'pill ok'; pill.textContent = 'ready to build'; }
+  const box = $('#problems'); box.replaceChildren();
+  const add = (msg, cls) => {
+    const mm = /^(Map [AB]) r(\d+)c(\d+)/.exec(msg);
+    const txt = mm ? el('a', { text: msg, onclick: () => select(mm[1] === 'Map A' ? 0 : 1, (+mm[2] - 1) * W() + (+mm[3] - 1)) }) : el('span', { text: msg });
+    box.append(el('div', { class: 'p ' + cls }, el('i', { text: cls === 'e' ? '✕' : '!' }), txt));
+  };
+  report.errs.forEach(e => add(e, 'e')); report.warns.forEach(w => add(w, 'w'));
+  if (!report.errs.length && !report.warns.length) box.append(el('div', { class: 'empty', text: 'No problems. Every room is enclosed, all text fits, and both banks have room to spare.' }));
+  $('#probCount').textContent = report.errs.length ? `${report.errs.length} blocking` : '';
+  // refresh the error outlines on the board without stealing focus
+  if (leftTab === 'map0' || leftTab === 'map1') {
+    const errs = errorCells(); const m = leftTab === 'map0' ? 0 : 1;
+    document.querySelectorAll('#leftBody .tile').forEach((t, i) => t.classList.toggle('err', errs.has(m + ':' + i)));
+    refreshTile(sel.map, sel.idx);
+  }
+  $('#buildBtn').disabled = false;
+}
+function refreshTile(m, i) {
+  if (leftTab !== 'map' + m) return;
+  const t = document.querySelectorAll('#leftBody .tile')[i]; if (!t) return;
+  const c = cellAt(m, i); if (isPortal(m, i)) return;
+  t.querySelector('.nm').textContent = c.type === 'wall' ? (firstLine(c.text) || '(wall)') : (c.name || firstLine(c.desc) || 'Room');
+  t.querySelector('.bd').textContent = c.type === 'wall' ? '' : badges(c);
+}
+
+// ---------------- engine ROM ----------------
+function updateEngineUi() {
+  $('#engDot').classList.toggle('on', !!engine);
+  $('#engTxt').textContent = engine ? 'Engine: Dark Mage 8K (F8) loaded' : 'Engine ROM not loaded: needed to playtest and build';
+  $('#engBtn').textContent = engine ? 'Replace…' : 'Load engine ROM…';
+}
+$('#engBtn').addEventListener('click', () => $('#engFile').click());
+$('#engFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return; e.target.value = '';
+  const a = new Uint8Array(await f.arrayBuffer());
+  const err = TAK.isEngine(a);
+  if (err) { toast(err + '. Load the 8K Dark Mage ROM (8,192 bytes).', 5000); return; }
+  engine = a; saveEngine(a); updateEngineUi(); toast('Engine loaded. Playtest and Build are ready.');
+  if (pendingImport) { pendingImport = false; importDarkMage(); }
+  if (tvMode === 'play') startPlay(); else drawPreview();
+});
+let pendingImport = false;
+function importDarkMage() {
+  if (!engine) { pendingImport = true; $('#engFile').click(); return; }
+  const p = TAK.parseRom(engine); p.title = 'Dark Mage (remix)';
+  p.maps[0].cells.forEach(c => { if (c.type === 'room') c.name = c.name.toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase()); });
+  p.maps[1].cells.forEach(c => { if (c.type === 'room') c.name = c.name.toLowerCase().replace(/(^|\s)\S/g, s => s.toUpperCase()); });
+  setProject(p); toast("Opened Dark Mage's world. Both banks are nearly full, so trim before adding.", 5000);
+}
+
+// ---------------- downloads (zip) ----------------
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zip(files) {
+  const enc = new TextEncoder(); const parts = [], central = []; let off = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(8, 0, true); h.setUint32(14, crc, true);
+    h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(h.buffer), name, data);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint32(16, crc, true);
+    c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, name.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), name);
+    off += 30 + name.length + data.length;
+  }
+  const cs = central.reduce((s, a) => s + a.length, 0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], { type: 'application/zip' });
+}
+const slug = s => (s || 'adventure').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'adventure';
+async function offer(filename, data) {
+  let dl = null; try { dl = await window.claude?.use?.('downloads'); } catch (e) { }
+  if (!dl) { toast('Saving files is not available in this view. Open the page in claude.ai to download.', 5000); return; }
+  try { await dl.save({ filename, data }); toast('Saved ' + filename); }
+  catch (e) { if (e && e.code === 'declined') return; toast('Could not save: ' + (e && e.message || e), 5000); }
+}
+$('#buildBtn').addEventListener('click', async () => {
+  if (!engine) { toast('Load the engine ROM first (the 8K Dark Mage .a26).', 4000); $('#engFile').click(); return; }
+  const res = TAK.buildRom(P, engine);
+  if (!res.ok) { toast(`Fix ${res.errs.length} problem${res.errs.length > 1 ? 's' : ''} first (see Checks).`, 4000); return; }
+  const s = slug(P.title);
+  const readme = `${P.title}\nBuilt with Adventure Cart Workshop on the Dark Mage engine (Greg Troutman, 1997).\n\n${s}.a26  8K cartridge image, F8 bank switching. Open it in Stella or javatari.org, or put it on a flash cart.\n${s}.json  the editable project. Open it again from Project > Open project file.\n\nTip: the engine interlaces each letter across two frames. In Stella, turn on phosphor (Alt+P, or Cmd+P on a Mac) for steady text.\n\nControls: hold a direction and press fire to walk. Fire with the stick centered is LOOK, which opens the action menu; left/right choose, fire confirms.\n`;
+  await offer(s + '.zip', zip([{ name: s + '.a26', data: res.rom }, { name: s + '.json', data: JSON.stringify(P, null, 1) }, { name: 'README.txt', data: readme }]));
+});
+
+// ---------------- project menu ----------------
+const pm = $('#projMenu');
+$('#projBtn').addEventListener('click', e => { e.stopPropagation(); pm.hidden = !pm.hidden; $('#projBtn').setAttribute('aria-expanded', String(!pm.hidden)); });
+document.addEventListener('click', e => { if (!pm.hidden && !pm.contains(e.target)) { pm.hidden = true; $('#projBtn').setAttribute('aria-expanded', 'false'); } });
+pm.addEventListener('click', async e => {
+  const b = e.target.closest('button'); if (!b) return; pm.hidden = true;
+  const act = b.dataset.act;
+  if (act === 'demo') { setProject(TAK_DEMO(TAK)); toast('Opened the sample adventure.'); }
+  else if (act === 'blank') { setProject(TAK.newProject({ title: 'My adventure' })); toast('New adventure: two 6×5 maps. Click a hatched cell and switch it to Room.', 4500); }
+  else if (act === 'import') importDarkMage();
+  else if (act === 'open') $('#projFile').click();
+  else if (act === 'save') await offer(slug(P.title) + '.json', JSON.stringify(P, null, 1));
+});
+$('#projFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return; e.target.value = '';
+  try { const p = JSON.parse(await f.text()); if (p.kit !== 'tak' || !p.maps) throw new Error('not a workshop project'); setProject(p); toast('Opened ' + f.name); }
+  catch (x) { toast('That file is not a project saved from this workshop.', 4000); }
+});
+$('#title').addEventListener('input', e => { P.title = e.target.value; autosave(); });
+document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => { leftTab = b.dataset.tab; if (leftTab.startsWith('map')) sel.map = +leftTab.slice(3), sel.idx = Math.min(sel.idx, P.maps[sel.map].cells.length - 1); renderLeft(); renderInspector(); runChecks(); }));
+
+function renderAll() { renderLeft(); renderInspector(); updateEngineUi(); if (tvMode === 'preview') drawPreview(); }
+
+// ---------------- boot ----------------
+loadEngineFromStore();
+let saved = null; try { saved = JSON.parse(store.get('tak.project') || 'null'); } catch (e) { }
+setProject(saved && saved.kit === 'tak' ? saved : TAK_DEMO(TAK));
+select(0, P.start.room);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (tvMode === 'preview') drawPreview(); });
+})();
+</script>
+
+</body></html>
