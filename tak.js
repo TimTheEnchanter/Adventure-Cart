@@ -87,6 +87,7 @@
     gate: { at: 0xF04D, orig: [0x20, 0xAB, 0xF0] },                       // JSR $F0AB (read controls)
     portal: { at: 0xF223, orig: [0x20, 0x58, 0xF2] },                     // JSR $F258 (two hard-wired bank switches)
     reboot: { at: 0xF05D, orig: [0xAD, 0xF9, 0xFF] },                     // LDA $FFF9 (restart in the start bank)
+    blocked: { at: 0xF241, orig: [0xA5, 0xA5, 0x85, 0xA2] },               // LDA $A5 / STA $A2 (turned away: restore the room)
     door: { at: 0xF237, orig: [0xA0, 0x07, 0xB1, 0xA3, 0x25, 0xAC, 0xD0, 0x0F] }, // LDY #7 / LDA (rec),Y / AND events / BNE open
     startInv: { at: 0xF070, orig: [0xA9, 0x01, 0x85, 0xA7] },             // LDA #inv / STA $A7
     lookHandler: { at: 0xF4E2, orig: [0x68, 0xF2] },                      // move-menu handler 0 (LOOK)
@@ -314,7 +315,7 @@
       const dest = P.maps[p.toMap].cells[p.toIdx];
       if (portalAt(P, p.toMap, p.toIdx)) errs.push(`${at(p.map, p.idx)}: portal leads onto another portal cell`);
       else if (dest.type !== 'room') errs.push(`${at(p.map, p.idx)}: portal leads into a wall at ${at(p.toMap, p.toIdx)}`);
-      else if (dest.door.on) warns.push(`${at(p.map, p.idx)}: portal leads into a locked room. If the player is turned away, the engine strands them on the wrong map (an original engine quirk), so make sure the lock is always open by then.`);
+      else if (dest.door.on && isLegacyPortals(P)) warns.push(`${at(p.map, p.idx)}: portal leads into a locked room. With the original two gateways, a player turned away there is stranded on the wrong map (Dark Mage's quirk). Add any other portal, or use 16K/32K, to get the fixed portal code.`);
     }
     const sr = P.start.room;
     if (!P.maps[0].cells[sr] || P.maps[0].cells[sr].type !== 'room') errs.push('Start room must be a room in Map A');
@@ -401,16 +402,28 @@
     // ORA $A9 / STA $A9 / if flags & 4: events |= byte6 / LDY #$0E / RTS
     return [0x05, 0xA9, 0x85, 0xA9, 0xA0, 0x00, 0xB1, 0xA3, 0x29, 0x04, 0xF0, 0x08, 0xA0, 0x06, 0xB1, 0xA3, 0x05, 0xAC, 0x85, 0xAC, 0xA0, 0x0E, 0x60];
   }
-  function asmPortal(tbl) {
-    // A = target room index * 2. Scan tbl (from*2, hotspot low byte, dest*2; $FF ends).
-    // On a match: A = dest*2 and read the hotspot $FFxx, which switches banks; the RTS then
-    // runs in the new bank (every bank has this routine at the same address).
-    //   LDX #0 / loop: LDY tbl,X / CPY #$FF / BEQ none / CMP tbl,X / BEQ hit / INX x3 / BNE loop
-    //   hit: LDA tbl+2,X / LDY tbl+1,X / LDX $FF00,Y / none: RTS
-    return [0xA2, 0x00, 0xBC, lo(tbl), hi(tbl), 0xC0, 0xFF, 0xF0, 0x13, 0xDD, lo(tbl), hi(tbl), 0xF0, 0x05, 0xE8, 0xE8, 0xE8, 0xD0, 0xEF,
-      0xBD, lo(tbl + 2), hi(tbl + 2), 0xBC, lo(tbl + 1), hi(tbl + 1), 0xBE, 0x00, 0xFF, 0x60];
+  // Portal table per bank: [own hotspot] then entries [from*2, hotspot, dest*2, msg lo, msg hi], $FF ends.
+  // On a match the routine remembers where the player came from ($AA = that bank's hotspot) and the
+  // copy of the destination's "locked" message kept in this bank ($AB/$A1), then switches banks.
+  // The RTS runs in the new bank: every bank has this routine at the same address.
+  function portalSource() {
+    return [
+      'LDX #0',
+      'pLoop: LDY PT+1,X', 'CPY #$FF', 'BEQ pNone', 'CMP PT+1,X', 'BEQ pHit',
+      'INX', 'INX', 'INX', 'INX', 'INX', 'BNE pLoop',
+      'pHit: LDY PT', 'STY $AA', 'LDY PT+4,X', 'STY $AB', 'LDY PT+5,X', 'STY $A1',
+      'LDA PT+3,X', 'LDY PT+2,X', 'LDX $FF00,Y', 'RTS',
+      'pNone: LDX #0', 'STX $AA', 'RTS',
+      // turned away by a lock: if a portal brought us here, show the copied message, return to the
+      // bank we came from and finish the move there (the player stays where they were)
+      'pBack: LDA $A5', 'STA $A2', 'LDY $AA', 'BEQ pB1', 'LDA #0', 'STA $AA', 'PLA', 'PLA',
+      'LDA $AB', 'STA $9C', 'LDA $A1', 'STA $9D', 'LDA $FF00,Y', 'JMP $F253',
+      'pB1: RTS',
+    ];
   }
-  const GATE_LEN = 28, EMPTY_LEN = 21, USE_LEN = 23, PORTAL_LEN = 29;
+  function asmPortal(at, tbl) { return assemble(portalSource(), at, { PT: tbl }); }
+  const portalLen = () => asmPortal(0xF000, 0xF000).bytes.length;
+  const GATE_LEN = 28, EMPTY_LEN = 21, USE_LEN = 23;
 
   // Wide game logic: 16 items and 16 events. State bytes get a second byte $1E above the first
   // (taken $A6/$C4, inventory $A7/$C5, revealed $A8/$C6, used $A9/$C7, events $AC/$CA), and room
@@ -522,9 +535,10 @@
         if (fx.empty) caddr.empty = cw.put(new Array(EMPTY_LEN).fill(0xEA));
         if (fx.use) caddr.use = cw.put(asmUse());
         if (fx.portal) {
-          caddr.portal = cw.put(new Array(PORTAL_LEN).fill(0xEA));
-          caddr.portalTable = cw.put(new Array(maxPortals * 3 + 1).fill(0xFF)); // filled per bank below
-          cb.set(asmPortal(caddr.portalTable), caddr.portal - BASE);
+          caddr.portal = cw.put(new Array(portalLen()).fill(0xEA));
+          caddr.portalTable = cw.put(new Array(maxPortals * 5 + 2).fill(0xFF)); // filled per bank below
+          const pa = asmPortal(caddr.portal, caddr.portalTable);
+          cb.set(pa.bytes, caddr.portal - BASE); caddr.portalBack = pa.labels.pBack;
         }
         cw.searchFrom = cw.pc;
         const pending = [];
@@ -568,9 +582,9 @@
         bk[IMM.introPages - BASE] = P.intro.length - 1;
         if (fx.portal) {
           put(HOOK.portal.at, [0x20, lo(caddr.portal), hi(caddr.portal)]);
-          const ents = P.portals.filter(p => p.map === m).flatMap(p => [(p.idx * 2) & 0xFF, lo(cart.base + order[p.toMap]), (p.toIdx * 2) & 0xFF]);
-          put(caddr.portalTable, [...ents, 0xFF]);
+          put(HOOK.blocked.at, [0x20, lo(caddr.portalBack), hi(caddr.portalBack), 0xEA]); // table is filled with the world data
         } else {
+          put(HOOK.blocked.at, HOOK.blocked.orig);
           // the original two hard-wired gateways (8K only)
           const a = P.portals.find(p => p.map === 0), bb = P.portals.find(p => p.map === 1);
           put(HOOK.portal.at, HOOK.portal.orig);
@@ -621,6 +635,9 @@
             r.k[7] = c.talk.on ? want(c.talk.no) : null;
             return r;
           });
+          // a portal into a locked room shows that room's message from here, so keep a copy in this bank
+          const myPortals = P.portals.filter(p => p.map === m);
+          const lockKeys = myPortals.map(p => { const d = P.maps[p.toMap].cells[p.toIdx]; return d && d.type === 'room' && d.door.on ? want(d.door.text) : null; });
           let introKeys = [];
           if (m === 0) introKeys = P.intro.map(want);
           else want(P.system.bootB);
@@ -657,6 +674,10 @@
             if (!recCache.has(key)) recCache.set(key, w.put(bytes));
             return recCache.get(key);
           });
+          if (fx.portal) {
+            const ents = myPortals.flatMap((p, k) => { const a = lockKeys[k] ? addr[lockKeys[k]] : 0; return [(p.idx * 2) & 0xFF, lo(cart.base + order[p.toMap]), (p.toIdx * 2) & 0xFF, lo(a), hi(a)]; });
+            bk.set([lo(cart.base + b), ...ents, 0xFF], caddr.portalTable - BASE);
+          }
           let any = recAddr.find(a => a != null);
           if (any == null) any = w.put([0, 0xFF, 0xFF]); // a map with no readable cells
           recAddr.forEach((a, i) => { const v = a == null ? any : a; bk[table + 2 * i - BASE] = lo(v); bk[table + 2 * i + 1 - BASE] = hi(v); });
@@ -961,6 +982,7 @@
     const P = normalize(project);
     const cap = opts.maxStates || 250000;
     const endMask = bit(P.settings.endEvent);
+    const legacy = isLegacyPortals(P); // only the original gateway code strands players
     const t0 = Date.now();
     // per-state storage
     const SM = new Uint8Array(cap), SR = new Uint8Array(cap), SI = new Uint16Array(cap), ST = new Uint16Array(cap),
@@ -1001,7 +1023,7 @@
         const dc = P.maps[dm].cells[di];
         if (!dc || dc.type !== 'room' || portalAt(P, dm, di) || (dc.door.on && !(ev & bit(dc.door.needEvent)))) {
           // turned away: the engine restores the room number, but in whichever bank is now active
-          if (dm !== m) {
+          if (dm !== m && legacy) {
             const sc = P.maps[dm].cells[r];
             if (!sc || sc.type !== 'room' || portalAt(P, dm, r)) { stranded.push({ from: id, act: d, map: dm, idx: r }); continue; }
             add(dm, r, inv, tk, sn, us, ev, !!sc.ending, id, K.MOVE + d);
