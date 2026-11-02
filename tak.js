@@ -87,6 +87,10 @@
     gate: { at: 0xF04D, orig: [0x20, 0xAB, 0xF0] },                       // JSR $F0AB (read controls)
     portal: { at: 0xF223, orig: [0x20, 0x58, 0xF2] },                     // JSR $F258 (two hard-wired bank switches)
     reboot: { at: 0xF05D, orig: [0xAD, 0xF9, 0xFF] },                     // LDA $FFF9 (restart in the start bank)
+    door: { at: 0xF237, orig: [0xA0, 0x07, 0xB1, 0xA3, 0x25, 0xAC, 0xD0, 0x0F] }, // LDY #7 / LDA (rec),Y / AND events / BNE open
+    startInv: { at: 0xF070, orig: [0xA9, 0x01, 0x85, 0xA7] },             // LDA #inv / STA $A7
+    lookHandler: { at: 0xF4E2, orig: [0x68, 0xF2] },                      // move-menu handler 0 (LOOK)
+    actHandlers: { at: 0xF4F8, orig: [0xAA, 0xF2, 0xC8, 0xF2, 0x33, 0xF3, 0x88, 0xF3, 0x00, 0xF3, 0xCB, 0xF3] }, // GO TAKE GIVE USE TALK INVENTORY
     empty: { at: 0xF42C, orig: [0xA5, 0x81, 0x85, 0xBF] },                // LDA $81 / STA $BF (item-menu count)
     use: { at: 0xF3B4, orig: [0x05, 0xA9, 0x85, 0xA9, 0xA0, 0x0E] },     // ORA $A9 / STA $A9 / LDY #$0E (USE success)
     fontPage: { at: 0xF031, orig: [0xA9, 0xF5] },                         // LDA #$F5 (glyph pointer page)
@@ -229,7 +233,9 @@
     P.settings.endEvent = P.settings.endEvent === undefined ? null : P.settings.endEvent;
     if (P.system.theEnd == null) P.system.theEnd = 'THE END';
     if (P.system.nothing == null) P.system.nothing = 'NOTHING';
-    if (!P.events) P.events = Array.from({ length: 8 }, (_, i) => 'Event ' + (i + 1));
+    if (!P.events) P.events = [];
+    while (P.events.length < 16) P.events.push('Event ' + (P.events.length + 1));
+    while (P.items.length < 16) P.items.push('');
     for (const m of P.maps) {
       if (!m.colors) m.colors = Object.assign({}, DEFAULT_COLORS);
       for (const c of m.cells) if (c.type === 'room') { if (c.ending == null) c.ending = false; if (c.use.setsEvent == null) c.use.setsEvent = false; }
@@ -242,6 +248,13 @@
     const a = P.portals.find(p => p.map === 0), b = P.portals.find(p => p.map === 1);
     return !!(a && b && a.toMap === 1 && a.toIdx === a.idx && b.toMap === 0 && b.toIdx === b.idx && a.idx !== b.idx);
   }
+  // does the game reference item or event 9-16? Then it needs the wide (16-bit) game logic.
+  function wideNeeded(P) {
+    const hi = v => v != null && v >= 8;
+    if (P.start.inventory.some(hi) || hi(P.settings.endEvent)) return true;
+    return P.maps.some(m => m.cells.some(c => c.type === 'room' &&
+      (hi(c.item) || (c.use.on && hi(c.use.item)) || (c.give.on && hi(c.give.item)) || (c.talk.on && hi(c.talk.needUsed)) || hi(c.sets) || (c.door.on && hi(c.door.needEvent)))));
+  }
   function portalAt(P, m, idx) { return P.portals.find(p => p.map === m && p.idx === idx) || null; }
   // which engine fixes a project needs
   function fixesNeeded(P) {
@@ -253,10 +266,12 @@
       if (c.ending) endingRooms = true;
       if (c.use.on && c.use.setsEvent && c.sets != null) useEvents = true;
     }));
+    const wide = wideNeeded(P);
     return {
-      empty: !P.start.inventory.some(i => !given.has(i)),  // inventory could become empty
+      wide,                                                 // 16 items / 16 events: replaces the game-logic handlers
+      empty: !wide && !P.start.inventory.some(i => !given.has(i)),  // inventory could become empty (wide mode handles it)
       gate: endingRooms || P.settings.endEvent != null,     // the game can end
-      use: useEvents,                                       // USE can set events
+      use: !wide && useEvents,                              // USE can set events (wide mode handles it)
       portal: !isLegacyPortals(P),                          // general portal table instead of the two CMPs
       font: fontMode(P),
     };
@@ -306,7 +321,7 @@
     if (portalAt(P, 0, sr)) errs.push('Start room cannot be a portal cell');
     if (P.intro.length < 2 || P.intro.length > 6) errs.push('Intro must have 2 to 6 pages');
     P.intro.forEach((t, i) => checkPage(t, `Intro page ${i + 1}`, errs, warns));
-    P.items.forEach((t, i) => checkPage(t, `Item ${i + 1} name`, errs, warns, { menuWord: true }));
+    P.items.forEach((t, i) => { if (i < 8 || normText(t).trim()) checkPage(t, `Item ${i + 1} name`, errs, warns, { menuWord: true }); });
     for (const k of [...MOVE_WORDS, ...ACT_WORDS, 'more', 'start']) checkPage(P.system[k], `Menu word "${k}"`, errs, warns, { menuWord: true });
     for (const k of SYS_MSGS) checkPage(P.system[k], `System message "${k}"`, errs, warns);
     checkPage(P.system.theEnd, 'Menu word "the end"', errs, warns, { menuWord: true });
@@ -397,6 +412,71 @@
   }
   const GATE_LEN = 28, EMPTY_LEN = 21, USE_LEN = 23, PORTAL_LEN = 29;
 
+  // Wide game logic: 16 items and 16 events. State bytes get a second byte $1E above the first
+  // (taken $A6/$C4, inventory $A7/$C5, revealed $A8/$C6, used $A9/$C7, events $AC/$CA), and room
+  // records hold item/event numbers ($FF = none) instead of bit masks:
+  //   0 flags, 1 item here, 2 USE item, 3 GIVE item, 4 TALK needs used, 5 event set, 6 lock event
+  // The item menu lists item numbers at $AF-$BE and name pointers at $CE-$ED.
+  function wideSource() {
+    return [
+      // shared helpers. X = item/event number, Y = address of the state byte (its high byte is $1E above)
+      'bTst: LDA $0000,Y', 'AND ML,X', 'BNE bT1', 'LDA $001E,Y', 'AND MH,X', 'bT1: RTS',                      // Z clear if set
+      'bSet: LDA $0000,Y', 'ORA ML,X', 'STA $0000,Y', 'LDA $001E,Y', 'ORA MH,X', 'STA $001E,Y', 'RTS',
+      'bClr: LDA ML,X', 'EOR #$FF', 'AND $0000,Y', 'STA $0000,Y', 'LDA MH,X', 'EOR #$FF', 'AND $001E,Y', 'STA $001E,Y', 'RTS',
+      'rec0: JSR $F5A1', 'LDY #0', 'LDA ($A3),Y', 'RTS',                                                     // room flags
+      'getF: LDA ($A3),Y', 'TAX', 'CMP #$FF', 'RTS',                                                          // field Y -> X (Z set if none)
+      'say: JSR $F5E8', 'JMP $F2AF',                                                                          // show record text Y, back to walking
+      // LOOK: show the LOOK text; reveal the item here unless it was already taken
+      'wLook: JSR $F5A1', 'LDY #$0A', 'JSR $F5E8', 'LDY #0', 'LDA ($A3),Y', 'BEQ wLM', 'BMI wLM',
+      'LDY #1', 'JSR getF', 'BEQ wLM', 'LDY #TK', 'JSR bTst', 'BNE wLN', 'LDY #SEEN', 'JSR bSet',
+      'wLM: JMP $F288', 'wLN: JMP $F29F',
+      // TAKE: the item here, if revealed, not taken before and not carried
+      'wTake: JSR rec0', 'AND #$40', 'BEQ wTN', 'LDY #1', 'JSR getF', 'BEQ wTN',
+      'LDY #TK', 'JSR bTst', 'BNE wTN', 'LDY #INV', 'JSR bTst', 'BNE wTN', 'LDY #SEEN', 'JSR bTst', 'BEQ wTN',
+      'LDY #INV', 'JSR bSet', 'LDY #TK', 'JSR bSet', 'LDY #$0C', 'JMP say', 'wTN: JMP $F2F5',
+      // GIVE / USE / INVENTORY open the item menu; MODE says what picking an item does
+      'wGive: LDX #1', 'LDA #<SELGIVE', 'LDY #>SELGIVE', 'BNE wOpen',
+      'wUse: LDX #2', 'LDA #<SELUSE', 'LDY #>SELUSE', 'BNE wOpen',
+      'wInv: LDX #0', 'LDA #<CARRY', 'LDY #>CARRY',
+      'wOpen: STX MODE', 'STA $9C', 'STY $9D',
+      // build the menu from carried items (or one "nothing" entry): numbers at $AF, name pointers at $CE
+      'LDA #0', 'STA $82', 'TAX',
+      'wB1: LDY #INV', 'JSR bTst', 'BEQ wB2', 'LDY $82', 'TXA', 'STA $00AF,Y', 'INC $82', 'wB2: INX', 'CPX #16', 'BNE wB1',
+      'LDA $82', 'BNE wB3', 'LDA #$FF', 'STA $AF', 'LDA #<NOTHING', 'STA $CE', 'LDA #>NOTHING', 'STA $CF', 'INC $82', 'BNE wB5',
+      'wB3: LDX #0', 'wB4: TXA', 'LSR A', 'TAY', 'LDA $00AF,Y', 'ASL A', 'TAY', 'LDA ITEMS,Y', 'STA $CE,X', 'LDA ITEMS+1,Y', 'STA $CF,X',
+      'INX', 'INX', 'TXA', 'LSR A', 'CMP $82', 'BNE wB4',
+      'wB5: LDA $82', 'STA $BF', 'LDA #$CE', 'STA $C0', 'LDA #0', 'STA $C1', 'STA $A0', 'LDA #<PICKS', 'STA $C2', 'LDA #>PICKS', 'STA $C3', 'RTS',
+      // an item was picked from the menu
+      'wPick: LDX $A0', 'LDA $AF,X', 'STA SEL', 'LDA MODE', 'BEQ wBack', 'LSR A', 'BCS wGiveDo',
+      // USE: the item counts as used; flag bit 2 makes it set the room's event as well
+      'wUseDo: JSR rec0', 'AND #$10', 'BEQ wUN', 'LDY #2', 'LDA ($A3),Y', 'CMP SEL', 'BNE wUN', 'TAX', 'LDY #USED', 'JSR bSet',
+      'JSR rec0', 'AND #$04', 'BEQ wU2', 'LDY #5', 'JSR getF', 'BEQ wU2', 'LDY #EV', 'JSR bSet', 'wU2: LDY #$0E', 'JMP say', 'wUN: JMP $F3C0',
+      'wBack: JMP $F2AA',
+      // GIVE: the item leaves the inventory; the room's event is set and its item revealed
+      'wGiveDo: JSR rec0', 'AND #$20', 'BEQ wGN', 'LDY #3', 'LDA ($A3),Y', 'CMP SEL', 'BNE wGN', 'TAX', 'LDY #INV', 'JSR bClr',
+      'LDY #5', 'JSR getF', 'BEQ wG2', 'LDY #EV', 'JSR bSet', 'wG2: LDY #1', 'JSR getF', 'BEQ wG3', 'LDY #SEEN', 'JSR bSet',
+      'wG3: LDY #$10', 'JMP say', 'wGN: JMP $F37D',
+      // TALK: the success reply needs an item to have been used here
+      'wTalk: JSR rec0', 'AND #$08', 'BEQ wHello', 'LDY #4', 'JSR getF', 'BEQ wTK', 'LDY #USED', 'JSR bTst', 'BEQ wTK',
+      'LDY #5', 'JSR getF', 'BEQ wT2', 'LDY #EV', 'JSR bSet', 'wT2: LDY #$12', 'JMP say', 'wTK: LDY #$16', 'JMP say', 'wHello: JMP $F328',
+      // locked rooms: Z clear when the needed event has happened; X must come back as 8 (arrival text)
+      'wDoor: LDY #6', 'LDA ($A3),Y', 'TAX', 'LDY #EV', 'JSR bTst', 'PHP', 'LDX #8', 'PLP', 'RTS',
+      // start-of-game inventory
+      'wStart: LDA #<STARTINV', 'STA INV', 'LDA #>STARTINV', 'STA INV+$1E', 'RTS',
+      'ML: .byte 1,2,4,8,16,32,64,128,0,0,0,0,0,0,0,0', 'MH: .byte 0,0,0,0,0,0,0,0,1,2,4,8,16,32,64,128',
+      'PICKS: .byte ' + Array.from({ length: 16 }, () => '<wPick,>wPick').join(','),
+    ];
+  }
+  const WIDE_SYMS = { TK: 0xA6, INV: 0xA7, SEEN: 0xA8, USED: 0xA9, EV: 0xAC, SEL: 0xC8, MODE: 0xC9 };
+  function asmWide(org, syms) { return assemble(wideSource(), org, Object.assign({}, WIDE_SYMS, syms)); }
+  // the ending check, assembled: wide mode tests a 16-bit event number
+  function asmGateWide(org, endEvent, endWord) {
+    const L = [];
+    if (endEvent != null) L.push(`LDX #${endEvent}`, 'LDA $AC', 'AND ML,X', 'BNE end', 'LDA $CA', 'AND MH,X', 'BNE end');
+    L.push('JSR $F5A1', 'LDY #0', 'LDA ($A3),Y', 'LSR A', 'BCS end', 'JMP $F0AB', 'end: LDA #<WORD', 'STA $9E', 'LDA #>WORD', 'STA $9F', 'RTS');
+    return L;
+  }
+
   // opts.measure: only measure space (no engine needed, ignores validation errors)
   function buildRom(project, engine, opts = {}) {
     const measure = !!opts.measure;
@@ -434,7 +514,11 @@
       const caddr = {};
       const maxPortals = Math.max(0, ...P.maps.map((_, m) => P.portals.filter(p => p.map === m).length));
       try {
-        if (fx.gate) caddr.gate = cw.put(new Array(GATE_LEN).fill(0xEA));
+        // wide game logic: size it with placeholder addresses now, assemble for real once strings are placed
+        const wideSyms0 = { SELGIVE: 0xF000, SELUSE: 0xF000, CARRY: 0xF000, NOTHING: 0xF000, ITEMS: 0xF000, STARTINV: 0 };
+        if (fx.wide) caddr.wide = cw.put(new Array(asmWide(0xF000, wideSyms0).bytes.length).fill(0xEA));
+        const gateLen = fx.wide ? assemble(asmGateWide(0xF000, P.settings.endEvent, 0xF000), 0xF000, { ML: 0xF000, MH: 0xF000, WORD: 0xF000 }).bytes.length : GATE_LEN;
+        if (fx.gate) caddr.gate = cw.put(new Array(gateLen).fill(0xEA));
         if (fx.empty) caddr.empty = cw.put(new Array(EMPTY_LEN).fill(0xEA));
         if (fx.use) caddr.use = cw.put(asmUse());
         if (fx.portal) {
@@ -446,13 +530,19 @@
         const pending = [];
         for (const k of [...MOVE_WORDS, ...ACT_WORDS, 'more', 'start']) pending.push(['w:' + k, encodePage(P.system[k], true)]);
         if (fx.gate) pending.push(['w:theEnd', encodePage(P.system.theEnd, true)]);
-        if (fx.empty) pending.push(['w:nothing', encodePage(P.system.nothing, true)]);
+        if (fx.empty || fx.wide) pending.push(['w:nothing', encodePage(P.system.nothing, true)]);
         for (const k of SYS_MSGS) pending.push(['m:' + k, encodePage(P.system[k])]);
-        P.items.forEach((t, i) => pending.push(['i:' + i, encodePage(t, true)]));
+        const nItems = fx.wide ? 16 : 8;
+        P.items.slice(0, nItems).forEach((t, i) => pending.push(['i:' + i, encodePage(t, true)]));
         pending.sort((a, b) => b[1].length - a[1].length);
         for (const [k, bytes] of pending) caddr[k] = cw.str(bytes);
-        caddr.itemTable = cw.put(P.items.flatMap((_, i) => [lo(caddr['i:' + i]), hi(caddr['i:' + i])]));
-        if (fx.gate) cb.set(asmGate(caddr.gate, bit(P.settings.endEvent), caddr['w:theEnd']), caddr.gate - BASE);
+        caddr.itemTable = cw.put(P.items.slice(0, nItems).flatMap((_, i) => [lo(caddr['i:' + i]), hi(caddr['i:' + i])]));
+        if (fx.wide) {
+          const startInv = P.start.inventory.reduce((acc, i) => acc | bit(i), 0);
+          const wa = asmWide(caddr.wide, { SELGIVE: caddr['m:selectGive'], SELUSE: caddr['m:selectUse'], CARRY: caddr['m:carrying'], NOTHING: caddr['w:nothing'], ITEMS: caddr.itemTable, STARTINV: startInv });
+          cb.set(wa.bytes, caddr.wide - BASE); caddr.wl = wa.labels;
+          if (fx.gate) cb.set(assemble(asmGateWide(caddr.gate, P.settings.endEvent, caddr['w:theEnd']), caddr.gate, { ML: wa.labels.ML, MH: wa.labels.MH, WORD: caddr['w:theEnd'] }).bytes, caddr.gate - BASE);
+        } else if (fx.gate) cb.set(asmGate(caddr.gate, bit(P.settings.endEvent), caddr['w:theEnd']), caddr.gate - BASE);
         if (fx.empty) cb.set(asmEmpty(caddr['w:nothing']), caddr.empty - BASE);
       } catch (x) { if (x.message === 'OUT_OF_SPACE') return { ok: false, errs: ['Out of space in the shared text block'], warns }; throw x; }
       const commonEnd = cw.pc;
@@ -474,7 +564,7 @@
         put(HOOK.reboot.at, [0xAD, lo(cart.base + startBank), hi(cart.base + startBank)]);
         bk[IMM.widthN - BASE] = 2 * map.width; bk[IMM.widthS - BASE] = 2 * map.width;
         bk[IMM.startRoom - BASE] = P.start.room * 2;
-        bk[IMM.startInv - BASE] = P.start.inventory.reduce((acc, i) => acc | bit(i), 0);
+        const startInvMask = P.start.inventory.reduce((acc, i) => acc | bit(i), 0);
         bk[IMM.introPages - BASE] = P.intro.length - 1;
         if (fx.portal) {
           put(HOOK.portal.at, [0x20, lo(caddr.portal), hi(caddr.portal)]);
@@ -488,6 +578,17 @@
           bk[IMM.portalA - BASE] = (bb.idx * 2) & 0xFF; // CMP #.. -> switch to bank 1 (Map A)
         }
         put(HOOK.gate.at, fx.gate ? [0x20, lo(caddr.gate), hi(caddr.gate)] : HOOK.gate.orig);
+        if (fx.wide) {
+          const wl = caddr.wl, w2 = a => [lo(a), hi(a)];
+          put(HOOK.lookHandler.at, w2(wl.wLook));
+          put(HOOK.actHandlers.at, [0xAA, 0xF2, ...w2(wl.wTake), ...w2(wl.wGive), ...w2(wl.wUse), ...w2(wl.wTalk), ...w2(wl.wInv)]);
+          // lock check: JSR wDoor / BNE open (to $F24E) / NOP x3
+          put(HOOK.door.at, [0x20, ...w2(wl.wDoor), 0xD0, 0x12, 0xEA, 0xEA, 0xEA]);
+          put(HOOK.startInv.at, [0x20, ...w2(wl.wStart), 0xEA]);
+        } else {
+          for (const k of ['lookHandler', 'actHandlers', 'door', 'startInv']) put(HOOK[k].at, HOOK[k].orig);
+          bk[IMM.startInv - BASE] = startInvMask & 0xFF;
+        }
         put(HOOK.empty.at, fx.empty ? [0x20, lo(caddr.empty), hi(caddr.empty), 0xEA] : HOOK.empty.orig);
         put(HOOK.use.at, fx.use ? [0x20, lo(caddr.use), hi(caddr.use), 0xEA, 0xEA, 0xEA] : HOOK.use.orig);
         put(HOOK.fontPage.at, [0xA9, fx.font === 'extended' ? 0xF6 : 0xF5]);
@@ -536,15 +637,19 @@
               let f = 0;
               if (c.ending) f |= 0x01;
               if (c.door.on) f |= 0x02;
-              if (c.use.on && c.use.setsEvent && fx.use) f |= 0x04;
+              if (c.use.on && c.use.setsEvent && (fx.use || fx.wide)) f |= 0x04;
               if (c.talk.on) f |= 0x08;
               if (c.use.on) f |= 0x10;
               if (c.give.on) f |= 0x20;
               if (c.take.on) f |= 0x40;
               const reveal = c.lookReveals && c.item != null;
               if (!reveal) f |= 0x80;
-              bytes = [f, reveal ? bit(c.item) : 0, bit(c.item), c.use.on ? bit(c.use.item) : 0, c.give.on ? bit(c.give.item) : 0,
-                c.talk.on ? bit(c.talk.needUsed) : 0, bit(c.sets), c.door.on ? bit(c.door.needEvent) : 0];
+              const num = v => v == null ? 0xFF : v;
+              bytes = fx.wide
+                ? [f, num(c.item), c.use.on ? num(c.use.item) : 0xFF, c.give.on ? num(c.give.item) : 0xFF,
+                  c.talk.on ? num(c.talk.needUsed) : 0xFF, num(c.sets), c.door.on ? num(c.door.needEvent) : 0xFF, 0]
+                : [f, reveal ? bit(c.item) : 0, bit(c.item), c.use.on ? bit(c.use.item) : 0, c.give.on ? bit(c.give.item) : 0,
+                  c.talk.on ? bit(c.talk.needUsed) : 0, bit(c.sets), c.door.on ? bit(c.door.needEvent) : 0];
               let last = 1; r.k.forEach((k, i) => { if (k) last = i; });
               for (let i = 0; i <= last; i++) { const a = r.k[i] ? addr[r.k[i]] : 0xFFFF; bytes.push(lo(a), hi(a)); }
             }
@@ -702,7 +807,8 @@
     }
     glyph(code, row) { return this.rom[this.bank * 4096 + (this.fontPage() - 0xF0) * 256 + code + row]; }
     colors() { const b = this.bank * 4096; return { bg: this.rom[b + 0x15F], text: this.rom[b + 0x159], menuBg: this.rom[b + 0x1B7], menuText: this.rom[b + 0x1BB] }; }
-    state() { const r = this.ram; return { room: r[0x22] >> 1, bank: this.bank, inv: r[0x27], taken: r[0x26], seen: r[0x28], used: r[0x29], events: r[0x2C] }; }
+    // set .wide = true for cartridges built with 16 items / 16 events
+    state() { const r = this.ram, h = a => this.wide ? r[a] << 8 : 0; return { room: r[0x22] >> 1, bank: this.bank, inv: r[0x27] | h(0x45), taken: r[0x26] | h(0x44), seen: r[0x28] | h(0x46), used: r[0x29] | h(0x47), events: r[0x2C] | h(0x4A) }; }
   }
   // addressing helpers
   const imm = c => { const v = c.pc; c.pc = (c.pc + 1) & 0xFFFF; return v; };
@@ -763,13 +869,264 @@
   // the fire button's press edge, so: 'left'/'right' step the action menu by one;
   // 'N','E','S','W' hold that direction and press fire; 'fire' presses fire alone.
   const JOY = { N: 0xEF, S: 0xDF, W: 0xBF, E: 0x7F, left: 0xBF, right: 0x7F };
-  function act(emu, what) {
-    const idle = n => { for (let i = 0; i < n; i++) emu.runFrame(); };
-    if (what === 'reset') { emu.swchb = 0x0A; idle(4); emu.swchb = 0x0B; idle(12); return; }
-    if (what === 'left' || what === 'right') { emu.swcha = JOY[what]; idle(8); emu.swcha = 0xFF; idle(1); return; }
-    if (JOY[what]) { emu.swcha = JOY[what]; idle(9); }
-    emu.inpt4 = 0x00; idle(3); emu.inpt4 = 0x80; emu.swcha = 0xFF; idle(9);
+  // Input as frame segments [stick, fireDown, frames]; act() and the editor's replay both use them.
+  function actSegs(what) {
+    if (what === 'left' || what === 'right') return [[JOY[what], 0, 8], [0xFF, 0, 1]];
+    const segs = [];
+    if (JOY[what]) segs.push([JOY[what], 0, 9]);
+    segs.push([JOY[what] || 0xFF, 1, 3], [0xFF, 0, 9]);
+    return segs;
   }
-  root.TAK = { CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, BASE };
+  function runSegs(emu, segs) {
+    for (const [stick, fire, n] of segs) { emu.swcha = stick; emu.inpt4 = fire ? 0x00 : 0x80; for (let i = 0; i < n; i++) emu.runFrame(); }
+    emu.swcha = 0xFF; emu.inpt4 = 0x80;
+  }
+  function act(emu, what) {
+    if (what === 'reset') { const idle = n => { for (let i = 0; i < n; i++) emu.runFrame(); }; emu.swchb = 0x0A; idle(4); emu.swchb = 0x0B; idle(12); return; }
+    runSegs(emu, actSegs(what));
+  }
+
+  // ---------- A small two-pass 6502 assembler (for the kit's own routines) ----------
+  // Syntax: "label:", "LDA #$1E", "STA $A7", "LDA ($A3),Y", "AND ML,X", "STA $00AF,Y" (4 hex
+  // digits force absolute), "JMP ($1234)", "BNE label". Operands may use symbols, + - * and <x / >x.
+  const OPC = (() => {
+    const t = {};
+    const src = '00 BRK imp|01 ORA izx|05 ORA zp|06 ASL zp|08 PHP imp|09 ORA imm|0A ASL acc|0D ORA abs|0E ASL abs|10 BPL rel|11 ORA izy|15 ORA zpx|16 ASL zpx|18 CLC imp|19 ORA aby|1D ORA abx|1E ASL abx|20 JSR abs|21 AND izx|24 BIT zp|25 AND zp|26 ROL zp|28 PLP imp|29 AND imm|2A ROL acc|2C BIT abs|2D AND abs|2E ROL abs|30 BMI rel|31 AND izy|35 AND zpx|36 ROL zpx|38 SEC imp|39 AND aby|3D AND abx|3E ROL abx|40 RTI imp|41 EOR izx|45 EOR zp|46 LSR zp|48 PHA imp|49 EOR imm|4A LSR acc|4C JMP abs|4D EOR abs|4E LSR abs|50 BVC rel|51 EOR izy|55 EOR zpx|56 LSR zpx|58 CLI imp|59 EOR aby|5D EOR abx|5E LSR abx|60 RTS imp|61 ADC izx|65 ADC zp|66 ROR zp|68 PLA imp|69 ADC imm|6A ROR acc|6C JMP ind|6D ADC abs|6E ROR abs|70 BVS rel|71 ADC izy|75 ADC zpx|76 ROR zpx|78 SEI imp|79 ADC aby|7D ADC abx|7E ROR abx|81 STA izx|84 STY zp|85 STA zp|86 STX zp|88 DEY imp|8A TXA imp|8C STY abs|8D STA abs|8E STX abs|90 BCC rel|91 STA izy|94 STY zpx|95 STA zpx|96 STX zpy|98 TYA imp|99 STA aby|9A TXS imp|9D STA abx|A0 LDY imm|A1 LDA izx|A2 LDX imm|A4 LDY zp|A5 LDA zp|A6 LDX zp|A8 TAY imp|A9 LDA imm|AA TAX imp|AC LDY abs|AD LDA abs|AE LDX abs|B0 BCS rel|B1 LDA izy|B4 LDY zpx|B5 LDA zpx|B6 LDX zpy|B8 CLV imp|B9 LDA aby|BA TSX imp|BC LDY abx|BD LDA abx|BE LDX aby|C0 CPY imm|C1 CMP izx|C4 CPY zp|C5 CMP zp|C6 DEC zp|C8 INY imp|C9 CMP imm|CA DEX imp|CC CPY abs|CD CMP abs|CE DEC abs|D0 BNE rel|D1 CMP izy|D5 CMP zpx|D6 DEC zpx|D8 CLD imp|D9 CMP aby|DD CMP abx|DE DEC abx|E0 CPX imm|E1 SBC izx|E4 CPX zp|E5 SBC zp|E6 INC zp|E8 INX imp|E9 SBC imm|EA NOP imp|EC CPX abs|ED SBC abs|EE INC abs|F0 BEQ rel|F1 SBC izy|F5 SBC zpx|F6 INC zpx|F8 SED imp|F9 SBC aby|FD SBC abx|FE INC abx';
+    for (const e of src.split('|')) { const [o, m, md] = e.split(' '); t[m + ' ' + md] = parseInt(o, 16); }
+    return t;
+  })();
+  const ASM_LEN = { imp: 1, acc: 1, imm: 2, zp: 2, zpx: 2, zpy: 2, izx: 2, izy: 2, rel: 2, abs: 3, abx: 3, aby: 3, ind: 3 };
+  function assemble(lines, org, syms0 = {}) {
+    const run = (syms, final) => {
+      const out = [], labels = {}; let pc = org;
+      const val = (expr) => {
+        const e = expr.trim();
+        if (e.startsWith('<')) return val(e.slice(1)) & 0xFF;
+        if (e.startsWith('>')) return (val(e.slice(1)) >> 8) & 0xFF;
+        let unknown = false;
+        const js = e.replace(/\$([0-9A-Fa-f]+)/g, (_, h) => String(parseInt(h, 16)))
+          .replace(/[A-Za-z_][A-Za-z0-9_]*/g, n => { if (n in syms) return String(syms[n]); unknown = true; return '0'; });
+        if (unknown && final) throw new Error('Unknown symbol in "' + e + '"');
+        if (!/^[0-9+\-*() ]+$/.test(js)) throw new Error('Bad expression "' + e + '"');
+        return unknown ? null : Function('return (' + js + ')')();
+      };
+      for (let raw of lines) {
+        const line = raw.replace(/;.*$/, '').trim(); if (!line) continue;
+        const lm = /^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$/.exec(line);
+        let body = line;
+        if (lm) { labels[lm[1]] = pc; syms[lm[1]] = pc; body = lm[2].trim(); if (!body) continue; }
+        if (/^\.byte /i.test(body)) { for (const b of body.slice(6).split(',')) { out.push((val(b) ?? 0) & 0xFF); pc++; } continue; }
+        const [mn, ...rest] = body.split(/\s+/); const op = rest.join(' ').trim(); const M = mn.toUpperCase();
+        let mode, v = null;
+        if (!op || op === 'A') mode = OPC[M + ' imp'] !== undefined ? 'imp' : 'acc';
+        else if (op[0] === '#') { mode = 'imm'; v = val(op.slice(1)); }
+        else if (/^\(.*\),Y$/i.test(op)) { mode = 'izy'; v = val(op.slice(1, -3)); }
+        else if (/^\(.*,X\)$/i.test(op)) { mode = 'izx'; v = val(op.slice(1, -3)); }
+        else if (/^\(.*\)$/.test(op)) { mode = 'ind'; v = val(op.slice(1, -1)); }
+        else if (OPC[M + ' rel'] !== undefined) { mode = 'rel'; v = val(op); }
+        else {
+          const idx = /,([XY])$/i.exec(op); const base = idx ? op.slice(0, -2) : op;
+          v = val(base);
+          const forceAbs = /^\$[0-9A-Fa-f]{4}$/.test(base.trim());
+          const zp = !forceAbs && v !== null && v < 0x100;
+          const r = idx ? idx[1].toUpperCase() : '';
+          const zm = r ? 'zp' + r.toLowerCase() : 'zp', am = r ? 'ab' + r.toLowerCase() : 'abs';
+          mode = zp && OPC[M + ' ' + zm] !== undefined ? zm : am;
+        }
+        const code = OPC[M + ' ' + mode];
+        if (code === undefined) throw new Error(`Bad instruction "${body}" (${mode})`);
+        out.push(code);
+        const n = ASM_LEN[mode];
+        if (mode === 'rel') {
+          let off = 0;
+          if (v !== null) { off = v - (pc + 2); if (final && (off < -128 || off > 127)) throw new Error('Branch out of range: ' + body); }
+          out.push(off & 0xFF);
+        } else if (n === 2) out.push((v ?? 0) & 0xFF);
+        else if (n === 3) out.push((v ?? 0) & 0xFF, ((v ?? 0) >> 8) & 0xFF);
+        pc += n;
+      }
+      return { bytes: out, labels };
+    };
+    const syms = Object.assign({}, syms0);
+    run(syms, false);              // pass 1: collect labels
+    return run(syms, true);        // pass 2: resolve everything
+  }
+
+  // ---------- Playthrough analysis ----------
+  // A model of the engine's rules, searched breadth-first over every reachable game state:
+  // map, room, inventory, taken, revealed, used and event bytes.
+  const DIRS = ['N', 'E', 'S', 'W'];
+  const K = { MOVE: 0, LOOK: 4, TAKE: 5, GIVE: 6, USE: 7, TALK: 8 };
+  function analyze(project, opts = {}) {
+    const P = normalize(project);
+    const cap = opts.maxStates || 250000;
+    const endMask = bit(P.settings.endEvent);
+    const t0 = Date.now();
+    // per-state storage
+    const SM = new Uint8Array(cap), SR = new Uint8Array(cap), SI = new Uint16Array(cap), ST = new Uint16Array(cap),
+      SS = new Uint16Array(cap), SU = new Uint16Array(cap), SE = new Uint16Array(cap), WIN = new Uint8Array(cap);
+    const parent = new Int32Array(cap).fill(-1), pact = new Int32Array(cap), depth = new Int32Array(cap);
+    const ids = new Map();
+    let n = 0, truncated = false;
+    const eFrom = [], eTo = [], eAct = [];
+    const stranded = [];
+    const key = (m, r, inv, tk, sn, us, ev) => ((m * 128 + r) * 65536 + inv) * 65536 + tk + ':' + ((sn * 65536 + us) * 65536 + ev);
+    function add(m, r, inv, tk, sn, us, ev, win, from, a) {
+      const k = key(m, r, inv, tk, sn, us, ev) + (win ? 'w' : '');
+      let id = ids.get(k);
+      if (id === undefined) {
+        if (n >= cap) { truncated = true; return -1; }
+        id = n++; ids.set(k, id);
+        SM[id] = m; SR[id] = r; SI[id] = inv; ST[id] = tk; SS[id] = sn; SU[id] = us; SE[id] = ev; WIN[id] = win ? 1 : 0;
+        parent[id] = from; pact[id] = a; depth[id] = from < 0 ? 0 : depth[from] + 1;
+      }
+      if (from >= 0) { eFrom.push(from); eTo.push(id); eAct.push(a); }
+      return id;
+    }
+    const startInv = P.start.inventory.reduce((acc, i) => acc | bit(i), 0);
+    add(0, P.start.room, startInv, 0, 0, 0, 0, !!(P.maps[0].cells[P.start.room] || {}).ending, -1, -1);
+    for (let id = 0; id < n; id++) {
+      if (WIN[id]) continue;
+      const m = SM[id], r = SR[id], inv = SI[id], tk = ST[id], sn = SS[id], us = SU[id], ev = SE[id];
+      const map = P.maps[m], c = map.cells[r];
+      const won = e2 => !!(e2 & endMask);
+      // moves
+      const W = map.width;
+      for (let d = 0; d < 4; d++) {
+        const t = (r * 2 + [-2 * W, 2, 2 * W, -2][d]) & 0xFF, ti = t >> 1;
+        const pt = portalAt(P, m, ti);
+        let dm = m, di = ti;
+        if (pt) { dm = pt.toMap; di = pt.toIdx; }
+        else if (ti >= map.cells.length) continue; // off the map: validation reports it
+        const dc = P.maps[dm].cells[di];
+        if (!dc || dc.type !== 'room' || portalAt(P, dm, di) || (dc.door.on && !(ev & bit(dc.door.needEvent)))) {
+          // turned away: the engine restores the room number, but in whichever bank is now active
+          if (dm !== m) {
+            const sc = P.maps[dm].cells[r];
+            if (!sc || sc.type !== 'room' || portalAt(P, dm, r)) { stranded.push({ from: id, act: d, map: dm, idx: r }); continue; }
+            add(dm, r, inv, tk, sn, us, ev, !!sc.ending, id, K.MOVE + d);
+          }
+          continue; // a wall or lock on the same map: nothing changes
+        }
+        add(dm, di, inv, tk, sn, us, ev, !!dc.ending, id, K.MOVE + d);
+      }
+      // LOOK (every verb is reached through LOOK, so its reveal happens first)
+      let sn2 = sn;
+      if (c.lookReveals && c.item != null && !(tk & bit(c.item))) sn2 |= bit(c.item);
+      add(m, r, inv, tk, sn2, us, ev, false, id, K.LOOK);
+      if (c.take.on && c.item != null) {
+        const b = bit(c.item);
+        if (!(tk & b) && (sn2 & b) && !(inv & b)) add(m, r, inv | b, tk | b, sn2, us, ev, false, id, K.TAKE);
+      }
+      if (c.give.on && c.give.item != null && (inv & bit(c.give.item))) {
+        const e2 = ev | bit(c.sets);
+        add(m, r, inv & ~bit(c.give.item) & 0xFFFF, tk, sn2 | bit(c.item), us, e2, won(e2), id, K.GIVE * 16 + c.give.item);
+      }
+      if (c.use.on && c.use.item != null && (inv & bit(c.use.item))) {
+        const e2 = c.use.setsEvent ? ev | bit(c.sets) : ev;
+        add(m, r, inv, tk, sn2, us | bit(c.use.item), e2, won(e2), id, K.USE * 16 + c.use.item);
+      }
+      if (c.talk.on && c.talk.needUsed != null && (us & bit(c.talk.needUsed))) {
+        const e2 = ev | bit(c.sets);
+        add(m, r, inv, tk, sn2, us, e2, won(e2), id, K.TALK);
+      }
+    }
+    // which states can still reach a win (reverse search over the explored graph)
+    const canWin = new Uint8Array(n);
+    const rev = Array.from({ length: n }, () => []);
+    for (let i = 0; i < eFrom.length; i++) rev[eTo[i]].push(eFrom[i]);
+    const q = [];
+    for (let i = 0; i < n; i++) if (WIN[i]) { canWin[i] = 1; q.push(i); }
+    while (q.length) { const v = q.pop(); for (const u of rev[v]) if (!canWin[u]) { canWin[u] = 1; q.push(u); } }
+
+    const stepOf = (from, a) => {
+      const kind = a < 16 ? a : a >> 4;
+      const st = { map: SM[from], idx: SR[from] };
+      if (a < 4) st.action = DIRS[a];
+      else if (a === K.LOOK) st.action = 'LOOK';
+      else if (a === K.TAKE) st.action = 'TAKE';
+      else if (a === K.TALK) st.action = 'TALK';
+      else { st.action = (a >> 4) === K.GIVE ? 'GIVE' : 'USE'; st.item = a & 15; }
+      return st;
+    };
+    const pathTo = id => { const out = []; while (parent[id] >= 0) { out.push(stepOf(parent[id], pact[id])); id = parent[id]; } return out.reverse(); };
+    let best = -1;
+    for (let i = 0; i < n; i++) if (WIN[i] && (best < 0 || depth[i] < depth[best])) best = i;
+    // reachability summaries
+    const seenRooms = P.maps.map(m => new Uint8Array(m.cells.length));
+    let itemsHeld = 0, eventsSet = 0;
+    for (let i = 0; i < n; i++) { seenRooms[SM[i]][SR[i]] = 1; itemsHeld |= SI[i]; eventsSet |= SE[i]; }
+    const unreachable = [];
+    P.maps.forEach((m, mi) => m.cells.forEach((c, i) => { if (c.type === 'room' && !portalAt(P, mi, i) && !seenRooms[mi][i]) unreachable.push({ map: mi, idx: i }); }));
+    const usedItems = new Set(), usedEvents = new Set();
+    P.maps.forEach(m => m.cells.forEach(c => {
+      if (c.type !== 'room') return;
+      if (c.take.on && c.item != null) usedItems.add(c.item);
+      if (c.sets != null && (c.give.on || (c.talk.on && c.talk.needUsed != null) || (c.use.on && c.use.setsEvent))) usedEvents.add(c.sets);
+    }));
+    P.start.inventory.forEach(i => usedItems.add(i));
+    const neverItems = [...usedItems].filter(i => !(itemsHeld & bit(i))).sort();
+    const neverEvents = [...usedEvents].filter(e => !(eventsSet & bit(e))).sort();
+    // points of no return: a move from a winnable state into one that can no longer win
+    const noReturn = [];
+    if (best >= 0) {
+      const seenKey = new Map();
+      for (let i = 0; i < eFrom.length; i++) {
+        const u = eFrom[i], v = eTo[i];
+        if (!canWin[u] || canWin[v]) continue;
+        const st = stepOf(u, eAct[i]);
+        const k2 = `${st.map}:${st.idx}:${st.action}:${st.item}`;
+        const prev = seenKey.get(k2);
+        if (!prev || depth[u] < prev.d) seenKey.set(k2, { d: depth[u], u, st });
+      }
+      for (const { u, st } of [...seenKey.values()].sort((a, b) => a.d - b.d).slice(0, 8)) noReturn.push(Object.assign(st, { path: pathTo(u) }));
+    }
+    return {
+      endingDefined: endMask !== 0 || P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending)),
+      winnable: best >= 0, solution: best >= 0 ? pathTo(best) : null,
+      states: n, truncated, ms: Date.now() - t0,
+      unreachable, neverItems, neverEvents, noReturn,
+      stranded: stranded.slice(0, 5).map(x => ({ map: SM[x.from], idx: SR[x.from], action: DIRS[x.act], landsOn: { map: x.map, idx: x.idx }, path: pathTo(x.from) })),
+    };
+  }
+
+  // Turn a walkthrough into controller input: intro pages, then each step as the engine wants it.
+  function stepSegs(P, inv, st) {
+    const out = [];
+    const verb = (k, item) => {
+      out.push(...actSegs('fire'));                      // LOOK opens the action menu
+      for (let i = 0; i < k; i++) out.push(...actSegs('right'));
+      out.push(...actSegs('fire'));
+      if (item != null) {                                // pick the item from the carried list
+        let pos = 0; for (let b = 0; b < item; b++) if (inv & bit(b)) pos++;
+        for (let i = 0; i < pos; i++) out.push(...actSegs('right'));
+        out.push(...actSegs('fire'));
+      }
+    };
+    if (DIRS.includes(st.action)) out.push(...actSegs(st.action));
+    else if (st.action === 'LOOK') { out.push(...actSegs('fire'), ...actSegs('fire')); } // LOOK, then GO back
+    else if (st.action === 'TAKE') verb(1);
+    else if (st.action === 'GIVE') verb(2, st.item);
+    else if (st.action === 'USE') verb(3, st.item);
+    else if (st.action === 'TALK') verb(4);
+    return out;
+  }
+  function introSegs(P) { const out = []; for (let i = 0; i < P.intro.length; i++) out.push(...actSegs('fire')); return out; }
+  // Replay a walkthrough on the built ROM and check it reaches THE END.
+  function verifySolution(rom, project, steps) {
+    const P = normalize(project);
+    const e = new Emu(rom);
+    e.wide = fixesNeeded(P).wide;
+    for (let i = 0; i < 3; i++) e.runFrame();
+    runSegs(e, introSegs(P));
+    for (let i = 0; i < steps.length; i++) {
+      runSegs(e, stepSegs(P, e.state().inv, steps[i]));
+    }
+    for (let i = 0; i < 4; i++) e.runFrame();
+    const ended = e.menuPtr() !== 0 && e.menuText() === normText(P.system.theEnd).split('\n')[0];
+    return { ok: ended, finalText: e.screenText(), menu: e.menuText() };
+  }
+
+  root.TAK = { wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, BASE };
 })(typeof window !== 'undefined' ? window : globalThis);
 if (typeof module !== 'undefined') module.exports = globalThis.TAK;
