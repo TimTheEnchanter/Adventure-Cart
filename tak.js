@@ -24,6 +24,113 @@
   const XDECODE = {};
   for (const [k, v] of Object.entries(XCHAR)) XDECODE[v] = k;
   const LINE_W = 12, MAX_LINES = 10;
+  // Workshop engine text: bytes 0..NGLYPH-1 are glyph numbers (GMAP turns them into font offsets),
+  // NGLYPH..$FD are dictionary words of the bank, $FF ends a line, $FE ends a message.
+  const GLYPHS = Object.keys(XCHAR), NGLYPH = GLYPHS.length;
+  const GIDX = {}; GLYPHS.forEach((c, i) => GIDX[c] = i);
+  const GMAP = GLYPHS.map(c => XCHAR[c]);
+  const MAXTOK = 0xFE - NGLYPH, DICT_MAX = 256, TOK_MAXLEN = 12;
+  // cycles the line reader may spend on one line (the gap timer allows a little more; see test18)
+  const PARSE_BASE = 175, PARSE_PLAIN = 21, PARSE_TOK = 52, PARSE_TOKCH = 18, PARSE_MAX = 590;
+  const lineCost = (line, tokLen) => { let c = PARSE_BASE; for (let i = 0; i < line.length; i++) { const v = line.charCodeAt(i); c += v < NGLYPH ? PARSE_PLAIN : PARSE_TOK + PARSE_TOKCH * tokLen[v - NGLYPH]; } return c; };
+  // Build one bank's dictionary from its messages (arrays of encoded bytes) and return the compressed
+  // messages. Greedy: repeatedly take the substring that saves the most bytes.
+  const dictCache = new Map();
+  function takCompress(pages) {
+    const ckey = pages.map(p => p.join(',')).join('|');
+    if (dictCache.has(ckey)) return dictCache.get(ckey);
+    // lines as strings of symbol codes, weighted by how many messages contain them
+    const lineW = new Map();
+    const split = pages.map(p => {
+      const parts = []; let cur = '';
+      for (const b of p) { if (b >= 0xFE) { parts.push([cur, b]); cur = ''; } else cur += String.fromCharCode(b); }
+      return parts;
+    });
+    for (const parts of split) for (const [l] of parts) if (l.length > 1) lineW.set(l, (lineW.get(l) || 0) + 1);
+    let lines = [...lineW.entries()].map(([l, w]) => ({ orig: l, cur: l, w }));
+    const toks = []; let dictBytes = 0; const banned = new Set();
+    while (toks.length < MAXTOK) {
+      const cnt = new Map(), seenAt = new Map();
+      lines.forEach((L, li) => {
+        const t = L.cur;
+        for (let i = 0; i < t.length - 1; i++) {
+          if (t.charCodeAt(i) >= NGLYPH) continue;
+          for (let n = 2; n <= TOK_MAXLEN && i + n <= t.length; n++) {
+            if (t.charCodeAt(i + n - 1) >= NGLYPH) break;
+            const sub = t.substr(i, n), last = seenAt.get(sub);
+            if (last && last[0] === li && last[1] > i) continue; // overlaps the previous match in this line
+            seenAt.set(sub, [li, i + n]);
+            cnt.set(sub, (cnt.get(sub) || 0) + L.w);
+          }
+        }
+      });
+      let best = null, bs = 0;
+      for (const [sub, c] of cnt) {
+        if (banned.has(sub)) continue;
+        const sc = c * (sub.length - 1) - (sub.length + 2);
+        if (sc > bs || (sc === bs && best && sub < best)) { bs = sc; best = sub; }
+      }
+      if (!best) break;
+      if (dictBytes + best.length + 1 > DICT_MAX) { banned.add(best); continue; }
+      const tc = String.fromCharCode(NGLYPH + toks.length);
+      toks.push(best); dictBytes += best.length + 1;
+      for (const L of lines) if (L.cur.includes(best)) L.cur = L.cur.split(best).join(tc);
+    }
+    // keep every line inside the reader's cycle budget: re-apply tokens in order while they fit
+    let tokLen = toks.map(t => t.length);
+    const tokAt = new Map(toks.map((t, k) => [t, k]));
+    // shortest encoding of a line with the finished dictionary (ties: fewer cycles)
+    const best = (l) => {
+      const dp = [{ n: 0, c: 0, s: '' }];
+      for (let i = 1; i <= l.length; i++) {
+        let b = { n: dp[i - 1].n + 1, c: dp[i - 1].c + PARSE_PLAIN, s: dp[i - 1].s + l[i - 1] };
+        for (let n = 2; n <= Math.min(TOK_MAXLEN, i); n++) {
+          const k = tokAt.get(l.substr(i - n, n)); if (k === undefined) continue;
+          const p = dp[i - n], c = p.c + PARSE_TOK + PARSE_TOKCH * n;
+          if (p.n + 1 < b.n || (p.n + 1 === b.n && c < b.c)) b = { n: p.n + 1, c, s: p.s + String.fromCharCode(NGLYPH + k) };
+        }
+        dp[i] = b;
+      }
+      return dp[l.length].s;
+    };
+    const enc = new Map();
+    for (const L of lines) {
+      let t = best(L.orig);
+      if (lineCost(t, tokLen) > PARSE_MAX) {
+        // keep every line inside the reader's cycle budget: apply tokens in order while they fit
+        t = L.orig;
+        toks.forEach((tk, k) => { const u = t.split(tk).join(String.fromCharCode(NGLYPH + k)); if (u !== t && lineCost(u, tokLen) <= PARSE_MAX) t = u; });
+      }
+      enc.set(L.orig, t);
+    }
+    // drop words that ended up unused and renumber
+    const used = new Set();
+    for (const t of enc.values()) for (const ch of t) { const v = ch.charCodeAt(0); if (v >= NGLYPH) used.add(v - NGLYPH); }
+    const keep = toks.map((_, k) => k).filter(k => used.has(k)), renum = new Map(keep.map((k, i) => [k, i]));
+    for (const [o, t] of enc) enc.set(o, [...t].map(ch => { const v = ch.charCodeAt(0); return v >= NGLYPH ? String.fromCharCode(NGLYPH + renum.get(v - NGLYPH)) : ch; }).join(''));
+    const toks2 = keep.map(k => toks[k]);
+    dictBytes = toks2.reduce((t, w) => t + w.length + 1, 0);
+    const out = split.map(parts => parts.flatMap(([l, end]) => [...(enc.get(l) || l)].map(c => c.charCodeAt(0)).concat([end])));
+    const res = { toks: toks2.map(t => [...t].map(c => c.charCodeAt(0))), pages: out, dictBytes };
+    if (dictCache.size > 64) dictCache.clear();
+    dictCache.set(ckey, res);
+    return res;
+  }
+  // read Workshop-engine text from a bank (expanding dictionary words) -> lines of font offsets
+  function takLines(bk, a, menuWord) {
+    const rdw = o => bk[o - BASE] | (bk[o + 1 - BASE] << 8);
+    const toklo = rdw(0xFFD8), tpage = bk[0xFFDA - BASE], gmap = rdw(0xFFDB), ng = bk[0xFFDD - BASE];
+    const lines = []; let line = [], i = a - BASE, n = 0;
+    while (i >= 0 && i < 4096 && n++ < 400) {
+      const v = bk[i++];
+      if (v === 0xFE) break;
+      if (v === 0xFF) { lines.push(line); line = []; if (menuWord) return lines; continue; }
+      if (v < ng) line.push(bk[gmap + v - BASE]);
+      else { let j = (tpage << 8 | bk[toklo + v - ng - BASE]) - BASE, m = 0; while (j >= 0 && j < 4096 && bk[j] < 0x80 && m++ < 16) line.push(bk[gmap + bk[j++] - BASE]); }
+    }
+    if (line.length) lines.push(line);
+    return lines;
+  }
   const SUBST = { '`': "'", '&': '+', '*': '+', '[': '(', ']': ')', '{': '(', '}': ')', '_': '-', '#': '+', '<': '(', '>': ')', '|': '!', '%': '/', '~': '-', '@': 'A', '$': 'S', '\\': '/' };
   let ENC = CHAR; // active encoding while building
 
@@ -107,8 +214,9 @@
     '8K': { banks: 2, base: 0xFFF8, start: 1, scheme: 'F8' },
     '16K': { banks: 4, base: 0xFFF6, start: 0, scheme: 'F6' },
     '32K': { banks: 8, base: 0xFFF4, start: 0, scheme: 'F4' },
+    '64K': { banks: 16, base: 0xFFE0, start: 0, scheme: 'EF', takOnly: true }, // hotspots $FFE0-$FFEF; "EFEF" at $FFF8 marks it
   };
-  const LETTERS = 'ABCDEFGH';
+  const LETTERS = 'ABCDEFGHIJKLMNOP';
   // which bank holds each map: Map A in the start bank, the others in the remaining banks in order
   function bankOrder(cart) { const c = CARTS[cart]; const o = [c.start]; for (let b = 0; b < c.banks; b++) if (b !== c.start) o.push(b); return o; }
   function mapOfBank(cart, bank) { return bankOrder(cart).indexOf(bank); } // never place data on bank-switch hotspots
@@ -211,7 +319,7 @@
       maps.push({ name, width, rows: n / width, cells, colors });
     }
     return {
-      kit: 'tak', version: 1, title: 'Untitled adventure',
+      kit: 'tak', version: 1, title: 'Untitled adventure', engine: 'darkmage',
       cart: '8K',
       settings: { endEvent: null },
       portals: [{ map: 0, idx: portalA, toMap: 1, toIdx: portalA }, { map: 1, idx: portalB, toMap: 0, toIdx: portalB }],
@@ -224,6 +332,7 @@
   // fill in fields that older project files lack
   function normalize(P) {
     if (!P.cart) P.cart = '8K';
+    if (!P.engine) P.engine = 'darkmage'; // files saved before the Workshop engine existed
     if (!P.portals) {
       const a = P.settings.portalA, b = P.settings.portalB;
       P.portals = [{ map: 0, idx: a, toMap: 1, toIdx: a }, { map: 1, idx: b, toMap: 0, toIdx: b }];
@@ -245,7 +354,7 @@
   }
   // the original engine's portal code: 8K, exactly one gateway each way, landing on the same grid index
   function isLegacyPortals(P) {
-    if (P.cart !== '8K' || P.portals.length !== 2) return false;
+    if (P.engine === 'tak' || P.cart !== '8K' || P.portals.length !== 2) return false;
     const a = P.portals.find(p => p.map === 0), b = P.portals.find(p => p.map === 1);
     return !!(a && b && a.toMap === 1 && a.toIdx === a.idx && b.toMap === 0 && b.toIdx === b.idx && a.idx !== b.idx);
   }
@@ -300,6 +409,7 @@
     const cart = CARTS[P.cart];
     if (!cart) errs.push('Unknown cartridge size');
     else if (P.maps.length !== cart.banks) errs.push(`A ${P.cart} cartridge needs ${cart.banks} maps`);
+    if (cart && cart.takOnly && P.engine !== 'tak') errs.push(`${P.cart} cartridges need the Workshop engine (Story & items › Engine)`);
     P.maps.forEach(m => {
       if (!(m.width >= 2 && m.width <= 16)) errs.push(`${m.name}: width must be 2 to 16 columns`);
       if (m.cells.length !== m.rows * m.width) errs.push(`${m.name}: cell count mismatch`);
@@ -733,7 +843,7 @@
     A[pB] = room('Portal path (Map A side)', 'A NARROW\nPASSAGE\nLEADS EAST.', 'YOU FEEL A\nCOLD DRAFT.');
     B[pA] = room('Portal path (Map B side)', 'YOU HAVE\nCROSSED INTO\nA NEW LAND.', 'THE PASSAGE\nWEST LEADS\nBACK HOME.');
     return {
-      kit: 'tak', version: 1, title: opts.title || 'My adventure',
+      kit: 'tak', version: 1, title: opts.title || 'My adventure', engine: 'tak',
       cart: '8K',
       settings: { endEvent: null },
       portals: [{ map: 0, idx: pA, toMap: 1, toIdx: pA }, { map: 1, idx: pB, toMap: 0, toIdx: pB }],
@@ -751,7 +861,7 @@
   // ---------- 6502 + F8 + RIOT emulator (enough for this engine) ----------
   class Emu {
     constructor(rom) {
-      this.rom = rom; this.ram = new Uint8Array(128); this.nbanks = rom.length >> 12; this.hot = { 2: 0x1FF8, 4: 0x1FF6, 8: 0x1FF4 }[this.nbanks]; this.bank = this.nbanks === 2 ? 1 : 0;
+      this.rom = rom; this.ram = new Uint8Array(128); this.nbanks = rom.length >> 12; this.hot = { 2: 0x1FF8, 4: 0x1FF6, 8: 0x1FF4, 16: 0x1FE0 }[this.nbanks]; this.bank = this.nbanks === 2 ? 1 : 0;
       this.a = 0; this.x = 0; this.y = 0; this.sp = 0xFD; this.p = 0x24; this.cyc = 0;
       this.swcha = 0xFF; this.inpt4 = 0x80; this.swchb = 0x0B;
       this.tStart = 0; this.tVal = 0; this.tShift = 1024; this.vsync = 0; this.frames = 0;
@@ -809,12 +919,19 @@
     textPtr() { return this.ram[0x1C] | (this.ram[0x1D] << 8); }
     menuPtr() { return this.ram[0x1E] | (this.ram[0x1F] << 8); }
     bankBytes() { return this.rom.subarray(this.bank * 4096, this.bank * 4096 + 4096); }
-    fontPage() { return this.rom[this.bank * 4096 + 0x032]; }
-    decoder() { return this.fontPage() === 0xF6 ? XDECODE : DECODE; }
-    screenText() { return readText(this.bankBytes(), this.textPtr(), false, this.decoder()); }
-    menuText() { return readText(this.bankBytes(), this.menuPtr(), true, this.decoder()); }
+    fontPage() { return this.rom[this.bank * 4096 + (this.layout === 'tak' ? 0xFD7 : 0x032)]; }
+    decoder() { return this.layout === 'tak' || this.fontPage() === 0xF6 ? XDECODE : DECODE; }
+    takBank(a) { const n = (a >> 12) & 0xF; return n === 0xF ? this.bankBytes() : this.rom.subarray(n * 4096, n * 4096 + 4096); }
+    takText(a, menuWord) { return takLines(this.takBank(a), a | 0xF000, menuWord).map(l => l.map(v => XDECODE[v] !== undefined ? XDECODE[v] : ' ').join('')).join('\n').replace(/\n$/, ''); }
+    screenText() { return this.layout === 'tak' ? this.takText(this.textPtr(), false) : readText(this.bankBytes(), this.textPtr(), false, this.decoder()); }
+    menuText() { return this.layout === 'tak' ? this.takText(this.menuPtr(), true) : readText(this.bankBytes(), this.menuPtr(), true, this.decoder()); }
     // raw text bytes as the kernel would draw them: up to 10 lines + the menu line
     screenBytes() {
+      if (this.layout === 'tak') {
+        const tp = this.textPtr(), t = takLines(this.takBank(tp), tp | 0xF000, false).slice(0, 10).map(l => l.slice(0, 12));
+        while (t.length < 10) t.push([]);
+        return { lines: t, menu: (takLines(this.bankBytes(), this.menuPtr(), true)[0] || []).slice(0, 12) };
+      }
       const bk = this.bankBytes(), lines = [];
       let i = this.textPtr() - BASE, done = false;
       for (let l = 0; l < 10; l++) {
@@ -827,7 +944,8 @@
       return { lines, menu };
     }
     glyph(code, row) { return this.rom[this.bank * 4096 + (this.fontPage() - 0xF0) * 256 + code + row]; }
-    colors() { const b = this.bank * 4096; return { bg: this.rom[b + 0x15F], text: this.rom[b + 0x159], menuBg: this.rom[b + 0x1B7], menuText: this.rom[b + 0x1BB] }; }
+    colors() { const b = this.bank * 4096; if (this.layout === 'tak') return { bg: this.rom[b + 0xFD0], text: this.rom[b + 0xFD1], menuBg: this.rom[b + 0xFD2], menuText: this.rom[b + 0xFD3] };
+      return { bg: this.rom[b + 0x15F], text: this.rom[b + 0x159], menuBg: this.rom[b + 0x1B7], menuText: this.rom[b + 0x1BB] }; }
     // set .wide = true for cartridges built with 16 items / 16 events
     state() { const r = this.ram, h = a => this.wide ? r[a] << 8 : 0; return { room: r[0x22] >> 1, bank: this.bank, inv: r[0x27] | h(0x45), taken: r[0x26] | h(0x44), seen: r[0x28] | h(0x46), used: r[0x29] | h(0x47), events: r[0x2C] | h(0x4A) }; }
   }
@@ -971,6 +1089,442 @@
     const syms = Object.assign({}, syms0);
     run(syms, false);              // pass 1: collect labels
     return run(syms, true);        // pass 2: resolve everything
+  }
+
+  // =====================================================================================
+  // The Workshop engine: an original 2600 text-adventure engine (no Dark Mage code).
+  // Same player-facing behaviour and data model as the editor, 16 items / 16 events,
+  // portals with locks, endings, per-map colours, F8/F6/F4 bank switching.
+  //
+  // Display: 10 lines x 12 characters plus a menu line. Both players use three medium
+  // copies (NUSIZ 6: copies 32 px apart), player 1 sits 16 px right of player 0, giving six
+  // 8-px character slots 16 px apart. Even frames draw characters 0,2,..10, odd frames are
+  // shifted 8 px right and draw 1,3,..11. Player 0 is vertically delayed, so one write to
+  // GRP1 both changes player 1 and latches player 0's next image: three writes per scanline
+  // change the four images that follow the first two.
+  //
+  // Zero page: $80 frame, $81/$82 temp, $83-$8E six glyph pointers, $8F v6 temp, $90 lines
+  // left, $91/$92 text read pointer, $93 frame parity, $9C/$9D message, $9E/$9F menu word,
+  // $A0 menu index, $A1 portal message hi, $A2 room*2, $A3/$A4 room record, $A5 previous room,
+  // $A6/$A7/$A8/$A9/$AC taken/inventory/revealed/used/events (high bytes $1E above),
+  // $AA portal return hotspot, $AB portal message lo, $AD menu mode, $AE fire latch,
+  // $AF-$BE item menu numbers, $BF menu count, $C0/$C1 menu words, $C2/$C3 menu handlers,
+  // $C8 picked item, $C9 item-menu purpose, $CB intro page, $CC playing, $CE-$ED item names.
+  // Per-bank header at $FFD0 (clear of every bank-switching scheme's hotspots): bg, text, menu bg, menu text, 2 x width, room table lo/hi, font page.
+  // =====================================================================================
+  const TAK_ZP = {
+    FRAMEC: 0x80, T1: 0x81, T2: 0x82, P1: 0x83, P2: 0x85, P3: 0x87, P4: 0x89, P5: 0x8B, P6: 0x8D, TMPV: 0x8F,
+    LINE: 0x90, TP: 0x91, PAR: 0x93, TXT: 0x9C, MENUW: 0x9E, SELI: 0xA0, PMSGHI: 0xA1, ROOM: 0xA2, REC: 0xA3,
+    PREV: 0xA5, TK: 0xA6, INV: 0xA7, SEEN: 0xA8, USED: 0xA9, PHOT: 0xAA, PMSGLO: 0xAB, EV: 0xAC, MMODE: 0xAD,
+    DEB: 0xAE, LIST: 0xAF, MCOUNT: 0xBF, MWORDS: 0xC0, MHAND: 0xC2, SEL: 0xC8, MODE: 0xC9, PAGE: 0xCB, STATE: 0xCC,
+    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD,
+    VSYNC: 0x00, VBLANK: 0x01, WSYNC: 0x02, NUSIZ0: 0x04, NUSIZ1: 0x05, COLUP0: 0x06, COLUP1: 0x07, COLUBK: 0x09,
+    RESP0: 0x10, GRP0: 0x1B, GRP1: 0x1C, HMP0: 0x20, VDELP0: 0x25, VDELP1: 0x26, HMOVE: 0x2A, HMCLR: 0x2B,
+    INPT4: 0x0C, SWCHA: 0x0280, SWCHB: 0x0282, INTIM: 0x0284, TIM8T: 0x0295, TIM64T: 0x0296,
+  };
+  // screen geometry (scanlines) and sprite positions; see the calibration notes in the builder
+  const TAK_GEO = { TOPLINES: 11, PADLINES: 5, GAPT: 80, MENUPAD: 2, RESTLINES: 5, VBT: 43, OST: 35, XE: 29 };
+
+  function takEngineSource(o) {
+    const L = [];
+    const add = (...x) => L.push(...x);
+    // ---------- reset: make sure we run in the start bank, clear RAM and the TIA ----------
+    add('RESET: SEI', 'CLD', 'LDA STARTHOT', 'LDX #0', 'TXA', 'RCLR: DEX', 'TXS', 'PHA', 'BNE RCLR',
+      'LDA INTRO', 'STA TXT', 'LDA INTRO+1', 'STA TXT+1');
+    add(o.npages > 1 ? 'JSR SETMOREM' : 'JSR SETSTARTM');
+    // ---------- frame ----------
+    add('FRAME: LDA #2', 'STA VBLANK', 'STA WSYNC', 'STA VSYNC', 'STA WSYNC', 'STA WSYNC', 'STA WSYNC', 'LDA #0', 'STA VSYNC',
+      'LDA #VBT', 'STA TIM64T', 'INC FRAMEC', 'LDA FRAMEC', 'AND #1', 'STA PAR',
+      'LDA SWCHB', 'LSR A', 'BCS NORES', 'JMP RESET',
+      'NORES: JSR INPUT',
+      // text can live in any bank: the high nibble of the message address names it ($F = this map's bank)
+      'LDA PTBL', 'STA MHOT', 'LDA HDR', 'STA CBG', 'LDA HDR+2', 'STA CMB', 'LDA HDR+3', 'STA CMT',
+      'LDA HDR+1', 'STA COLUP0', 'STA COLUP1',
+      'LDA TXT+1', 'CMP #$F0', 'BCS NOSW', 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'TAY', 'LDA HOTS,Y', 'NOSW: JSR PREP',
+      'VBW: LDA INTIM', 'BNE VBW', 'STA WSYNC', 'LDA #0', 'STA VBLANK');
+    // ---------- visible picture: 192 scanlines ----------
+    add('LDX #TOPLINES', 'D1: STA WSYNC', 'DEX', 'BNE D1',
+      'LDA CBG', 'STA COLUBK', 'LDX #PADLINES', 'D2: STA WSYNC', 'DEX', 'BNE D2',
+      'LDA #10', 'STA LINE',
+      'TL: LDY #5', 'LDA (P5),Y', 'TAX', 'LDA PAR', 'BNE TLO', 'STA WSYNC', 'JMP KE', 'TLO: STA WSYNC', 'JMP KO');
+    // the two kernels differ only by a 3-cycle delay: odd frames' sprites sit 8 px further right
+    for (const [K, odd] of [['KE', false], ['KO', true]]) {
+      add(`${K}: LDA (P1),Y`, 'STA GRP0', 'LDA (P2),Y', 'STA GRP1', 'LDA (P3),Y', 'STA GRP0',
+        'LDA (P6),Y', 'STA TMPV');
+      if (odd) add('BIT $80');
+      add('LDA (P4),Y', 'STA GRP1', 'STX GRP0', 'LDA TMPV', 'STA $001C', 'DEY', 'BMI KX',
+        'LDA (P5),Y', 'TAX', 'STA WSYNC', `JMP ${K}`);
+    }
+    // after six rows: blank the players, then a gap during which the next line is read
+    add('KX: LDA #0', 'NOP', 'STA GRP0', 'STA GRP1', 'STA GRP0',
+      'LDA LINE', 'BEQ AFTERMENU',
+      'STA WSYNC', 'LDA #GAPT', 'STA TIM8T', 'DEC LINE', 'BEQ TOMENU', 'JSR PARSE',
+      'G1: LDA INTIM', 'BNE G1', 'LDY #5', 'LDA (P5),Y', 'TAX', 'LDA PAR', 'BNE G1O', 'STA WSYNC', 'JMP KE', 'G1O: STA WSYNC', 'JMP KO',
+      'TOMENU: LDA MENUW', 'STA TP', 'LDA MENUW+1', 'STA TP+1', 'JSR PARSE',
+      'G2: LDA INTIM', 'BNE G2', 'STA WSYNC', 'LDA CMB', 'STA COLUBK', 'LDA CMT', 'STA COLUP0', 'STA COLUP1',
+      'LDX #MENUPAD', 'D3: STA WSYNC', 'DEX', 'BNE D3', 'JMP TL',
+      'AFTERMENU: STA WSYNC', 'LDA #0', 'STA COLUBK', 'LDX #RESTLINES', 'D4: STA WSYNC', 'DEX', 'BNE D4',
+      // overscan
+      'LDA #2', 'STA VBLANK', 'LDA #OST', 'STA TIM64T', 'LDY MHOT', 'LDA $FF00,Y', 'OSW: LDA INTIM', 'BNE OSW', 'JMP FRAME');
+    // ---------- read one text line from TP into the six glyph pointers (this frame's half) ----------
+    // Every character is stored at P1+X with X = its column (odd frames start at -1), so this frame's
+    // half land on the pointers' low bytes; the others land on high bytes, which are reset afterwards.
+    // Dictionary words are copied from the bank's word page. Finally glyph numbers become font offsets.
+    add('PARSE: LDA #SPACEI', 'STA P1', 'STA P2', 'STA P3', 'STA P4', 'STA P5', 'STA P6',
+      'LDX #0', 'LDA PAR', 'BEQ PA0', 'DEX', 'PA0: LDY #0',
+      'PL: LDA (TP),Y', 'INY', 'CMP #NGLYPH', 'BCS PSPEC', 'STA P1,X', 'INX', 'JMP PL',
+      'PSPEC: CMP #$FE', 'BCS PEND', 'STY SY', 'SBC #NGLYPH-1', 'TAY', 'LDA (TOKP),Y', 'STA TT', 'LDY #0',
+      'PT: LDA (TT),Y', 'BMI PTE', 'STA P1,X', 'INX', 'INY', 'BNE PT',
+      'PTE: LDY SY', 'JMP PL',
+      // $FF ends the line: step past it. $FE ends the message: stay on it so later lines are blank.
+      'PEND: BEQ PMAP', 'TYA', 'CLC', 'ADC TP', 'STA TP', 'BCC PMAP', 'INC TP+1',
+      'PMAP: LDA #>FONT', 'STA P1+1', 'STA P2+1', 'STA P3+1', 'STA P4+1', 'STA P5+1', 'STA P6+1',
+      'LDY P1', 'LDA GMAP,Y', 'STA P1', 'LDY P2', 'LDA GMAP,Y', 'STA P2', 'LDY P3', 'LDA GMAP,Y', 'STA P3',
+      'LDY P4', 'LDA GMAP,Y', 'STA P4', 'LDY P5', 'LDA GMAP,Y', 'STA P5', 'LDY P6', 'LDA GMAP,Y', 'STA P6', 'RTS');
+    // ---------- per-frame set-up during vertical blank ----------
+    add('PREP: LDA #6', 'STA NUSIZ0', 'STA NUSIZ1', 'LDA #1', 'STA VDELP0',
+      'LDA #0', 'STA VDELP1', 'STA COLUBK', 'STA GRP0', 'STA GRP1', 'STA GRP0',
+      'LDX #0', 'LDA PAR', 'BEQ PPE', 'LDA #XE+8', 'BNE PPP', 'PPE: LDA #XE', 'PPP: STA T1', 'JSR POS',
+      'LDA T1', 'CLC', 'ADC #16', 'LDX #1', 'JSR POS', 'STA WSYNC', 'STA HMOVE',
+      'LDA HDR+8', 'STA TOKP', 'LDA HDR+9', 'STA TOKP+1', 'LDA HDR+10', 'STA TT+1',
+      'LDA TXT', 'STA TP', 'LDA TXT+1', 'ORA #$F0', 'STA TP+1', 'JMP PARSE',
+      // horizontal positioning: coarse with RESPx after a divide-by-15 delay, fine with HMPx
+      'POS: STA WSYNC', 'SEC', 'PD: SBC #15', 'BCS PD', 'EOR #7', 'ASL A', 'ASL A', 'ASL A', 'ASL A', 'STA HMP0,X', 'STA RESP0,X', 'RTS');
+    // ---------- controls ----------
+    add('INPUT: LDA STATE', 'BEQ IN1');
+    if (o.endEvent != null) add(`LDX #${o.endEvent}`, 'LDY #EV', 'JSR BTST', 'BNE ENDED');
+    add('JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'LSR A', 'BCC IN1',
+      'ENDED: LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1', 'RTS',
+      'IN1: LDA INPT4', 'BMI NOTPR', 'LDA DEB', 'BNE IRTS', 'INC DEB', 'LDA ROOM', 'STA PREV',
+      'LDA MMODE', 'CMP #2', 'BNE IN2', 'JMP HPICK', 'IN2: LDA SELI', 'ASL A', 'TAY', 'LDA (MHAND),Y', 'STA T1', 'INY', 'LDA (MHAND),Y', 'STA T2', 'JMP (T1)',
+      'NOTPR: LDA #0', 'STA DEB', 'LDA FRAMEC', 'AND #7', 'BNE IRTS', 'LDA MMODE', 'BNE CYC',
+      // walking: the stick picks NORTH/EAST/SOUTH/WEST, centred means LOOK
+      'LDA SWCHA', 'LDX #2', 'ASL A', 'BCC SETI', 'LDX #4', 'ASL A', 'BCC SETI', 'LDX #3', 'ASL A', 'BCC SETI',
+      'LDX #1', 'ASL A', 'BCC SETI', 'LDX #0', 'SETI: STX SELI', 'JMP SELWORD',
+      // other menus: right / left step through the entries
+      'CYC: LDA SWCHA', 'ASL A', 'BCC CRT', 'ASL A', 'BCC CLT', 'IRTS: RTS',
+      'CRT: INC SELI', 'LDA SELI', 'CMP MCOUNT', 'BCC CSW', 'LDA #0', 'STA SELI', 'CSW: JMP SELWORD',
+      'CLT: DEC SELI', 'BPL CSW', 'LDX MCOUNT', 'DEX', 'STX SELI', 'JMP SELWORD');
+    // ---------- menus ----------
+    add('SELWORD: LDA SELI', 'ASL A', 'TAY', 'LDA (MWORDS),Y', 'STA MENUW', 'INY', 'LDA (MWORDS),Y', 'STA MENUW+1', 'RTS',
+      // each entry skips the next one's LDX with a BIT absolute ($2C)
+      'SETMOVE: LDX #0', '.byte $2C', 'SETACT: LDX #6', '.byte $2C', 'SETMOREM: LDX #12', '.byte $2C', 'SETSTARTM: LDX #18',
+      'LDA MT,X', 'STA MWORDS', 'LDA MT+1,X', 'STA MWORDS+1', 'LDA MT+2,X', 'STA MHAND', 'LDA MT+3,X', 'STA MHAND+1',
+      'LDA MT+4,X', 'STA MCOUNT', 'LDA MT+5,X', 'STA MMODE', 'LDA #0', 'STA SELI', 'JMP SELWORD');
+    // ---------- intro ----------
+    add('HMORE: INC PAGE', 'LDA PAGE', 'ASL A', 'TAY', 'LDA INTRO,Y', 'STA TXT', 'LDA INTRO+1,Y', 'STA TXT+1',
+      'LDA PAGE', 'CMP #NPAGES-1', 'BCC HM1', 'JMP SETSTARTM', 'HM1: RTS',
+      'HSTART: LDA #1', 'STA STATE', 'LDA #START2', 'STA ROOM', 'LDA #<STARTINV', 'STA INV', 'LDA #>STARTINV', 'STA INV+$1E',
+      'JSR GETREC', 'LDX #6', 'JMP SAY');
+    // ---------- rooms ----------
+    add('GETREC: LDA HDR+5', 'STA T1', 'LDA HDR+6', 'STA T2', 'LDY ROOM', 'LDA (T1),Y', 'STA REC', 'INY', 'LDA (T1),Y', 'STA REC+1', 'RTS',
+      'REC0: JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'RTS',
+      // A room record is [flags, field mask lo, hi] and then only the fields it has, in order:
+      // six one-byte fields (0-5) and eight message pointers (6-13). FLD: X = field -> Y = its offset, C = present.
+      'FLD: STX SY', 'LDY #1', 'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'INY', 'LDX #0',
+      'FL1: CPX SY', 'BEQ FL3', 'LSR T2', 'ROR T1', 'BCC FL2', 'INY', 'CPX #6', 'BCC FL2', 'INY', 'FL2: INX', 'BNE FL1',
+      'FL3: LSR T2', 'ROR T1', 'RTS',
+      'GETF: JSR FLD', 'LDA #$FF', 'BCC GF1', 'LDA (REC),Y', 'GF1: TAX', 'CMP #$FF', 'RTS',
+      'SETTXT: JSR FLD', 'SETTY: LDA (REC),Y', 'STA TXT', 'INY', 'LDA (REC),Y', 'STA TXT+1', 'RTS',
+      'SAY: JSR SETTXT', 'JMP SETMOVE',
+      'SAYW: STA TXT', 'STY TXT+1', 'JMP SETMOVE');
+    // ---------- walking ----------
+    add('HN: LDA ROOM', 'SEC', 'SBC HDR+4', 'JMP MOVE', 'HS: LDA ROOM', 'CLC', 'ADC HDR+4', 'JMP MOVE',
+      'HE: LDA ROOM', 'CLC', 'ADC #2', 'JMP MOVE', 'HW: LDA ROOM', 'SEC', 'SBC #2',
+      'MOVE: JSR PORTAL', 'STA ROOM', 'JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'BEQ MWALL', 'AND #2', 'BEQ MOK',
+      'LDX #5', 'JSR GETF', 'LDY #EV', 'JSR BTST', 'BNE MOK',
+      // locked: stay put. Through a portal, show the copy of the message kept in the bank we came from.
+      'LDA PREV', 'STA ROOM', 'LDY PHOT', 'BEQ MLK1', 'LDA #0', 'STA PHOT', 'LDA PMSGLO', 'STA TXT', 'LDA PMSGHI', 'STA TXT+1',
+      'LDA $FF00,Y', 'JMP SETMOVE', 'MLK1: LDX #12', 'JMP SAY',
+      'MWALL: LDA PREV', 'STA ROOM', 'LDY #1', 'JSR SETTY', 'JMP SETMOVE',
+      'MOK: LDA #0', 'STA PHOT', 'LDX #6', 'JMP SAY',
+      // portal table (same address in every bank, this bank's own contents):
+      // [own hotspot] then [from*2, hotspot, dest*2, locked message lo, hi], $FF ends
+      'PORTAL: LDX #0', 'PO1: LDY PTBL+1,X', 'CPY #$FF', 'BEQ PON', 'CMP PTBL+1,X', 'BEQ POH', 'INX', 'INX', 'INX', 'INX', 'INX', 'BNE PO1',
+      'POH: LDY PTBL', 'STY PHOT', 'LDY PTBL+4,X', 'STY PMSGLO', 'LDY PTBL+5,X', 'STY PMSGHI', 'LDA PTBL+3,X', 'LDY PTBL+2,X', 'LDX $FF00,Y', 'RTS',
+      'PON: LDX #0', 'STX PHOT', 'RTS');
+    // ---------- 16-bit item / event bits: X = number, Y = address of the low byte ----------
+    add('BTST: LDA $0000,Y', 'AND ML,X', 'BNE BT1', 'LDA $001E,Y', 'AND MH,X', 'BT1: RTS',
+      'BSET: LDA $0000,Y', 'ORA ML,X', 'STA $0000,Y', 'LDA $001E,Y', 'ORA MH,X', 'STA $001E,Y', 'RTS',
+      'BCLR: LDA ML,X', 'EOR #$FF', 'AND $0000,Y', 'STA $0000,Y', 'LDA MH,X', 'EOR #$FF', 'AND $001E,Y', 'STA $001E,Y', 'RTS');
+    // ---------- verbs ----------
+    add('HLOOK: JSR GETREC', 'LDX #7', 'JSR SETTXT', 'LDY #0', 'LDA (REC),Y', 'BEQ LK9', 'BMI LK9',
+      'LDX #0', 'JSR GETF', 'BEQ LK9', 'LDY #TK', 'JSR BTST', 'BNE LKN', 'LDY #SEEN', 'JSR BSET', 'LK9: JMP SETACT',
+      'LKN: LDA #<M_NSPEC', 'STA TXT', 'LDA #>M_NSPEC', 'STA TXT+1', 'JMP SETACT',
+      'HGO: JSR GETREC', 'LDX #6', 'JMP SAY',
+      'HTAKE: JSR REC0', 'AND #$40', 'BEQ TKN', 'LDX #0', 'JSR GETF', 'BEQ TKN', 'LDY #TK', 'JSR BTST', 'BNE TKN',
+      'LDY #INV', 'JSR BTST', 'BNE TKN', 'LDY #SEEN', 'JSR BTST', 'BEQ TKN', 'LDY #INV', 'JSR BSET', 'LDY #TK', 'JSR BSET',
+      'LDX #8', 'JMP SAY', 'TKN: LDA #<M_NTAKE', 'LDY #>M_NTAKE', 'JMP SAYW',
+      'HTALK: JSR REC0', 'AND #$08', 'BEQ THELLO', 'LDX #3', 'JSR GETF', 'BEQ TDEF', 'LDY #USED', 'JSR BTST', 'BEQ TDEF',
+      'LDX #4', 'JSR GETF', 'BEQ TOK', 'LDY #EV', 'JSR BSET', 'TOK: LDX #11', 'JMP SAY', 'TDEF: LDX #13', 'JMP SAY',
+      'THELLO: LDA #<M_HELLO', 'LDY #>M_HELLO', 'JMP SAYW',
+      // GIVE / USE / INVENTORY: list the carried items (or one "nothing" entry)
+      'HGIVE: LDX #1', 'LDA #<M_SELG', 'LDY #>M_SELG', 'BNE OPEN', 'HUSE: LDX #2', 'LDA #<M_SELU', 'LDY #>M_SELU', 'BNE OPEN',
+      'HINV: LDX #0', 'LDA #<M_CARRY', 'LDY #>M_CARRY',
+      'OPEN: STX MODE', 'STA TXT', 'STY TXT+1', 'LDA #0', 'STA T2', 'TAX',
+      'OB1: LDY #INV', 'JSR BTST', 'BEQ OB2', 'LDY T2', 'TXA', 'STA $00AF,Y', 'INC T2', 'OB2: INX', 'CPX #16', 'BNE OB1',
+      'LDA T2', 'BNE OB3', 'LDA #$FF', 'STA LIST', 'LDA #<W_NOTHING', 'STA NAMES', 'LDA #>W_NOTHING', 'STA NAMES+1', 'INC T2', 'BNE OB5',
+      'OB3: LDX #0', 'OB4: TXA', 'LSR A', 'TAY', 'LDA $00AF,Y', 'ASL A', 'TAY', 'LDA ITEMS,Y', 'STA NAMES,X', 'LDA ITEMS+1,Y', 'STA NAMES+1,X',
+      'INX', 'INX', 'TXA', 'LSR A', 'CMP T2', 'BNE OB4',
+      'OB5: LDA #NAMES', 'STA MWORDS', 'LDA #0', 'STA MWORDS+1', 'STA SELI', 'LDA T2', 'STA MCOUNT', 'LDA #2', 'STA MMODE', 'JMP SELWORD',
+      'HPICK: LDX SELI', 'LDA LIST,X', 'STA SEL', 'LDA MODE', 'BNE PK1', 'JMP HGO', 'PK1: LSR A', 'BCS GIVEDO',
+      'USEDO: JSR REC0', 'AND #$10', 'BEQ UNO', 'LDX #1', 'JSR GETF', 'CMP SEL', 'BNE UNO', 'LDY #USED', 'JSR BSET',
+      'JSR REC0', 'AND #$04', 'BEQ UOK', 'LDX #4', 'JSR GETF', 'BEQ UOK', 'LDY #EV', 'JSR BSET', 'UOK: LDX #9', 'JMP SAY',
+      'UNO: LDA #<M_CUSE', 'LDY #>M_CUSE', 'JMP SAYW',
+      'GIVEDO: JSR REC0', 'AND #$20', 'BEQ GNO', 'LDX #2', 'JSR GETF', 'CMP SEL', 'BNE GNO', 'LDY #INV', 'JSR BCLR',
+      'LDX #4', 'JSR GETF', 'BEQ GV2', 'LDY #EV', 'JSR BSET', 'GV2: LDX #0', 'JSR GETF', 'BEQ GV3', 'LDY #SEEN', 'JSR BSET',
+      'GV3: LDX #10', 'JMP SAY', 'GNO: LDA #<M_CGIVE', 'LDY #>M_CGIVE', 'JMP SAYW');
+    // ---------- tables ----------
+    const tbl = (label, names) => { add(`${label}: .byte ` + names.map(n => `<${n},>${n}`).join(',')); };
+    add('ML: .byte 1,2,4,8,16,32,64,128,0,0,0,0,0,0,0,0', 'MH: .byte 0,0,0,0,0,0,0,0,1,2,4,8,16,32,64,128');
+    tbl('MOVEW', ['W_LOOK', 'W_NORTH', 'W_EAST', 'W_SOUTH', 'W_WEST']);
+    tbl('MOVEH', ['HLOOK', 'HN', 'HE', 'HS', 'HW']);
+    tbl('ACTW', ['W_GO', 'W_TAKE', 'W_GIVE', 'W_USE', 'W_TALK', 'W_INV']);
+    tbl('ACTH', ['HGO', 'HTAKE', 'HGIVE', 'HUSE', 'HTALK', 'HINV']);
+    tbl('MOREW', ['W_MORE']); tbl('MOREH', ['HMORE']); tbl('STARTW', ['W_START']); tbl('STARTH', ['HSTART']);
+    add('MT: .byte <MOVEW,>MOVEW,<MOVEH,>MOVEH,5,0, <ACTW,>ACTW,<ACTH,>ACTH,6,1, <MOREW,>MOREW,<MOREH,>MOREH,1,1, <STARTW,>STARTW,<STARTH,>STARTH,1,1');
+    return L;
+  }
+
+  // ---------- Build a cartridge on the Workshop engine (no Dark Mage ROM needed) ----------
+  const TAK_HDR = 0xFFD0;
+  function takSyms(extra) { return Object.assign({}, TAK_ZP, TAK_GEO, extra); }
+  const TAK_DUMMY = {
+    STARTHOT: 0xFFF9, NPAGES: 2, START2: 2, STARTINV: 0, PTBL: 0xF000, INTRO: 0xF000, ITEMS: 0xF000, FONT: 0xF100, HOTS: 0xFFF8, SPACEI: 0, GMAP: 0xF000, NGLYPH: 51,
+    W_LOOK: 0xF000, W_NORTH: 0xF000, W_EAST: 0xF000, W_SOUTH: 0xF000, W_WEST: 0xF000, W_GO: 0xF000, W_TAKE: 0xF000, W_GIVE: 0xF000,
+    W_USE: 0xF000, W_TALK: 0xF000, W_INV: 0xF000, W_MORE: 0xF000, W_START: 0xF000, W_END: 0xF000, W_NOTHING: 0xF000,
+    M_NSPEC: 0xF000, M_NTAKE: 0xF000, M_HELLO: 0xF000, M_SELG: 0xF000, M_CGIVE: 0xF000, M_SELU: 0xF000, M_CUSE: 0xF000, M_CARRY: 0xF000,
+  };
+  function buildTak(project, opts = {}) {
+    const measure = !!opts.measure;
+    const P = normalize(project);
+    const { errs, warns } = measure ? { errs: [], warns: [] } : validate(P);
+    if (errs.length) return { ok: false, errs, warns };
+    ENC = GIDX;
+    try { return go(); } finally { ENC = CHAR; }
+    function go() {
+      const cart = CARTS[P.cart], NB = cart.banks;
+      const order = bankOrder(P.cart), startBank = cart.start;
+      const LIM = Math.min(cart.base, TAK_HDR);
+      const rom = new Uint8Array(4096 * NB).fill(0xFF);
+      const banks = Array.from({ length: NB }, (_, b) => rom.subarray(b * 4096, (b + 1) * 4096));
+      const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent };
+      const dummy = assemble(takEngineSource(srcOpts), BASE, takSyms(TAK_DUMMY));
+      const codeLen = dummy.bytes.length, logicAt = dummy.labels.INPUT;
+      const codeEnd = BASE + codeLen;
+      const FONT = (codeEnd + 0xFF) & ~0xFF;
+      // ---- common block: identical in every bank ----
+      const cb = banks[startBank];
+      cb.set(XFONT, FONT - BASE);
+      const cw = new Writer(cb, FONT + XFONT.length, LIM, [[codeEnd, FONT]]);
+      const sym = {};
+      const words = { W_LOOK: 'look', W_NORTH: 'north', W_EAST: 'east', W_SOUTH: 'south', W_WEST: 'west', W_GO: 'go', W_TAKE: 'take', W_GIVE: 'give',
+        W_USE: 'use', W_TALK: 'talk', W_INV: 'inventory', W_MORE: 'more', W_START: 'start', W_END: 'theEnd', W_NOTHING: 'nothing' };
+      const msgs = { M_NSPEC: 'nothingSpecial', M_NTAKE: 'nothingToTake', M_HELLO: 'talkDefault', M_SELG: 'selectGive', M_CGIVE: 'cantGive',
+        M_SELU: 'selectUse', M_CUSE: 'cantUse', M_CARRY: 'carrying' };
+      const maxPortals = Math.max(0, ...P.maps.map((_, m) => P.portals.filter(p => p.map === m).length));
+      try {
+        const pend = [];
+        for (const [s, k] of Object.entries(words)) pend.push([s, encodePage(P.system[k], true)]);
+        for (const [s, k] of Object.entries(msgs)) pend.push([s, encodePage(P.system[k])]);
+        P.items.slice(0, 16).forEach((t, i) => pend.push(['I' + i, encodePage(t, true)]));
+        pend.sort((a, b) => b[1].length - a[1].length);
+        for (const [s, bytes] of pend) sym[s] = cw.str(bytes);
+        sym.GMAP = cw.put(GMAP);
+        sym.ITEMS = cw.put(Array.from({ length: 16 }, (_, i) => [lo(sym['I' + i]), hi(sym['I' + i])]).flat());
+        sym.PTBL = cw.put(new Array(maxPortals * 5 + 2).fill(0xFF));
+        sym.INTRO = cw.put(new Array(P.intro.length * 2).fill(0));
+      } catch (x) { if (x.message === 'OUT_OF_SPACE') return { ok: false, errs: ['Out of space in the shared text block'], warns }; throw x; }
+      const commonEnd = cw.pc, commonHoles = cw.holes.map(h => [h.pc, h.end]);
+      for (const bk of banks) if (bk !== cb) bk.set(cb.subarray(codeEnd - BASE, commonEnd - BASE), codeEnd - BASE);
+
+      // ---- what each map needs: its grid, its room records and the messages they point to ----
+      const T = new Map(); // text key -> { bytes, refs: Set of maps }
+      const want = (m, t) => { const bytes = encodePage(t), k = bytes.join(','); if (!T.has(k)) T.set(k, { bytes, refs: new Set() }); T.get(k).refs.add(m); return k; };
+      const maps = P.maps.map((map, m) => {
+        const hasRoom = map.cells.some((c, i) => c.type === 'room' && !portalAt(P, m, i));
+        const used = m === 0 || hasRoom || P.portals.some(p => p.toMap === m);
+        const info = { m, b: order[m], map, used, recs: [], lockKeys: [], introKeys: [], fixed: 0 };
+        if (!used) return info;
+        const wallSeen = new Set();
+        info.recs = map.cells.map((c, i) => {
+          if (portalAt(P, m, i)) return null;
+          if (c.type === 'wall') { const k = want(m, c.text); if (!wallSeen.has(k)) { wallSeen.add(k); info.fixed += 3; } return { wall: k }; }
+          const r = { c, k: [want(m, c.desc), want(m, c.look)] };
+          r.k[2] = c.take.on ? want(m, c.take.text) : null;
+          r.k[3] = c.use.on ? want(m, c.use.text) : null;
+          r.k[4] = c.give.on ? want(m, c.give.text) : null;
+          r.k[5] = c.talk.on && c.talk.needUsed != null ? want(m, c.talk.ok) : null;
+          r.k[6] = c.door.on ? want(m, c.door.text) : null;
+          r.k[7] = c.talk.on ? want(m, c.talk.no) : null;
+          const one = [c.item, c.use.on ? c.use.item : null, c.give.on ? c.give.item : null, c.talk.on ? c.talk.needUsed : null, c.sets, c.door.on ? c.door.needEvent : null];
+          info.fixed += 3 + one.filter(v => v != null).length + 2 * r.k.filter(Boolean).length;
+          return r;
+        });
+        if (!info.recs.some(Boolean)) info.fixed += 3;
+        info.fixed += map.cells.length * 2;
+        info.lockKeys = P.portals.filter(p => p.map === m).map(p => { const d = P.maps[p.toMap].cells[p.toIdx]; return d && d.type === 'room' && d.door.on ? want(m, d.door.text) : null; });
+        if (m === 0) info.introKeys = P.intro.map(t => want(m, t));
+        return info;
+      });
+      const byBank = []; maps.forEach(x => byBank[x.b] = x);
+      // room for text in each bank: everything after the shared block, plus the logic code area in a bank no map uses
+      const holeFree0 = commonHoles.reduce((t, [a, e]) => t + (e - a), 0);
+      const cap = byBank.map(x => LIM - commonEnd + holeFree0 + (x.used ? 0 : codeEnd - logicAt) - x.fixed - 12);
+      // ---- place every message in a bank: first its own map's, then wherever there is room ----
+      const place = new Map();
+      for (const [k, t] of T) place.set(k, Math.min(...[...t.refs].map(m => order[m])));
+      const sizeOf = keys => {
+        if (!keys.length) return { size: 0, plain: 0, packed: 0, words: 0 };
+        const pages = keys.map(k => T.get(k).bytes);
+        const cz = opts.compress === false ? { toks: [], pages, dictBytes: 0 } : takCompress(pages);
+        const packed = cz.pages.reduce((t, p) => t + p.length, 0) + cz.dictBytes + cz.toks.length;
+        return { size: packed, plain: pages.reduce((t, p) => t + p.length, 0), packed, words: cz.toks.length };
+      };
+      const keysIn = b => [...place.keys()].filter(k => place.get(k) === b);
+      let est = byBank.map((_, b) => sizeOf(keysIn(b)));
+      for (let round = 0; round < 24; round++) {
+        const over = byBank.map((_, b) => est[b].size - cap[b]);
+        const worst = over.indexOf(Math.max(...over));
+        if (over[worst] <= 0) break;
+        // move messages out of the fullest bank, largest first, to banks with room (a bank's own messages stay put when possible)
+        const room = byBank.map((_, b) => cap[b] - est[b].size);
+        const ks = keysIn(worst).sort((a, c) => {
+          const own = k => T.get(k).refs.has(byBank[worst].m) ? 1 : 0;
+          return own(a) - own(c) || T.get(c).bytes.length - T.get(a).bytes.length;
+        });
+        let need = over[worst] + 8, moved = false;
+        const touched = new Set([worst]);
+        for (const k of ks) {
+          if (need <= 0) break;
+          const len = T.get(k).bytes.length, guess = Math.ceil(len * 0.85);
+          let tgt = -1;
+          for (let b = 0; b < NB; b++) if (b !== worst && b < 15 && room[b] - guess > 8 && (tgt < 0 || room[b] > room[tgt])) tgt = b;
+          if (tgt < 0) break;
+          place.set(k, tgt); room[tgt] -= guess; need -= guess; moved = true; touched.add(tgt);
+        }
+        if (!moved) break;
+        for (const b of touched) est[b] = sizeOf(keysIn(b));
+      }
+      const overBy = byBank.map((_, b) => est[b].size - cap[b]);
+      const usageOf = () => maps.map(x => {
+        const b = x.b, total = LIM - commonEnd + holeFree0 + (x.used ? 0 : codeEnd - logicAt), used = x.fixed + est[b].size + 12;
+        const own = [...T.entries()].filter(([k, t]) => t.refs.has(x.m));
+        const away = own.filter(([k]) => place.get(k) !== b).reduce((t, [, v]) => t + v.bytes.length, 0);
+        const guests = keysIn(b).filter(k => !T.get(k).refs.has(x.m)).reduce((t, k) => t + T.get(k).bytes.length, 0);
+        return { used, total, free: total - used, text: est[b].plain, packed: est[b].packed, words: est[b].words, away, guests, textOnly: !x.used };
+      });
+      if (overBy.some(v => v > 0)) {
+        const short = overBy.reduce((t, v) => t + Math.max(0, v), 0), roomLeft = overBy.reduce((t, v) => t + Math.max(0, -v), 0);
+        const u = usageOf();
+        return { ok: false, errs: [`Out of room: the text needs about ${Math.max(10, short - roomLeft).toLocaleString()} more bytes than this cartridge has. Shorten some text, reuse identical messages, or choose a bigger cartridge.`], warns, usage: { maps: u, mapA: u[0], mapB: u[1] } };
+      }
+      // ---- write each bank: dictionary and messages first, then the records that point at them ----
+      const addr = new Map(), W = [], meta = [];
+      try {
+        for (let b = 0; b < NB; b++) {
+          const x = byBank[b], bk = banks[b];
+          const holes = commonHoles.concat(x.used ? [] : [[logicAt, codeEnd]]);
+          const w = new Writer(bk, commonEnd, LIM, holes);
+          w.cache = new Map(cw.cache);
+          W[b] = w;
+          const table = x.used ? w.put(new Array(x.map.cells.length * 2).fill(0)) : 0;
+          w.searchFrom = w.pc;
+          const keys = keysIn(b);
+          const cz = !keys.length || opts.compress === false ? { toks: [], pages: keys.map(k => T.get(k).bytes) } : takCompress(keys.map(k => T.get(k).bytes));
+          const toklo = w.put(new Array(Math.max(1, cz.toks.length)).fill(0));
+          const dict = [], at = [];
+          [...cz.toks.keys()].sort((a, c) => cz.toks[c].length - cz.toks[a].length).forEach(k => {
+            const t = cz.toks[k].concat([0xFF]);
+            let o = -1;
+            for (let i = 0; i + t.length <= dict.length && o < 0; i++) if (t.every((v, j) => dict[i + j] === v)) o = i;
+            if (o < 0) { o = dict.length; dict.push(...t); }
+            at[k] = o;
+          });
+          let dictAt = w.pc;
+          if (dict.length && (dictAt & 0xFF) + dict.length > 0x100) { const nx = (dictAt + 0xFF) & ~0xFF; w.holes.push({ pc: dictAt, end: nx, start: dictAt }); w.pc = nx; dictAt = nx; }
+          if (dict.length) w.put(dict);
+          at.forEach((o, k) => { bk[toklo + k - BASE] = lo(dictAt + o); });
+          const z = new Map(keys.map((k, i) => [k, cz.pages[i]]));
+          keys.slice().sort((p, q) => z.get(q).length - z.get(p).length).forEach(k => addr.set(k, { a: w.str(z.get(k)), b }));
+          meta[b] = { table, toklo, dictAt };
+        }
+        // a pointer from map m to message k: the high nibble names the bank unless it is m's own
+        const ptr = (m, k) => { const { a, b } = addr.get(k); return b === order[m] ? a : (a & 0x0FFF) | (b << 12); };
+        for (let b = 0; b < NB; b++) {
+          const x = byBank[b], bk = banks[b], w = W[b], { table, toklo, dictAt } = meta[b];
+          const col = x.map.colors || DEFAULT_COLORS;
+          let ents = [];
+          if (x.used) {
+            const m = x.m, recCache = new Map();
+            const recAddr = x.recs.map(r => {
+              if (!r) return null;
+              let bytes;
+              if (r.wall) { const a = ptr(m, r.wall); bytes = [0, lo(a), hi(a)]; }
+              else {
+                const c = r.c;
+                let f = 0;
+                if (c.ending) f |= 0x01;
+                if (c.door.on) f |= 0x02;
+                if (c.use.on && c.use.setsEvent) f |= 0x04;
+                if (c.talk.on) f |= 0x08;
+                if (c.use.on) f |= 0x10;
+                if (c.give.on) f |= 0x20;
+                if (c.take.on) f |= 0x40;
+                if (!(c.lookReveals && c.item != null)) f |= 0x80;
+                // [flags, mask lo, mask hi] + present one-byte fields + present message pointers
+                const one = [c.item, c.use.on ? c.use.item : null, c.give.on ? c.give.item : null, c.talk.on ? c.talk.needUsed : null, c.sets, c.door.on ? c.door.needEvent : null];
+                let mask = 0; const body = [];
+                one.forEach((v, i) => { if (v != null) { mask |= 1 << i; body.push(v); } });
+                r.k.forEach((k, i) => { if (k) { mask |= 1 << (6 + i); const a = ptr(m, k); body.push(lo(a), hi(a)); } });
+                bytes = [f, mask & 0xFF, mask >> 8, ...body];
+              }
+              const key = bytes.join(',');
+              if (!recCache.has(key)) recCache.set(key, w.put(bytes));
+              return recCache.get(key);
+            });
+            let any = recAddr.find(a => a != null);
+            if (any == null) any = w.put([0, 0xFF, 0xFF]);
+            recAddr.forEach((a, i) => { const v = a == null ? any : a; bk[table + 2 * i - BASE] = lo(v); bk[table + 2 * i + 1 - BASE] = hi(v); });
+            ents = P.portals.filter(p => p.map === m).flatMap((p, k) => { const a = x.lockKeys[k] ? ptr(m, x.lockKeys[k]) : 0; return [(p.idx * 2) & 0xFF, lo(cart.base + order[p.toMap]), (p.toIdx * 2) & 0xFF, lo(a), hi(a)]; });
+          }
+          bk.set([lo(cart.base + b), ...ents, 0xFF], sym.PTBL - BASE);
+          bk.set([col.bg & 0xFE, col.text & 0xFE, col.menuBg & 0xFE, col.menuText & 0xFE, (x.map.width * 2) & 0xFF, lo(table), hi(table), FONT >> 8,
+            lo(toklo), hi(toklo), hi(dictAt), lo(sym.GMAP), hi(sym.GMAP), NGLYPH], TAK_HDR - BASE);
+        }
+        // intro page table (shared; read in the start bank)
+        const it = maps[0].introKeys.flatMap(k => { const a = ptr(0, k); return [lo(a), hi(a)]; });
+        for (const bk of banks) bk.set(it, sym.INTRO - BASE);
+      } catch (x) {
+        if (x.message === 'OUT_OF_SPACE') {
+          const u = usageOf();
+          return { ok: false, errs: ['Out of room: the text only just fails to fit. Shorten a message or two, or choose a bigger cartridge.'], warns, usage: { maps: u, mapA: u[0], mapB: u[1] } };
+        }
+        throw x;
+      }
+      // real usage, measured from what was written
+      const est0 = usageOf();
+      const usage = maps.map((x, m) => {
+        const w = W[x.b];
+        const holeFree = w.holes.reduce((t, h) => t + (h.end - h.pc), 0), holeSize = w.holes.reduce((t, h) => t + (h.end - h.start), 0);
+        const total = LIM - commonEnd + holeSize, free = LIM - w.pc + holeFree;
+        return Object.assign({}, est0[m], { used: total - free, total, free });
+      });
+      // ---- the code, assembled with the real addresses, in every bank ----
+      Object.assign(sym, {
+        FONT, SPACEI: GIDX[' '], NGLYPH, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
+        STARTINV: P.start.inventory.reduce((acc, i) => acc | bit(i), 0),
+      });
+      const code = assemble(takEngineSource(srcOpts), BASE, takSyms(sym));
+      if (code.bytes.length !== codeLen || code.labels.INPUT !== logicAt) throw new Error('engine size changed between passes');
+      byBank.forEach((x, b) => {
+        // a bank no map uses only needs the display code: its game-logic area holds text
+        banks[b].set(x.used ? code.bytes : code.bytes.slice(0, logicAt - BASE), 0);
+        banks[b].set([0x00, 0xF0, 0x00, 0xF0], 0xFFC); // reset and IRQ vectors -> $F000
+        if (cart.scheme === 'EF') banks[b].set([0x45, 0x46, 0x45, 0x46], 0xFF8); // "EFEF": how emulators and flash carts recognise EF
+      });
+      return { ok: true, rom: measure ? null : rom, warns, usage: { maps: usage, mapA: usage[0], mapB: usage[1] }, fixes: { engine: 'tak', wide: true }, codeLen, font: FONT, labels: code.labels };
+    }
   }
 
   // ---------- Playthrough analysis ----------
@@ -1138,7 +1692,9 @@
   function verifySolution(rom, project, steps) {
     const P = normalize(project);
     const e = new Emu(rom);
-    e.wide = fixesNeeded(P).wide;
+    // which engine built it: Dark Mage's text kernel sits at $F43B in every bank
+    const dm = [0xA2, 0x04, 0x85, 0x02].every((v, i) => rom[0x43B + i] === v);
+    if (!dm) { e.layout = 'tak'; e.wide = true; } else e.wide = fixesNeeded(P).wide;
     for (let i = 0; i < 3; i++) e.runFrame();
     runSegs(e, introSegs(P));
     for (let i = 0; i < steps.length; i++) {
@@ -1149,6 +1705,10 @@
     return { ok: ended, finalText: e.screenText(), menu: e.menuText() };
   }
 
-  root.TAK = { wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, BASE };
+  function build(P, engineRom, opts = {}) {
+    normalize(P);
+    return P.engine === 'tak' ? buildTak(P, opts) : buildRom(P, engineRom, opts);
+  }
+  root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX };
 })(typeof window !== 'undefined' ? window : globalThis);
 if (typeof module !== 'undefined') module.exports = globalThis.TAK;
