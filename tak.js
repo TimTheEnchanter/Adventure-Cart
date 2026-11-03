@@ -146,7 +146,7 @@
   function allTexts(P) {
     const t = [...P.intro, ...P.items, ...Object.values(P.system)];
     for (const m of P.maps) for (const c of m.cells) {
-      if (c.type === 'wall') t.push(c.text); else t.push(c.desc, c.look, c.take.text, c.use.text, c.give.text, c.talk.ok, c.talk.no, c.door.text);
+      if (c.type === 'wall') t.push(c.text); else t.push(c.desc, c.look, c.take.text, c.use.text, c.give.text, c.talk.ok, c.talk.no, c.door.text, ...(c.alt && c.alt.on ? [c.alt.desc, c.alt.look] : []));
     }
     return t;
   }
@@ -347,12 +347,20 @@
     if (P.settings.customTune == null) P.settings.customTune = 'C5:8 E5:8 G5:8 C6:24';
     if (P.system.theEnd == null) P.system.theEnd = 'THE END';
     if (P.system.nothing == null) P.system.nothing = 'NOTHING';
+    if (P.system.tryAgain == null) P.system.tryAgain = 'TRY AGAIN';
+    if (P.system.code == null) P.system.code = 'CODE';
+    if (P.system.delete == null) P.system.delete = 'DELETE';
+    if (P.settings.passwords == null) P.settings.passwords = false;
     if (!P.events) P.events = [];
     while (P.events.length < 16) P.events.push('Event ' + (P.events.length + 1));
     while (P.items.length < 16) P.items.push('');
     for (const m of P.maps) {
       if (!m.colors) m.colors = Object.assign({}, DEFAULT_COLORS);
-      for (const c of m.cells) if (c.type === 'room') { if (c.ending == null) c.ending = false; if (c.use.setsEvent == null) c.use.setsEvent = false; }
+      for (const c of m.cells) if (c.type === 'room') {
+        if (c.ending == null) c.ending = false; if (c.use.setsEvent == null) c.use.setsEvent = false;
+        if (!c.alt) c.alt = { on: false, event: null, desc: '', look: '' };
+        if (c.deadly == null) c.deadly = false;
+      }
     }
     return P;
   }
@@ -419,6 +427,13 @@
       const nb = tuneBytes(P.settings.customTune), room = TUNE_ROOM();
       if (nb > room) errs.push(`Ending tune: ${nb} bytes, but there is room for ${room}. Use fewer notes.`);
     }
+    if (P.settings.passwords && P.engine === 'tak') {
+      checkPage(P.system.code, 'Menu word "code"', errs, warns, { menuWord: true });
+      checkPage(P.system.delete, 'Menu word "delete"', errs, warns, { menuWord: true });
+      if (normText(P.system.code).length > 7) errs.push('Menu word "code": 7 characters at most when passwords are on (it heads the code screen)');
+      const L = pwLayout(P); if (L.n > 20) errs.push(`Passwords would be ${L.n} letters long (at most 20)`);
+    }
+    if (P.settings.passwords && P.engine !== 'tak') warns.push('Passwords need the Workshop engine; the Dark Mage engine leaves them out');
     if (P.picture && P.picture.on && P.engine === 'tak') {
       const L = picLayout(P);
       if (!L) warns.push('Title picture: nothing is drawn yet, so the cartridge leaves it out');
@@ -456,6 +471,7 @@
     for (const k of SYS_MSGS) checkPage(P.system[k], `System message "${k}"`, errs, warns);
     checkPage(P.system.theEnd, 'Menu word "the end"', errs, warns, { menuWord: true });
     checkPage(P.system.nothing, 'Menu word "nothing"', errs, warns, { menuWord: true });
+    if (P.engine === 'tak' && P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly))) checkPage(P.system.tryAgain, 'Menu word "try again"', errs, warns, { menuWord: true });
     if (P.settings.endEvent != null && !P.maps.some(m => m.cells.some(c => c.type === 'room' && c.sets === P.settings.endEvent && (c.give.on || c.talk.on || (c.use.on && c.use.setsEvent)))))
       warns.push('No room ever sets the event that ends the game');
     if (P.maps.some(m => m.cells.some(c => c.type === 'room' && c.use.on && c.use.setsEvent && c.sets == null)))
@@ -473,7 +489,15 @@
       if (c.give.on) { checkPage(c.give.text, L + ' GIVE text', errs, warns); if (c.give.item == null) errs.push(L + ': GIVE is on but no item chosen'); }
       if (c.talk.on) { checkPage(c.talk.ok, L + ' TALK (success) text', errs, warns); checkPage(c.talk.no, L + ' TALK (default) text', errs, warns); }
       if (c.door.on) { checkPage(c.door.text, L + ' blocked text', errs, warns); if (c.door.needEvent == null) errs.push(L + ': locked room needs an event'); }
-      const nb = neighbors(P, mi, i);
+      if (c.alt && c.alt.on) {
+        if (P.engine !== 'tak') warns.push(L + ': text that changes after an event needs the Workshop engine; the Dark Mage engine ignores it');
+        if (c.alt.event == null) errs.push(L + ': choose the event that changes this room\'s text');
+        if (normText(c.alt.desc).trim()) checkPage(c.alt.desc, L + ' description after the event', errs, warns);
+        if (normText(c.alt.look).trim()) checkPage(c.alt.look, L + ' LOOK text after the event', errs, warns);
+      }
+      if (c.ending && c.deadly && P.engine !== 'tak') warns.push(L + ': game-over rooms need the Workshop engine; the Dark Mage engine treats this as a normal ending');
+      // an ending stops the controls, so its edges never matter
+      const nb = c.ending ? {} : neighbors(P, mi, i);
       for (const [d, n] of Object.entries(nb)) {
         if (!n.valid) errs.push(`${L}: going ${d} leaves the map (put a wall cell there)`);
         else if (n.wrap && n.cell && n.cell.type === 'room') warns.push(`${L}: going ${d} wraps around to the other edge of the map`);
@@ -839,7 +863,8 @@
   // ---------- New blank project ----------
   function room(name, desc, look) {
     return { type: 'room', name, desc, look, lookReveals: false, item: null, take: { on: false, text: '' }, use: { on: false, item: null, text: '', setsEvent: false },
-      give: { on: false, item: null, text: '' }, talk: { on: false, needUsed: null, ok: '', no: '' }, sets: null, door: { on: false, needEvent: null, text: '' }, ending: false };
+      give: { on: false, item: null, text: '' }, talk: { on: false, needUsed: null, ok: '', no: '' }, sets: null, door: { on: false, needEvent: null, text: '' }, ending: false,
+      alt: { on: false, event: null, desc: '', look: '' }, deadly: false };
   }
   function wall(text) { return { type: 'wall', text }; }
   function blankMap(i, W, rows) {
@@ -942,15 +967,27 @@
     fontPage() { return this.rom[this.bank * 4096 + (this.layout === 'tak' ? 0xFD7 : 0x032)]; }
     decoder() { return this.layout === 'tak' || this.fontPage() === 0xF6 ? XDECODE : DECODE; }
     takBank(a) { const n = (a >> 12) & 0xF; return n === 0xF ? this.bankBytes() : this.rom.subarray(n * 4096, n * 4096 + 4096); }
-    takText(a, menuWord) { return takLines(this.takBank(a), a | 0xF000, menuWord).map(l => l.map(v => XDECODE[v] !== undefined ? XDECODE[v] : ' ').join('')).join('\n').replace(/\n$/, ''); }
+    // a page of text in RAM (the code screen, $01xx): glyph numbers mapped through this bank's table
+    takRam(a, menuWord) {
+      const bk = this.bankBytes(), gmap = bk[0xFDB] | (bk[0xFDC] << 8), lines = []; let line = [];
+      for (let i = a & 0x7F, n = 0; i < 128 && n < 64; i++, n++) {
+        const v = this.ram[i]; if (v === 0xFE) break;
+        if (v === 0xFF) { lines.push(line); line = []; if (menuWord) return lines; continue; }
+        line.push(bk[gmap + v - BASE]);
+      }
+      if (line.length) lines.push(line);
+      return lines;
+    }
+    takAny(a, menuWord) { return (a >> 8) === 1 ? this.takRam(a, menuWord) : takLines(this.takBank(a), a | 0xF000, menuWord); }
+    takText(a, menuWord) { return this.takAny(a, menuWord).map(l => l.map(v => XDECODE[v] !== undefined ? XDECODE[v] : ' ').join('')).join('\n').replace(/\n$/, ''); }
     screenText() { return this.layout === 'tak' ? this.takText(this.textPtr(), false) : readText(this.bankBytes(), this.textPtr(), false, this.decoder()); }
     menuText() { return this.layout === 'tak' ? this.takText(this.menuPtr(), true) : readText(this.bankBytes(), this.menuPtr(), true, this.decoder()); }
     // raw text bytes as the kernel would draw them: up to 10 lines + the menu line
     screenBytes() {
       if (this.layout === 'tak') {
-        const tp = this.textPtr(), t = takLines(this.takBank(tp), tp | 0xF000, false).slice(0, 10).map(l => l.slice(0, 12));
+        const tp = this.textPtr(), t = this.takAny(tp, false).slice(0, 10).map(l => l.slice(0, 12));
         while (t.length < 10) t.push([]);
-        return { lines: t, menu: (takLines(this.bankBytes(), this.menuPtr(), true)[0] || []).slice(0, 12) };
+        return { lines: t, menu: (this.takAny(this.menuPtr(), true)[0] || []).slice(0, 12) };
       }
       const bk = this.bankBytes(), lines = [];
       let i = this.textPtr() - BASE, done = false;
@@ -1137,7 +1174,9 @@
     LINE: 0x90, TP: 0x91, PAR: 0x93, TXT: 0x9C, MENUW: 0x9E, SELI: 0xA0, PMSGHI: 0xA1, ROOM: 0xA2, REC: 0xA3,
     PREV: 0xA5, TK: 0xA6, INV: 0xA7, SEEN: 0xA8, USED: 0xA9, PHOT: 0xAA, PMSGLO: 0xAB, EV: 0xAC, MMODE: 0xAD,
     DEB: 0xAE, LIST: 0xAF, MCOUNT: 0xBF, MWORDS: 0xC0, MHAND: 0xC2, SEL: 0xC8, MODE: 0xC9, PAGE: 0xCB, STATE: 0xCC,
-    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD, SPTR: 0xEE, SDUR: 0xF0, CTX: 0xF1, AUDC0: 0x15, AUDF0: 0x17, AUDV0: 0x19,
+    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD, SPTR: 0xEE, SDUR: 0xF0, CTX: 0xF1, TMPA: 0xF2,
+    // passwords use the item-menu areas, free while a code is made or typed
+    V0: 0xAF, V1: 0xB0, ACC: 0xB1, KB: 0xB2, SUM: 0xB3, DI: 0xB4, CI: 0xB5, NCH: 0xB6, SCR: 0xB7, TROOM: 0xB8, TBANK: 0xB9, NB: 0xBA, MB: 0xBB, PWS: 0xBD, BUDG: 0xBE, BUF: 0xCE, AUDC0: 0x15, AUDF0: 0x17, AUDV0: 0x19,
     VSYNC: 0x00, VBLANK: 0x01, WSYNC: 0x02, NUSIZ0: 0x04, NUSIZ1: 0x05, COLUP0: 0x06, COLUP1: 0x07, COLUBK: 0x09,
     RESP0: 0x10, GRP0: 0x1B, GRP1: 0x1C, HMP0: 0x20, VDELP0: 0x25, VDELP1: 0x26, HMOVE: 0x2A, HMCLR: 0x2B,
     INPT4: 0x0C, SWCHA: 0x0280, SWCHB: 0x0282, INTIM: 0x0284, TIM8T: 0x0295, TIM64T: 0x0296,
@@ -1163,7 +1202,7 @@
       // text can live in any bank: the high nibble of the message address names it ($F = this map's bank)
       'LDA PTBL', 'STA MHOT', 'LDA HDR', 'STA CBG', 'LDA HDR+2', 'STA CMB', 'LDA HDR+3', 'STA CMT',
       'LDA HDR+1', 'STA COLUP0', 'STA COLUP1', ...(o.pic ? ['STA CTX'] : []),
-      'LDA TXT+1', 'CMP #$F0', 'BCS NOSW', 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'TAY', 'LDA HOTS,Y', 'NOSW: JSR PREP',
+      'LDA TXT+1', 'CMP #$F0', 'BCS NOSW', ...(o.pw ? ['CMP #2', 'BCC NOSW'] : []), 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'TAY', 'LDA HOTS,Y', 'NOSW: JSR PREP',
       'VBW: LDA INTIM', 'BNE VBW', 'STA WSYNC', 'LDA #0', 'STA VBLANK');
     // ---------- visible picture: 192 scanlines ----------
     add('LDX #TOPLINES', 'D1: STA WSYNC', 'DEX', 'BNE D1',
@@ -1188,27 +1227,14 @@
       'LDX #MENUPAD', 'D3: STA WSYNC', 'DEX', 'BNE D3', 'JMP TL',
       'AFTERMENU: STA WSYNC', 'LDA #0', 'STA COLUBK', 'LDX #RESTLINES', 'D4: STA WSYNC', 'DEX', 'BNE D4',
       // overscan
-      'LDA #2', 'STA VBLANK', 'LDA #OST', 'STA TIM64T', 'LDY MHOT', 'LDA $FF00,Y', 'OSW: LDA INTIM', 'BNE OSW', 'JMP FRAME');
+      'LDA #2', 'STA VBLANK', 'LDA #OST', 'STA TIM64T', 'LDY MHOT', 'LDA $FF00,Y',
+      // a code being made or checked: a slice of the work in the start bank each overscan
+      ...(o.pw ? ['LDA PWS', 'BEQ OSW', 'LDA STARTHOT', 'JSR PWSTEP', 'LDY MHOT', 'LDA $FF00,Y'] : []),
+      'OSW: LDA INTIM', 'BNE OSW', 'JMP FRAME');
     // ---------- read one text line from TP into the six glyph pointers (this frame's half) ----------
     // Every character is stored at P1+X with X = its column (odd frames start at -1), so this frame's
     // half land on the pointers' low bytes; the others land on high bytes, which are reset afterwards.
     // Dictionary words are copied from the bank's word page. Finally glyph numbers become font offsets.
-    // title picture: the text kernel draws it too, with the six pointers aimed at picture columns and Y counting
-    // its scanlines; it takes the place of the first K text lines (top padding + picture + the usual 10-line gap)
-    if (o.pic) add('PICK: LDA #PICCOL', 'STA COLUP0', 'STA COLUP1', `LDA #${11 - o.pic.k}`, 'STA LINE',
-      ...(o.pic.pad ? [`LDX #${o.pic.pad}`, 'PKW: STA WSYNC', 'DEX', 'BNE PKW'] : []),
-      `LDY #${o.pic.rows - 1}`, 'LDA (P5),Y', 'TAX', 'LDA PAR', 'BNE PKO', 'STA WSYNC', `JMP ${o.pic.rowH === 2 ? 'KE2' : 'KE'}`, 'PKO: STA WSYNC', `JMP ${o.pic.rowH === 2 ? 'KO2' : 'KO'}`);
-    // a chunky title picture: every row drawn on two scanlines (the second line waits 3 cycles where the
-    // loop would have jumped, so the timed writes land in the same places)
-    if (o.pic && o.pic.rowH === 2) for (const [K, odd] of [['KE2', false], ['KO2', true]]) {
-      const body = [`LDA (P1),Y`, 'STA GRP0', 'LDA (P2),Y', 'STA GRP1', 'LDA (P3),Y', 'STA GRP0', 'LDA (P6),Y', 'STA TMPV', ...(odd ? ['BIT $80'] : []),
-        'LDA (P4),Y', 'STA GRP1', 'STX GRP0', 'LDA TMPV', 'STA $001C'];
-      body[0] = `${K}: ` + body[0];
-      add(...body, 'LDA (P5),Y', 'TAX', 'STA WSYNC', 'BIT $80', ...body.map((x, i) => i ? x : x.replace(`${K}: `, '')), 'DEY', 'BMI KX2',
-        'LDA (P5),Y', 'TAX', 'STA WSYNC', `JMP ${K}`);
-      // the same exit as KX (blank the players at the same moment), then on to the gap
-      if (!odd) add('KX2: LDA #0', 'NOP', 'STA GRP0', 'STA GRP1', 'STA GRP0', 'JMP KXC');
-    }
     add('PARSE: LDA #SPACEI', ...(o.pic ? ['LDX CTX', 'STX COLUP0', 'STX COLUP1'] : []), 'STA P1', 'STA P2', 'STA P3', 'STA P4', 'STA P5', 'STA P6',
       'LDX #0', 'LDA PAR', 'BEQ PA0', 'DEX', 'PA0: LDY #0',
       'PL: LDA (TP),Y', 'INY', 'CMP #NGLYPH', 'BCS PSPEC', 'STA P1,X', 'INX', 'JMP PL',
@@ -1226,22 +1252,30 @@
       'LDX #0', 'LDA PAR', 'BEQ PPE', 'LDA #XE+8', 'BNE PPP', 'PPE: LDA #XE', 'PPP: STA T1', 'JSR POS',
       'LDA T1', 'CLC', 'ADC #16', 'LDX #1', 'JSR POS', 'STA WSYNC', 'STA HMOVE',
       'LDA HDR+8', 'STA TOKP', 'LDA HDR+9', 'STA TOKP+1', 'LDA HDR+10', 'STA TT+1',
-      'LDA TXT', 'STA TP', 'LDA TXT+1', 'ORA #$F0', 'STA TP+1',
+      'LDA TXT', 'STA TP', 'LDA TXT+1', ...(o.pw ? ['CMP #2', 'BCC PRAM'] : []), 'ORA #$F0', ...(o.pw ? ['PRAM:'] : []), 'STA TP+1',
       // on the title page the first text line is read in the gap below the picture instead
-      ...(o.pic ? ['LDA STATE', 'ORA PAGE', 'BNE PPN', 'LDY #11', 'LDA PAR', 'BEQ PP0', 'LDY #23', 'PP0: LDX #11',
-        'PP1: LDA PICPTR,Y', 'STA P1,X', 'DEY', 'DEX', 'BPL PP1', 'RTS', 'PPN:'] : []),
+      ...(o.pic ? ['LDA STATE', 'ORA PAGE', 'BNE PPN', 'JMP PICP', 'PPN:'] : []),
       'JMP PARSE',
       // horizontal positioning: coarse with RESPx after a divide-by-15 delay, fine with HMPx
       'POS: STA WSYNC', 'SEC', 'PD: SBC #15', 'BCS PD', 'EOR #7', 'ASL A', 'ASL A', 'ASL A', 'ASL A', 'STA HMP0,X', 'STA RESP0,X', 'RTS');
     // ---------- controls ----------
     add('INPUT: LDA STATE', 'BEQ IN1');
     if (o.endEvent != null) add(`LDX #${o.endEvent}`, 'LDY #EV', 'JSR BTST', 'BNE ENDED');
-    add('JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'LSR A', 'BCC IN1',
+    add('JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'LSR A', 'BCC IN1');
+    // a game-over room: TRY AGAIN, and fire (pressed after letting go) restarts at the start room
+    if (o.deadly) add('LDX #15', 'JSR FLD', 'BCC ENDED',
+      'LDA MENUW', 'CMP #<W_AGAIN', 'BNE DE1', 'LDA MENUW+1', 'CMP #>W_AGAIN', 'BEQ DE2', 'DE1:', ...snd('S_DIE'),
+      'LDA #<W_AGAIN', 'STA MENUW', 'LDA #>W_AGAIN', 'STA MENUW+1', 'LDA #1', 'STA DEB', 'RTS',
+      'DE2: LDA INPT4', 'BMI DE3', 'LDA DEB', 'BNE DE4',
+      // restart: back to the start bank (same code at the same address), clear progress, start again
+      'LDA STARTHOT', 'LDA #0', 'LDX #3', 'DE5: STA TK,X', 'STA TK+$1E,X', 'DEX', 'BPL DE5', 'STA EV', 'STA EV+$1E', 'STA PHOT', 'STA DEB', 'INC DEB', 'JMP HSTART',
+      'DE3: LDA #0', 'STA DEB', 'DE4: RTS');
+    add(
       // the first frame of the ending plays the tune
       'ENDED: LDA MENUW', 'CMP #<W_END', 'BNE EN1', 'LDA MENUW+1', 'CMP #>W_END', 'BEQ EN2', 'EN1:', ...snd('S_END'),
       'LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1', 'EN2: RTS',
-      'IN1: LDA INPT4', 'BMI NOTPR', 'LDA DEB', 'BNE IRTS', 'INC DEB', ...snd('S_FIRE'), 'LDA ROOM', 'STA PREV',
-      'LDA MMODE', 'CMP #2', 'BNE IN2', 'JMP HPICK', 'IN2: LDA SELI', 'ASL A', 'TAY', 'LDA (MHAND),Y', 'STA T1', 'INY', 'LDA (MHAND),Y', 'STA T2', 'JMP (T1)',
+      ...(o.pw ? ['IN1: LDA PWS', 'BNE IRTS', 'LDA INPT4'] : ['IN1: LDA INPT4']), 'BMI NOTPR', 'LDA DEB', 'BNE IRTS', 'INC DEB', ...snd('S_FIRE'), 'LDA ROOM', 'STA PREV',
+      'LDA MMODE', ...(o.pw ? ['CMP #3', 'BNE IN3', 'JMP HCODEF', 'IN3:'] : []), 'CMP #2', 'BNE IN2', 'JMP HPICK', 'IN2: LDA SELI', 'ASL A', 'TAY', 'LDA (MHAND),Y', 'STA T1', 'INY', 'LDA (MHAND),Y', 'STA T2', 'JMP (T1)',
       'NOTPR: LDA #0', 'STA DEB', 'LDA FRAMEC', 'AND #7', 'BNE IRTS', 'LDA MMODE', 'BNE CYC',
       // walking: the stick picks NORTH/EAST/SOUTH/WEST, centred means LOOK
       'LDA SWCHA', 'LDX #2', 'ASL A', 'BCC SETI', 'LDX #4', 'ASL A', 'BCC SETI', 'LDX #3', 'ASL A', 'BCC SETI',
@@ -1251,7 +1285,7 @@
       'CRT: INC SELI', 'LDA SELI', 'CMP MCOUNT', 'BCC CSW', 'LDA #0', 'STA SELI', 'CSW:', ...snd('S_TICK'), 'JMP SELWORD',
       'CLT: DEC SELI', 'BPL CSW', 'LDX MCOUNT', 'DEX', 'STX SELI', 'JMP CSW');
     // ---------- menus ----------
-    add('SELWORD: LDA SELI', 'ASL A', 'TAY', 'LDA (MWORDS),Y', 'STA MENUW', 'INY', 'LDA (MWORDS),Y', 'STA MENUW+1', 'RTS',
+    add(...(o.pw ? ['SELWORD: LDA MMODE', 'CMP #3', 'BNE SW0', 'JMP SELC', 'SW0: LDA SELI'] : ['SELWORD: LDA SELI']), 'ASL A', 'TAY', 'LDA (MWORDS),Y', 'STA MENUW', 'INY', 'LDA (MWORDS),Y', 'STA MENUW+1', 'RTS',
       // each entry skips the next one's LDX with a BIT absolute ($2C)
       'SETMOVE: LDX #0', '.byte $2C', 'SETACT: LDX #6', '.byte $2C', 'SETMOREM: LDX #12', '.byte $2C', 'SETSTARTM: LDX #18',
       'LDA MT,X', 'STA MWORDS', 'LDA MT+1,X', 'STA MWORDS+1', 'LDA MT+2,X', 'STA MHAND', 'LDA MT+3,X', 'STA MHAND+1',
@@ -1270,7 +1304,12 @@
       'FL1: CPX SY', 'BEQ FL3', 'LSR T2', 'ROR T1', 'BCC FL2', 'INY', 'CPX #6', 'BCC FL2', 'INY', 'FL2: INX', 'BNE FL1',
       'FL3: LSR T2', 'ROR T1', 'RTS',
       'GETF: JSR FLD', 'LDA #$FF', 'BCC GF1', 'LDA (REC),Y', 'GF1: TAX', 'CMP #$FF', 'RTS',
-      'SETTXT: JSR FLD', 'SETTY: LDA (REC),Y', 'STA TXT', 'INY', 'LDA (REC),Y', 'STA TXT+1', 'RTS',
+      ...(o.alt ? [
+        // arrival (6) and LOOK (7) text: a room may point (field 14) at [event, arrival lo/hi, LOOK lo/hi] for after that event
+        'SETTXT: CPX #6', 'BEQ SA1', 'CPX #7', 'BNE SAN', 'SA1: STX TMPA', 'LDX #14', 'JSR FLD', 'BCC SAR',
+        'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'LDY #0', 'LDA (T1),Y', 'TAX', 'LDY #EV', 'JSR BTST', 'BEQ SAR',
+        'LDA TMPA', 'ASL A', 'SEC', 'SBC #10', 'TAY', 'LDA (T1),Y', 'BEQ SAR', 'STA TXT+1', 'DEY', 'LDA (T1),Y', 'STA TXT', 'RTS',
+        'SAR: LDX TMPA', 'SAN: JSR FLD'] : ['SETTXT: JSR FLD']), 'SETTY: LDA (REC),Y', 'STA TXT', 'INY', 'LDA (REC),Y', 'STA TXT+1', 'RTS',
       'SAY: JSR SETTXT', 'JMP SETMOVE',
       'SAYW: STA TXT', 'STY TXT+1', 'JMP SETMOVE');
     // ---------- walking ----------
@@ -1320,11 +1359,22 @@
       'LDX #4', 'JSR GETF', 'BEQ GV2', 'JSR EVSET', 'GV2: LDX #0', 'JSR GETF', 'BEQ GV3', 'LDY #SEEN', 'JSR BSET',
       'GV3: LDX #10', 'JMP SAY', 'GNO:', ...snd('S_NOPE'), 'LDA #<M_CGIVE', 'LDY #>M_CGIVE', 'JMP SAYW',
       'EVSET: LDY #EV', 'JSR BSET', ...snd('S_EVENT'), 'RTS');
+    // ---------- passwords ----------
+    // Making and checking codes is long, so that code sits only in the start bank (see takPwBlock). Here are the
+    // pieces every bank needs: CODE in the action menu borrows the start bank for a moment, and a typed code
+    // that checks out switches to its map's bank and carries on here.
+    if (o.pw) add(
+      'HSAVE: LDA STARTHOT', 'JSR XSAVE', 'LDY MHOT', 'LDA $FF00,Y', 'JMP SETMOVE',
+      'XRESUME: LDA $FF00,Y', 'LDA TROOM', 'ASL A', 'STA ROOM', 'CMP HDR+14', 'BEQ XR1', 'BCS XRB',
+      'XR1: JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'BEQ XRB',
+      // from now on the frame returns to this map's bank
+      'LDA PTBL', 'STA MHOT', 'LDA #1', 'STA STATE', 'STA DEB', 'LDA #0', 'STA PHOT', ...snd('S_GOOD'), 'LDX #6', 'JMP SAY',
+      'XRB: LDA STARTHOT', 'JMP BAD');
     // ---------- sound: one channel, a list of [control<<4 | volume, frequency, frames-1], 0 ends ----------
     // all sounds sit in one page, so a sound is named by its low address byte; each entry point loads it
     // and skips the following loads with a BIT absolute ($2C)
     if (o.sound) {
-      const names = ['S_TICK', 'S_FIRE', 'S_STEP', 'S_BUMP', 'S_LOCK', 'S_NOPE', 'S_GOOD', 'S_EVENT', 'S_END'];
+      const names = ['S_TICK', 'S_FIRE', 'S_STEP', 'S_BUMP', 'S_LOCK', 'S_NOPE', 'S_GOOD', 'S_EVENT', 'S_DIE', 'S_END'];
       names.forEach((n, i) => add(`P${n}: LDA #<${n}`, ...(i < names.length - 1 ? ['.byte $2C'] : [])));
       add('PLAY: STA SPTR', 'LDA #0', 'STA SDUR', 'RTS',
         'SOUND: LDA SDUR', 'BEQ SN1', 'DEC SDUR', 'RTS',
@@ -1337,10 +1387,10 @@
     add('ML: .byte 1,2,4,8,16,32,64,128,0,0,0,0,0,0,0,0', 'MH: .byte 0,0,0,0,0,0,0,0,1,2,4,8,16,32,64,128');
     tbl('MOVEW', ['W_LOOK', 'W_NORTH', 'W_EAST', 'W_SOUTH', 'W_WEST']);
     tbl('MOVEH', ['HLOOK', 'HN', 'HE', 'HS', 'HW']);
-    tbl('ACTW', ['W_GO', 'W_TAKE', 'W_GIVE', 'W_USE', 'W_TALK', 'W_INV']);
-    tbl('ACTH', ['HGO', 'HTAKE', 'HGIVE', 'HUSE', 'HTALK', 'HINV']);
-    tbl('MOREW', ['W_MORE']); tbl('MOREH', ['HMORE']); tbl('STARTW', ['W_START']); tbl('STARTH', ['HSTART']);
-    add('MT: .byte <MOVEW,>MOVEW,<MOVEH,>MOVEH,5,0, <ACTW,>ACTW,<ACTH,>ACTH,6,1, <MOREW,>MOREW,<MOREH,>MOREH,1,1, <STARTW,>STARTW,<STARTH,>STARTH,1,1');
+    tbl('ACTW', ['W_GO', 'W_TAKE', 'W_GIVE', 'W_USE', 'W_TALK', 'W_INV', ...(o.pw ? ['W_CODE'] : [])]);
+    tbl('ACTH', ['HGO', 'HTAKE', 'HGIVE', 'HUSE', 'HTALK', 'HINV', ...(o.pw ? ['HSAVE'] : [])]);
+    tbl('MOREW', ['W_MORE']); tbl('MOREH', ['HMORE']); tbl('STARTW', ['W_START', ...(o.pw ? ['W_CODE'] : [])]); tbl('STARTH', ['HSTART', ...(o.pw ? ['HCODE'] : [])]);
+    add(`MT: .byte <MOVEW,>MOVEW,<MOVEH,>MOVEH,5,0, <ACTW,>ACTW,<ACTH,>ACTH,${o.pw ? 7 : 6},1, <MOREW,>MOREW,<MOREH,>MOREH,1,1, <STARTW,>STARTW,<STARTH,>STARTH,${o.pw ? 2 : 1},1`);
     return L;
   }
 
@@ -1369,6 +1419,38 @@
     // columns never cross a page, so count the gaps that leaves (the builder lets text use them when it can)
     const R = L.rows.length, per = Math.floor(256 / R), pages = Math.ceil(uniq.length / per);
     return { data: uniq.flatMap(u => u.a), idx, size: uniq.length * R + 24 + (pages - 1) * (256 - per * R) + Math.min(255, R) };
+  }
+
+  // ---------- Passwords ----------
+  const PW_ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no I, O, 0 or 1
+  function pwLayout(P) {
+    if (P.engine !== 'tak' || !P.settings.passwords) return null;
+    let ni = 0, ne = 0;
+    const it = i => { if (i != null) ni = Math.max(ni, i + 1); }, evn = e => { if (e != null) ne = Math.max(ne, e + 1); };
+    P.start.inventory.forEach(it); evn(P.settings.endEvent);
+    for (const m of P.maps) for (const c of m.cells) if (c.type === 'room') {
+      it(c.item); if (c.use.on) it(c.use.item); if (c.give.on) it(c.give.item); if (c.talk.on) it(c.talk.needUsed);
+      evn(c.sets); if (c.door.on) evn(c.door.needEvent); if (c.alt && c.alt.on) evn(c.alt.event);
+    }
+    ni = Math.max(1, ni); ne = Math.max(1, ne);
+    const nb = Math.max(1, Math.ceil(Math.log2(CARTS[P.cart].banks)));
+    const fields = [['INV', ni], ['TK', ni], ['SEEN', ni], ['USED', ni], ['EV', ne], ['TROOM', 7], ['TBANK', nb]];
+    const bits = fields.reduce((t, f) => t + f[1], 0), n = Math.ceil(bits / 5) + 1;
+    const title = normText(P.system.code).split('\n')[0].slice(0, 7) + ':';
+    return { fields, bits, n, title, pos0: title.length + 1 };
+  }
+  // the same code the cartridge makes, for a game state { inv, taken, seen, used, events, room, bank }
+  function makeCode(P, st) {
+    const L = pwLayout(P); if (!L) return null;
+    const val = { INV: st.inv, TK: st.taken, SEEN: st.seen, USED: st.used, EV: st.events, TROOM: st.room, TBANK: st.bank };
+    const bitsOut = [];
+    for (const [f, nb] of L.fields) for (let i = 0; i < nb; i++) bitsOut.push((val[f] >> i) & 1);
+    while (bitsOut.length % 5) bitsOut.push(0);
+    const syms = [];
+    for (let i = 0; i < bitsOut.length; i += 5) syms.push(bitsOut.slice(i, i + 5).reduce((a, b, k) => a | (b << k), 0));
+    syms.push(syms.reduce((a, b) => (a + b) & 31, 0));
+    let scr = 3;
+    return syms.map(sy => { const c = PW_ALPHA[sy ^ scr]; scr = (scr + 7) & 31; return c; }).join('');
   }
 
   // ---------- Sound: effects, tunes, and a TIA audio model for playtesting ----------
@@ -1424,8 +1506,9 @@
     S_NOPE: [[12, 14, 6, 5], [12, 19, 5, 8]],
     S_GOOD: [[4, 15, 6, 3], [4, 11, 6, 3], [4, 8, 6, 6], [4, 8, 2, 3]],
     S_EVENT: [[4, 14, 7, 4], [4, 11, 7, 4], [4, 9, 7, 4], [4, 7, 8, 10], [4, 7, 3, 6], [4, 7, 1, 6]],
+    S_DIE: [[12, 12, 8, 10], [12, 15, 8, 10], [12, 19, 8, 10], [12, 24, 8, 24], [12, 24, 3, 12]],
   };
-  const SFX_NAMES = { S_TICK: 'Menu tick', S_FIRE: 'Button', S_STEP: 'Footstep', S_BUMP: 'Wall', S_LOCK: 'Locked', S_NOPE: "Can't do that", S_GOOD: 'Success', S_EVENT: 'Event' };
+  const SFX_NAMES = { S_TICK: 'Menu tick', S_FIRE: 'Button', S_STEP: 'Footstep', S_BUMP: 'Wall', S_LOCK: 'Locked', S_NOPE: "Can't do that", S_GOOD: 'Success', S_EVENT: 'Event', S_DIE: 'Game over' };
   function endTuneText(P) { const k = P.settings.tune; return k === 'custom' ? P.settings.customTune : (TUNES[k] || TUNES.fanfare).text; }
   const stepBytes = steps => steps.flatMap(([c, f, v, n]) => [((c & 15) << 4) | (v & 15) || 0x40, f & 31, Math.max(0, n - 1)]).concat([0]);
   // bytes left for the ending tune: all sounds share one page
@@ -1489,12 +1572,85 @@
     return out;
   }
 
+  // the title picture's code lives only in the bank holding the picture (assembled at its own address by the builder)
+  function takPicBlock(o) {
+    const L = [];
+    const add = (...x) => L.push(...x);
+    // title picture: the text kernel draws it too, with the six pointers aimed at picture columns and Y counting
+    // its scanlines; it takes the place of the first K text lines (top padding + picture + the usual 10-line gap)
+    add('PICK: LDA #PICCOL', 'STA COLUP0', 'STA COLUP1', `LDA #${11 - o.pic.k}`, 'STA LINE',
+      ...(o.pic.pad ? [`LDX #${o.pic.pad}`, 'PKW: STA WSYNC', 'DEX', 'BNE PKW'] : []),
+      `LDY #${o.pic.rows - 1}`, 'LDA (P5),Y', 'TAX', 'LDA PAR', 'BNE PKO', 'STA WSYNC', `JMP ${o.pic.rowH === 2 ? 'KE2' : 'KE'}`, 'PKO: STA WSYNC', `JMP ${o.pic.rowH === 2 ? 'KO2' : 'KO'}`);
+    // a chunky title picture: every row drawn on two scanlines (the second line waits 3 cycles where the
+    // loop would have jumped, so the timed writes land in the same places)
+    if (o.pic.rowH === 2) for (const [K, odd] of [['KE2', false], ['KO2', true]]) {
+      const body = [`LDA (P1),Y`, 'STA GRP0', 'LDA (P2),Y', 'STA GRP1', 'LDA (P3),Y', 'STA GRP0', 'LDA (P6),Y', 'STA TMPV', ...(odd ? ['BIT $80'] : []),
+        'LDA (P4),Y', 'STA GRP1', 'STX GRP0', 'LDA TMPV', 'STA $001C'];
+      body[0] = `${K}: ` + body[0];
+      add(...body, 'LDA (P5),Y', 'TAX', 'STA WSYNC', 'BIT $80', ...body.map((x, i) => i ? x : x.replace(`${K}: `, '')), 'DEY', 'BMI KX2',
+        'LDA (P5),Y', 'TAX', 'STA WSYNC', `JMP ${K}`);
+      // the same exit as KX (blank the players at the same moment), then on to the gap
+      if (!odd) add('KX2: LDA #0', 'NOP', 'STA GRP0', 'STA GRP1', 'STA GRP0', 'JMP KXC');
+    }
+    // on the title page the six pointers aim at picture columns instead of the first line of text
+    add('PICP: LDY #11', 'LDA PAR', 'BEQ PP0', 'LDY #23', 'PP0: LDX #11', 'PP1: LDA PICPTR,Y', 'STA P1,X', 'DEY', 'DEX', 'BPL PP1', 'RTS');
+    return L;
+  }
+  // the password code that lives only in the start bank (assembled at its own address by the builder)
+  function takPwBlock(o) {
+    const snd = (name) => o.sound ? ['JSR P' + name] : [];
+    return [
+      // copy the template ("CODE:" / dashes) into RAM and point the text at it
+      'CTPL: LDX #CODETL-1', 'CT1: LDA CODET,X', 'STA BUF,X', 'DEX', 'BPL CT1', 'LDA #<BUF', 'STA TXT', 'LDA #1', 'STA TXT+1', 'RTS',
+      // X = where symbol CI goes in the buffer
+      'CPOS: LDA CI', 'CMP #10', 'BCC CP1', 'ADC #0', 'CP1: CLC', 'ADC #POS0', 'TAX', 'RTS',
+      'NEXTR: LDA SCR', 'CLC', 'ADC #7', 'AND #31', 'STA SCR', 'RTS',
+      // emit ACC>>3 as the next letter
+      'EMIT: LDA ACC', 'LSR A', 'LSR A', 'LSR A', 'EMITA: PHA', 'CLC', 'ADC SUM', 'AND #31', 'STA SUM', 'PLA', 'EOR SCR', 'TAY', 'JSR CPOS', 'LDA ALPHA,Y', 'STA BUF,X',
+      'INC CI', 'JSR NEXTR', 'LDA #0', 'STA KB', 'RTS',
+      'PWINIT: LDA #0', 'STA CI', 'STA KB', 'STA SUM', 'STA DI', 'STA NB', 'LDA #3', 'STA SCR', 'RTS',
+      // ---- CODE in the action menu: set up; the letters are worked out a few at a time during overscan ----
+      'XSAVE: JSR CTPL', 'LDA ROOM', 'LSR A', 'STA TROOM', 'LDA MHOT', 'SEC', 'SBC #HOTLO', 'STA TBANK', 'JSR PWINIT', 'LDA #1', 'STA PWS', 'RTS',
+      // one overscan's worth of work: PWS 1 packs, 2 checks a typed code, 3 unpacks it
+      'PWSTEP: LDA #12', 'STA BUDG', 'LDA PWS', 'CMP #2', 'BNE PS1', 'JMP CHK', 'PS1: BCC PK0', 'LDA #5', 'STA BUDG', 'JMP UN0',
+      'PK0: LDA NB', 'BNE PK2', 'LDX DI', 'CPX #ND*2', 'BEQ PKE',
+      'LDY DESC,X', 'LDA $0000,Y', 'STA V0', 'LDA #0', 'STA V1', 'LDA DESC+1,X', 'STA NB', 'CMP #9', 'BCC PK2', 'LDA $001E,Y', 'STA V1',
+      'PK2: LSR V1', 'ROR V0', 'ROR ACC', 'INC KB', 'LDA KB', 'CMP #5', 'BNE PK3', 'JSR EMIT',
+      'PK3: DEC NB', 'BNE PK4', 'INC DI', 'INC DI', 'PK4: DEC BUDG', 'BNE PK0', 'RTS',
+      'PKE: LDA KB', 'BEQ PK6', 'PK5: CLC', 'ROR ACC', 'INC KB', 'LDA KB', 'CMP #5', 'BNE PK5', 'JSR EMIT',
+      'PK6: LDA SUM', 'JSR EMITA', 'LDA #0', 'STA PWS', 'RTS',
+      // ---- check: letters back to symbols (unscrambled in place) and their sum, four letters a frame ----
+      'CHK: LDA #4', 'STA BUDG',
+      'CK1: JSR CPOS', 'LDA BUF,X', 'LDY #31', 'CK2: CMP ALPHA,Y', 'BEQ CK3', 'DEY', 'BPL CK2', 'CK3: TYA', 'EOR SCR', 'STA BUF,X', 'JSR NEXTR', 'LDA BUF,X',
+      'LDY CI', 'CPY #NCODE-1', 'BEQ CK4', 'CLC', 'ADC SUM', 'AND #31', 'STA SUM', 'INC CI', 'DEC BUDG', 'BNE CK1', 'RTS',
+      'CK4: CMP SUM', 'BEQ CK5', 'JMP BAD', 'CK5: JSR PWINIT', 'LDA #3', 'STA PWS', 'RTS',
+      // ---- unpack the fields ----
+      'UN0: LDA NB', 'BNE UN2', 'LDX DI', 'CPX #ND*2', 'BEQ UNE', 'LDA DESC+1,X', 'STA NB', 'LDA #0', 'STA V0', 'STA V1',
+      'UN2: LDA KB', 'BNE UN3', 'JSR CPOS', 'LDA BUF,X', 'STA ACC', 'INC CI', 'LDA #5', 'STA KB',
+      'UN3: LSR ACC', 'ROR V1', 'ROR V0', 'DEC KB', 'DEC NB', 'BNE UN4',
+      'LDX DI', 'LDA #16', 'SEC', 'SBC DESC+1,X', 'TAY', 'BEQ UN6', 'UN5: LSR V1', 'ROR V0', 'DEY', 'BNE UN5',
+      'UN6: LDY DESC,X', 'LDA V0', 'STA $0000,Y', 'LDA DESC+1,X', 'CMP #9', 'BCC UN7', 'LDA V1', 'STA $001E,Y', 'UN7: INC DI', 'INC DI', 'LDA DI', 'CMP #ND*2', 'BEQ UN9',
+      'UN4: DEC BUDG', 'BNE UN0', 'UN9: RTS',
+      // ---- the place: a real map here, a real room checked in its own bank ----
+      'UNE: LDA #0', 'STA PWS', 'LDA TBANK', 'CMP #NBANKS', 'BCS BAD', 'CLC', 'ADC #HOTLO', 'TAY', 'JMP XRESUME',
+      'BAD: LDA #0', 'STA PWS', 'LDX #3', 'BD1: STA TK,X', 'STA TK+$1E,X', 'DEX', 'BPL BD1', 'STA EV', 'STA EV+$1E', ...snd('S_NOPE'),
+      // ---- CODE on the start menu: type a code letter by letter (left/right choose, fire adds) ----
+      'HCODE: JSR CTPL', 'LDA #0', 'STA NCH', 'STA SELI', 'LDA #33', 'STA MCOUNT', 'LDA #3', 'STA MMODE',
+      'SELC: LDX SELI', 'CPX #32', 'BEQ SC1', 'LDA ALPHA,X', 'STA MB', 'LDA #$FF', 'STA MB+1', 'LDA #<MB', 'STA MENUW', 'LDA #1', 'STA MENUW+1', 'RTS',
+      'SC1: LDA #<W_DEL', 'STA MENUW', 'LDA #>W_DEL', 'STA MENUW+1', 'RTS',
+      'HCODEF: LDA NCH', 'STA CI', 'JSR CPOS', 'LDY SELI', 'CPY #32', 'BEQ HC2', 'LDA ALPHA,Y', 'STA BUF,X', 'INC NCH', 'LDA NCH', 'CMP #NCODE', 'BNE HC9',
+      'JSR PWINIT', 'LDA #2', 'STA PWS', 'HC9: RTS',
+      // DELETE: the last letter, or back to the start menu when there is none
+      'HC2: LDA NCH', 'BNE HC3', 'LDA INTRO+NPAGES*2-2', 'STA TXT', 'LDA INTRO+NPAGES*2-1', 'STA TXT+1', 'JMP SETSTARTM',
+      'HC3: DEC NCH', 'DEC CI', 'JSR CPOS', 'LDA #DASH', 'STA BUF,X', 'RTS'];
+  }
   // ---------- Build a cartridge on the Workshop engine (no Dark Mage ROM needed) ----------
   const TAK_HDR = 0xFFD0;
   function takSyms(extra) { return Object.assign({}, TAK_ZP, TAK_GEO, extra); }
   const TAK_DUMMY = {
     STARTHOT: 0xFFF9, NPAGES: 2, START2: 2, STARTINV: 0, PTBL: 0xF000, INTRO: 0xF000, ITEMS: 0xF000, FONT: 0xF100, HOTS: 0xFFF8, SPACEI: 0, PICPTR: 0xF000, PICCOL: 0,
-    S_QUIET: 0xF000, S_TICK: 0xF000, S_FIRE: 0xF000, S_STEP: 0xF000, S_BUMP: 0xF000, S_LOCK: 0xF000, S_NOPE: 0xF000, S_GOOD: 0xF000, S_EVENT: 0xF000, S_END: 0xF000, GMAP: 0xF000, NGLYPH: 51,
+    S_QUIET: 0xF000, S_TICK: 0xF000, S_FIRE: 0xF000, S_STEP: 0xF000, S_BUMP: 0xF000, S_LOCK: 0xF000, S_NOPE: 0xF000, S_GOOD: 0xF000, S_EVENT: 0xF000, S_DIE: 0xF000, S_END: 0xF000, W_AGAIN: 0xF000,
+    W_CODE: 0xF000, W_DEL: 0xF000, XSAVE: 0xF000, PWSTEP: 0xF000, PICK: 0xF000, PICP: 0xF000, HCODE: 0xF000, HCODEF: 0xF000, SELC: 0xF000, BAD: 0xF000, DESC: 0xF000, ALPHA: 0xF000, CODET: 0xF000, CODETL: 30, POS0: 6, NCODE: 8, ND: 7, DASH: 0, HOTLO: 0xF8, NBANKS: 2, GMAP: 0xF000, NGLYPH: 51,
     W_LOOK: 0xF000, W_NORTH: 0xF000, W_EAST: 0xF000, W_SOUTH: 0xF000, W_WEST: 0xF000, W_GO: 0xF000, W_TAKE: 0xF000, W_GIVE: 0xF000,
     W_USE: 0xF000, W_TALK: 0xF000, W_INV: 0xF000, W_MORE: 0xF000, W_START: 0xF000, W_END: 0xF000, W_NOTHING: 0xF000,
     M_NSPEC: 0xF000, M_NTAKE: 0xF000, M_HELLO: 0xF000, M_SELG: 0xF000, M_CGIVE: 0xF000, M_SELU: 0xF000, M_CUSE: 0xF000, M_CARRY: 0xF000,
@@ -1513,9 +1669,17 @@
       const rom = new Uint8Array(4096 * NB).fill(0xFF);
       const banks = Array.from({ length: NB }, (_, b) => rom.subarray(b * 4096, (b + 1) * 4096));
       const PL = picLayout(P), PB = PL && picBlock(PL);
-      const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent, sound: P.settings.sound !== false, pic: PL && { k: PL.k, pad: PL.pad, rows: PL.rows.length, rowH: PL.rowH } };
+      const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent, sound: P.settings.sound !== false, pic: PL && { k: PL.k, pad: PL.pad, rows: PL.rows.length, rowH: PL.rowH },
+        alt: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.alt && c.alt.on && c.alt.event != null)),
+        deadly: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly)), pw: !!pwLayout(P) };
+      const PWL = pwLayout(P);
+      // the start bank's own password routines: assembled once for their size, placed with the data, assembled again in place
+      const pwFrom = L => { const o = {}; for (const k of ['SETSTARTM', 'XRESUME', 'PS_NOPE', 'PS_GOOD']) if (L[k] != null) o[k] = L[k]; return o; };
       const dummy = assemble(takEngineSource(srcOpts), BASE, takSyms(TAK_DUMMY));
       const codeLen = dummy.bytes.length, logicAt = dummy.labels.INPUT;
+      const picFrom = L => ({ KE: L.KE, KO: L.KO, KXC: L.KXC });
+      const picLen = PL ? assemble(takPicBlock(srcOpts), BASE, takSyms(Object.assign({}, TAK_DUMMY, picFrom(dummy.labels)))).bytes.length : 0;
+      const pwLen = PWL ? assemble(takPwBlock(srcOpts), BASE, takSyms(Object.assign({}, TAK_DUMMY, pwFrom(dummy.labels)))).bytes.length : 0;
       const codeEnd = BASE + codeLen;
       const FONT = (codeEnd + 0xFF) & ~0xFF;
       // ---- common block: identical in every bank ----
@@ -1525,6 +1689,8 @@
       const sym = {};
       const words = { W_LOOK: 'look', W_NORTH: 'north', W_EAST: 'east', W_SOUTH: 'south', W_WEST: 'west', W_GO: 'go', W_TAKE: 'take', W_GIVE: 'give',
         W_USE: 'use', W_TALK: 'talk', W_INV: 'inventory', W_MORE: 'more', W_START: 'start', W_END: 'theEnd', W_NOTHING: 'nothing' };
+      if (srcOpts.deadly) words.W_AGAIN = 'tryAgain';
+      if (srcOpts.pw) { words.W_CODE = 'code'; words.W_DEL = 'delete'; }
       const msgs = { M_NSPEC: 'nothingSpecial', M_NTAKE: 'nothingToTake', M_HELLO: 'talkDefault', M_SELG: 'selectGive', M_CGIVE: 'cantGive',
         M_SELU: 'selectUse', M_CUSE: 'cantUse', M_CARRY: 'carrying' };
       const maxPortals = Math.max(0, ...P.maps.map((_, m) => P.portals.filter(p => p.map === m).length));
@@ -1536,6 +1702,14 @@
         pend.sort((a, b) => b[1].length - a[1].length);
         for (const [s, bytes] of pend) sym[s] = cw.str(bytes);
         sym.GMAP = cw.put(GMAP);
+        if (PWL) {
+          sym.ALPHA = cw.put([...PW_ALPHA].map(c => GIDX[c]));
+          const dash = GIDX['-'], line = n => new Array(n).fill(dash);
+          const tpl = [...[...PWL.title].map(c => GIDX[c] !== undefined ? GIDX[c] : GIDX[' ']), 0xFF, ...line(Math.min(10, PWL.n)), 0xFF, ...(PWL.n > 10 ? [...line(PWL.n - 10), 0xFF] : []), 0xFE];
+          sym.CODET = cw.put(tpl); sym.CODETL = tpl.length;
+          sym.DESC = cw.put(PWL.fields.flatMap(([f, nb]) => [TAK_ZP[f], nb]));
+          Object.assign(sym, { NCODE: PWL.n, POS0: PWL.pos0, ND: PWL.fields.length, DASH: dash });
+        }
         if (srcOpts.sound) {
           const sd = Object.entries(soundData(P)), n = sd.reduce((t, [, b]) => t + b.length, 0);
           if (n > 256) return { ok: false, errs: [`Ending tune: ${tuneBytes(endTuneText(P))} bytes, but there is room for ${TUNE_ROOM()}. Use fewer notes.`], warns };
@@ -1570,9 +1744,14 @@
           r.k[7] = c.talk.on ? want(m, c.talk.no) : null;
           const one = [c.item, c.use.on ? c.use.item : null, c.give.on ? c.give.item : null, c.talk.on ? c.talk.needUsed : null, c.sets, c.door.on ? c.door.needEvent : null];
           info.fixed += 3 + one.filter(v => v != null).length + 2 * r.k.filter(Boolean).length;
+          if (srcOpts.alt && c.alt && c.alt.on && c.alt.event != null) {
+            r.alt = { ev: c.alt.event, d: normText(c.alt.desc).trim() ? want(m, c.alt.desc) : null, l: normText(c.alt.look).trim() ? want(m, c.alt.look) : null };
+            info.fixed += 2 + 5;
+          }
           return r;
         });
         if (!info.recs.some(Boolean)) info.fixed += 3;
+        if (m === 0) info.fixed += pwLen;
         info.fixed += map.cells.length * 2;
         info.lockKeys = P.portals.filter(p => p.map === m).map(p => { const d = P.maps[p.toMap].cells[p.toIdx]; return d && d.type === 'room' && d.door.on ? want(m, d.door.text) : null; });
         if (m === 0) info.introKeys = P.intro.map(t => want(m, t));
@@ -1588,7 +1767,7 @@
       for (const [k, t] of T) place.set(k, Math.min(...[...t.refs].map(m => order[m])));
       // the title picture travels with the title page's text: the kernel reads both from the same bank
       const picKey = PB ? maps[0].introKeys[0] : null;
-      if (picKey) T.get(picKey).extra = PB.size;
+      if (picKey) T.get(picKey).extra = PB.size + picLen;
       const sizeOf = keys => {
         if (!keys.length) return { size: 0, plain: 0, packed: 0, words: 0 };
         const pages = keys.map(k => T.get(k).bytes), extra = keys.reduce((t, k) => t + (T.get(k).extra || 0), 0);
@@ -1636,7 +1815,7 @@
         return { ok: false, errs: [`Out of room: the text needs about ${Math.max(10, short - roomLeft).toLocaleString()} more bytes than this cartridge has. Shorten some text, reuse identical messages, or choose a bigger cartridge.`], warns, usage: { maps: u, mapA: u[0], mapB: u[1] } };
       }
       // ---- write each bank: dictionary and messages first, then the records that point at them ----
-      const addr = new Map(), W = [], meta = [];
+      const addr = new Map(), W = [], meta = []; let picBank = -1;
       try {
         for (let b = 0; b < NB; b++) {
           const x = byBank[b], bk = banks[b];
@@ -1647,6 +1826,7 @@
           const table = x.used ? w.put(new Array(x.map.cells.length * 2).fill(0)) : 0;
           w.searchFrom = w.pc;
           const keys = keysIn(b);
+          if (pwLen && b === startBank) sym.PWBLK = w.put(new Array(pwLen).fill(0));
           if (picKey && keys.includes(picKey)) {
             // a column that crossed a page would cost the kernel's loads a cycle and shift those pixels
             const R = PL.rows.length, at = [];
@@ -1661,6 +1841,7 @@
             }
             const ptr = c => at[PB.idx[c]];
             sym.PICPTR = w.put([0, 2, 4, 6, 8, 10, 1, 3, 5, 7, 9, 11].flatMap(c => [lo(ptr(c)), hi(ptr(c))]));
+            sym.PICBLK = w.put(new Array(picLen).fill(0)); picBank = b;
           }
           const cz = !keys.length || opts.compress === false ? { toks: [], pages: keys.map(k => T.get(k).bytes) } : takCompress(keys.map(k => T.get(k).bytes));
           const toklo = w.put(new Array(Math.max(1, cz.toks.length)).fill(0));
@@ -1708,6 +1889,9 @@
                 let mask = 0; const body = [];
                 one.forEach((v, i) => { if (v != null) { mask |= 1 << i; body.push(v); } });
                 r.k.forEach((k, i) => { if (k) { mask |= 1 << (6 + i); const a = ptr(m, k); body.push(lo(a), hi(a)); } });
+                // 14: the text to use after an event; 15: a game-over room (no data, just the bit)
+                if (r.alt) { const pa = k => k ? ptr(m, k) : 0; const blk = w.put([r.alt.ev, lo(pa(r.alt.d)), hi(pa(r.alt.d)), lo(pa(r.alt.l)), hi(pa(r.alt.l))]); mask |= 1 << 14; body.push(lo(blk), hi(blk)); }
+                if (srcOpts.deadly && c.ending && c.deadly) mask |= 1 << 15;
                 bytes = [f, mask & 0xFF, mask >> 8, ...body];
               }
               const key = bytes.join(',');
@@ -1721,7 +1905,7 @@
           }
           bk.set([lo(cart.base + b), ...ents, 0xFF], sym.PTBL - BASE);
           bk.set([col.bg & 0xFE, col.text & 0xFE, col.menuBg & 0xFE, col.menuText & 0xFE, (x.map.width * 2) & 0xFF, lo(table), hi(table), FONT >> 8,
-            lo(toklo), hi(toklo), hi(dictAt), lo(sym.GMAP), hi(sym.GMAP), NGLYPH], TAK_HDR - BASE);
+            lo(toklo), hi(toklo), hi(dictAt), lo(sym.GMAP), hi(sym.GMAP), NGLYPH, x.used ? (x.map.cells.length * 2 - 2) & 0xFF : 0], TAK_HDR - BASE);
         }
         // intro page table (shared; read in the start bank)
         const it = maps[0].introKeys.flatMap(k => { const a = ptr(0, k); return [lo(a), hi(a)]; });
@@ -1744,9 +1928,21 @@
       });
       // ---- the code, assembled with the real addresses, in every bank ----
       Object.assign(sym, {
-        FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? PL.color : 0, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
+        FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? PL.color : 0, HOTLO: lo(cart.base), NBANKS: NB, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
         STARTINV: P.start.inventory.reduce((acc, i) => acc | bit(i), 0),
       });
+      if (picLen && picBank >= 0) {
+        const blk = assemble(takPicBlock(srcOpts), sym.PICBLK, takSyms(Object.assign({}, sym, picFrom(dummy.labels))));
+        if (blk.bytes.length !== picLen) throw new Error('picture block size changed');
+        banks[picBank].set(blk.bytes, sym.PICBLK - BASE);
+        sym.PICK = blk.labels.PICK; sym.PICP = blk.labels.PICP;
+      }
+      if (pwLen) {
+        const blk = assemble(takPwBlock(srcOpts), sym.PWBLK, takSyms(Object.assign({}, sym, pwFrom(dummy.labels))));
+        if (blk.bytes.length !== pwLen) throw new Error('password block size changed');
+        banks[startBank].set(blk.bytes, sym.PWBLK - BASE);
+        for (const k of ['XSAVE', 'PWSTEP', 'HCODE', 'HCODEF', 'SELC', 'BAD']) sym[k] = blk.labels[k];
+      }
       const code = assemble(takEngineSource(srcOpts), BASE, takSyms(sym));
       if (code.bytes.length !== codeLen || code.labels.INPUT !== logicAt) throw new Error('engine size changed between passes');
       byBank.forEach((x, b) => {
@@ -1772,7 +1968,9 @@
     const t0 = Date.now();
     // per-state storage
     const SM = new Uint8Array(cap), SR = new Uint8Array(cap), SI = new Uint16Array(cap), ST = new Uint16Array(cap),
-      SS = new Uint16Array(cap), SU = new Uint16Array(cap), SE = new Uint16Array(cap), WIN = new Uint8Array(cap);
+      SS = new Uint16Array(cap), SU = new Uint16Array(cap), SE = new Uint16Array(cap), WIN = new Uint8Array(cap), DEAD = new Uint8Array(cap);
+    // arriving: 1 = a winning ending, 2 = a game-over room (the Workshop engine; Dark Mage treats it as an ending)
+    const arrive = c => !c || !c.ending ? 0 : (c.deadly && P.engine === 'tak' ? 2 : 1);
     const parent = new Int32Array(cap).fill(-1), pact = new Int32Array(cap), depth = new Int32Array(cap);
     const ids = new Map();
     let n = 0, truncated = false;
@@ -1780,21 +1978,21 @@
     const stranded = [];
     const key = (m, r, inv, tk, sn, us, ev) => ((m * 128 + r) * 65536 + inv) * 65536 + tk + ':' + ((sn * 65536 + us) * 65536 + ev);
     function add(m, r, inv, tk, sn, us, ev, win, from, a) {
-      const k = key(m, r, inv, tk, sn, us, ev) + (win ? 'w' : '');
+      const k = key(m, r, inv, tk, sn, us, ev) + (win === 2 ? 'd' : win ? 'w' : '');
       let id = ids.get(k);
       if (id === undefined) {
         if (n >= cap) { truncated = true; return -1; }
         id = n++; ids.set(k, id);
-        SM[id] = m; SR[id] = r; SI[id] = inv; ST[id] = tk; SS[id] = sn; SU[id] = us; SE[id] = ev; WIN[id] = win ? 1 : 0;
+        SM[id] = m; SR[id] = r; SI[id] = inv; ST[id] = tk; SS[id] = sn; SU[id] = us; SE[id] = ev; WIN[id] = win === 1 || win === true ? 1 : 0; DEAD[id] = win === 2 ? 1 : 0;
         parent[id] = from; pact[id] = a; depth[id] = from < 0 ? 0 : depth[from] + 1;
       }
       if (from >= 0) { eFrom.push(from); eTo.push(id); eAct.push(a); }
       return id;
     }
     const startInv = P.start.inventory.reduce((acc, i) => acc | bit(i), 0);
-    add(0, P.start.room, startInv, 0, 0, 0, 0, !!(P.maps[0].cells[P.start.room] || {}).ending, -1, -1);
+    add(0, P.start.room, startInv, 0, 0, 0, 0, arrive(P.maps[0].cells[P.start.room]), -1, -1);
     for (let id = 0; id < n; id++) {
-      if (WIN[id]) continue;
+      if (WIN[id] || DEAD[id]) continue;
       const m = SM[id], r = SR[id], inv = SI[id], tk = ST[id], sn = SS[id], us = SU[id], ev = SE[id];
       const map = P.maps[m], c = map.cells[r];
       const won = e2 => !!(e2 & endMask);
@@ -1812,11 +2010,11 @@
           if (dm !== m && legacy) {
             const sc = P.maps[dm].cells[r];
             if (!sc || sc.type !== 'room' || portalAt(P, dm, r)) { stranded.push({ from: id, act: d, map: dm, idx: r }); continue; }
-            add(dm, r, inv, tk, sn, us, ev, !!sc.ending, id, K.MOVE + d);
+            add(dm, r, inv, tk, sn, us, ev, arrive(sc), id, K.MOVE + d);
           }
           continue; // a wall or lock on the same map: nothing changes
         }
-        add(dm, di, inv, tk, sn, us, ev, !!dc.ending, id, K.MOVE + d);
+        add(dm, di, inv, tk, sn, us, ev, arrive(dc), id, K.MOVE + d);
       }
       // LOOK (every verb is reached through LOOK, so its reveal happens first)
       let sn2 = sn;
@@ -1876,12 +2074,14 @@
     const neverItems = [...usedItems].filter(i => !(itemsHeld & bit(i))).sort();
     const neverEvents = [...usedEvents].filter(e => !(eventsSet & bit(e))).sort();
     // points of no return: a move from a winnable state into one that can no longer win
-    const noReturn = [];
+    const noReturn = [], deaths = new Map();
     if (best >= 0) {
       const seenKey = new Map();
       for (let i = 0; i < eFrom.length; i++) {
         const u = eFrom[i], v = eTo[i];
         if (!canWin[u] || canWin[v]) continue;
+        // walking into a game-over room is a designed danger, reported on its own (once per room)
+        if (DEAD[v]) { const k = SM[v] + ':' + SR[v]; if (!deaths.has(k) || depth[u] < deaths.get(k).d) deaths.set(k, { d: depth[u], map: SM[v], idx: SR[v], from: stepOf(u, eAct[i]) }); continue; }
         const st = stepOf(u, eAct[i]);
         const k2 = `${st.map}:${st.idx}:${st.action}:${st.item}`;
         const prev = seenKey.get(k2);
@@ -1890,10 +2090,11 @@
       for (const { u, st } of [...seenKey.values()].sort((a, b) => a.d - b.d).slice(0, 8)) noReturn.push(Object.assign(st, { path: pathTo(u) }));
     }
     return {
-      endingDefined: endMask !== 0 || P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending)),
+      endingDefined: endMask !== 0 || P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && arrive(c) === 1)),
+      gameOvers: (() => { let k = 0; for (let i = 0; i < n; i++) if (DEAD[i]) k++; return k; })(),
       winnable: best >= 0, solution: best >= 0 ? pathTo(best) : null,
       states: n, truncated, ms: Date.now() - t0,
-      unreachable, neverItems, neverEvents, noReturn,
+      unreachable, neverItems, neverEvents, noReturn, gameOverRooms: [...deaths.values()].map(x => ({ map: x.map, idx: x.idx, from: x.from })),
       stranded: stranded.slice(0, 5).map(x => ({ map: SM[x.from], idx: SR[x.from], action: DIRS[x.act], landsOn: { map: x.map, idx: x.idx }, path: pathTo(x.from) })),
     };
   }
@@ -1942,6 +2143,6 @@
     return P.engine === 'tak' ? buildTak(P, opts) : buildRom(P, engineRom, opts);
   }
   root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX,
-    TIA_CLK, tiaNote, parseTune, TUNES, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps };
+    TIA_CLK, tiaNote, parseTune, TUNES, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, PW_ALPHA, pwLayout, makeCode, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps };
 })(typeof window !== 'undefined' ? window : globalThis);
 if (typeof module !== 'undefined') module.exports = globalThis.TAK;
