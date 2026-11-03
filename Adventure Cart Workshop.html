@@ -201,6 +201,8 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
 .colors { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .colors .cf { display: grid; gap: 5px; align-content: start; }
 .colors .cf .row { display: flex; gap: 8px; align-items: center; font: 11px var(--font-mono); color: var(--muted); }
+.picwrap { overflow-x: auto; max-width: 100%; border: 1px solid var(--line); border-radius: 6px; background: #0b0a08; padding: 6px; }
+.picgrid { display: block; width: 480px; max-width: none; image-rendering: pixelated; cursor: crosshair; touch-action: none; }
 .palette { display: grid; grid-template-columns: repeat(8, 16px); gap: 2px; padding: 6px; background: #0b0a08; border: 1px solid var(--line); border-radius: 6px; width: max-content; }
 .palette button { width: 16px; height: 11px; border: 0; border-radius: 2px; padding: 0; }
 .palette button[aria-pressed="true"] { outline: 2px solid #fff; outline-offset: 0; }
@@ -268,6 +270,7 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
           <button class="tab" data-tv="play" id="tv-play">Playtest</button>
         </div>
         <div class="spacer"></div>
+        <button class="btn small ghost" id="soundBtn" hidden aria-pressed="true" title="Hear the cartridge's sound while playtesting">Sound on</button>
         <button class="btn small" id="restartBtn" hidden>Restart</button>
       </div>
       <div class="card-b">
@@ -644,6 +647,10 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
     delete P.settings.width; delete P.settings.portalA; delete P.settings.portalB;
     P.maps.forEach((m, i) => { if (m.width == null) m.width = 6; m.name = 'Map ' + LETTERS[i]; });
     P.settings.endEvent = P.settings.endEvent === undefined ? null : P.settings.endEvent;
+    if (P.settings.sound == null) P.settings.sound = true;
+    if (!P.picture || typeof P.picture !== 'object') P.picture = blankTitle();
+    if (P.settings.tune == null) P.settings.tune = 'fanfare';
+    if (P.settings.customTune == null) P.settings.customTune = 'C5:8 E5:8 G5:8 C6:24';
     if (P.system.theEnd == null) P.system.theEnd = 'THE END';
     if (P.system.nothing == null) P.system.nothing = 'NOTHING';
     if (!P.events) P.events = [];
@@ -712,6 +719,21 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
     const cart = CARTS[P.cart];
     if (!cart) errs.push('Unknown cartridge size');
     else if (P.maps.length !== cart.banks) errs.push(`A ${P.cart} cartridge needs ${cart.banks} maps`);
+    if (P.engine === 'tak' && P.settings.sound !== false && P.settings.tune === 'custom') {
+      const t = parseTune(P.settings.customTune);
+      if (t.bad.length) warns.push(`Ending tune: couldn't read ${t.bad.slice(0, 4).join(' ')} (write notes like C5:8, or - for a rest)`);
+      const nb = tuneBytes(P.settings.customTune), room = TUNE_ROOM();
+      if (nb > room) errs.push(`Ending tune: ${nb} bytes, but there is room for ${room}. Use fewer notes.`);
+    }
+    if (P.picture && P.picture.on && P.engine === 'tak') {
+      const L = picLayout(P);
+      if (!L) warns.push('Title picture: nothing is drawn yet, so the cartridge leaves it out');
+      else {
+        const n = normText(P.intro[0]).split('\n').length;
+        if (n > L.textLines) errs.push(`Intro page 1: ${n} lines, but the title picture leaves room for ${L.textLines}`);
+        if (L.cut) warns.push(`Title picture: only the top ${PIC_MAXLINES} scanlines are drawn`);
+      }
+    }
     if (cart && cart.takOnly && P.engine !== 'tak') errs.push(`${P.cart} cartridges need the Workshop engine (Story & items › Engine)`);
     P.maps.forEach(m => {
       if (!(m.width >= 2 && m.width <= 16)) errs.push(`${m.name}: width must be 2 to 16 columns`);
@@ -1201,6 +1223,7 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
         return;
       }
       const t = a & 0x3F;
+      if (t >= 0x15 && t <= 0x1A) { if (!this.aud) this.aud = [0, 0, 0, 0, 0, 0]; this.aud[t - 0x15] = v; } // AUDC0/1, AUDF0/1, AUDV0/1
       if (t === 0x02) { this.cyc += (76 - (this.cyc % 76)) % 76; } // WSYNC
       else if (t === 0x00) { const on = v & 2; if (on && !this.vsync) this.frames++; this.vsync = on; }
     }
@@ -1420,7 +1443,7 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
     LINE: 0x90, TP: 0x91, PAR: 0x93, TXT: 0x9C, MENUW: 0x9E, SELI: 0xA0, PMSGHI: 0xA1, ROOM: 0xA2, REC: 0xA3,
     PREV: 0xA5, TK: 0xA6, INV: 0xA7, SEEN: 0xA8, USED: 0xA9, PHOT: 0xAA, PMSGLO: 0xAB, EV: 0xAC, MMODE: 0xAD,
     DEB: 0xAE, LIST: 0xAF, MCOUNT: 0xBF, MWORDS: 0xC0, MHAND: 0xC2, SEL: 0xC8, MODE: 0xC9, PAGE: 0xCB, STATE: 0xCC,
-    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD,
+    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD, SPTR: 0xEE, SDUR: 0xF0, CTX: 0xF1, AUDC0: 0x15, AUDF0: 0x17, AUDV0: 0x19,
     VSYNC: 0x00, VBLANK: 0x01, WSYNC: 0x02, NUSIZ0: 0x04, NUSIZ1: 0x05, COLUP0: 0x06, COLUP1: 0x07, COLUBK: 0x09,
     RESP0: 0x10, GRP0: 0x1B, GRP1: 0x1C, HMP0: 0x20, VDELP0: 0x25, VDELP1: 0x26, HMOVE: 0x2A, HMCLR: 0x2B,
     INPT4: 0x0C, SWCHA: 0x0280, SWCHB: 0x0282, INTIM: 0x0284, TIM8T: 0x0295, TIM64T: 0x0296,
@@ -1431,24 +1454,27 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
   function takEngineSource(o) {
     const L = [];
     const add = (...x) => L.push(...x);
+    // play a sound: point the player at it (A, Y clobbered)
+    const snd = (name) => o.sound ? ['JSR P' + name] : []; // clobbers A only
     // ---------- reset: make sure we run in the start bank, clear RAM and the TIA ----------
     add('RESET: SEI', 'CLD', 'LDA STARTHOT', 'LDX #0', 'TXA', 'RCLR: DEX', 'TXS', 'PHA', 'BNE RCLR',
+      ...(o.sound ? ['LDA #<S_QUIET', 'STA SPTR', 'LDA #>S_QUIET', 'STA SPTR+1'] : []),
       'LDA INTRO', 'STA TXT', 'LDA INTRO+1', 'STA TXT+1');
     add(o.npages > 1 ? 'JSR SETMOREM' : 'JSR SETSTARTM');
     // ---------- frame ----------
     add('FRAME: LDA #2', 'STA VBLANK', 'STA WSYNC', 'STA VSYNC', 'STA WSYNC', 'STA WSYNC', 'STA WSYNC', 'LDA #0', 'STA VSYNC',
       'LDA #VBT', 'STA TIM64T', 'INC FRAMEC', 'LDA FRAMEC', 'AND #1', 'STA PAR',
       'LDA SWCHB', 'LSR A', 'BCS NORES', 'JMP RESET',
-      'NORES: JSR INPUT',
+      'NORES: JSR INPUT', ...(o.sound ? ['JSR SOUND'] : []),
       // text can live in any bank: the high nibble of the message address names it ($F = this map's bank)
       'LDA PTBL', 'STA MHOT', 'LDA HDR', 'STA CBG', 'LDA HDR+2', 'STA CMB', 'LDA HDR+3', 'STA CMT',
-      'LDA HDR+1', 'STA COLUP0', 'STA COLUP1',
+      'LDA HDR+1', 'STA COLUP0', 'STA COLUP1', ...(o.pic ? ['STA CTX'] : []),
       'LDA TXT+1', 'CMP #$F0', 'BCS NOSW', 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'TAY', 'LDA HOTS,Y', 'NOSW: JSR PREP',
       'VBW: LDA INTIM', 'BNE VBW', 'STA WSYNC', 'LDA #0', 'STA VBLANK');
     // ---------- visible picture: 192 scanlines ----------
     add('LDX #TOPLINES', 'D1: STA WSYNC', 'DEX', 'BNE D1',
       'LDA CBG', 'STA COLUBK', 'LDX #PADLINES', 'D2: STA WSYNC', 'DEX', 'BNE D2',
-      'LDA #10', 'STA LINE',
+      'LDA #10', 'STA LINE', ...(o.pic ? ['LDA STATE', 'ORA PAGE', 'BNE TL', 'JMP PICK'] : []),
       'TL: LDY #5', 'LDA (P5),Y', 'TAX', 'LDA PAR', 'BNE TLO', 'STA WSYNC', 'JMP KE', 'TLO: STA WSYNC', 'JMP KO');
     // the two kernels differ only by a 3-cycle delay: odd frames' sprites sit 8 px further right
     for (const [K, odd] of [['KE', false], ['KO', true]]) {
@@ -1460,7 +1486,7 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
     }
     // after six rows: blank the players, then a gap during which the next line is read
     add('KX: LDA #0', 'NOP', 'STA GRP0', 'STA GRP1', 'STA GRP0',
-      'LDA LINE', 'BEQ AFTERMENU',
+      'KXC: LDA LINE', 'BEQ AFTERMENU',
       'STA WSYNC', 'LDA #GAPT', 'STA TIM8T', 'DEC LINE', 'BEQ TOMENU', 'JSR PARSE',
       'G1: LDA INTIM', 'BNE G1', 'LDY #5', 'LDA (P5),Y', 'TAX', 'LDA PAR', 'BNE G1O', 'STA WSYNC', 'JMP KE', 'G1O: STA WSYNC', 'JMP KO',
       'TOMENU: LDA MENUW', 'STA TP', 'LDA MENUW+1', 'STA TP+1', 'JSR PARSE',
@@ -1473,7 +1499,23 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
     // Every character is stored at P1+X with X = its column (odd frames start at -1), so this frame's
     // half land on the pointers' low bytes; the others land on high bytes, which are reset afterwards.
     // Dictionary words are copied from the bank's word page. Finally glyph numbers become font offsets.
-    add('PARSE: LDA #SPACEI', 'STA P1', 'STA P2', 'STA P3', 'STA P4', 'STA P5', 'STA P6',
+    // title picture: the text kernel draws it too, with the six pointers aimed at picture columns and Y counting
+    // its scanlines; it takes the place of the first K text lines (top padding + picture + the usual 10-line gap)
+    if (o.pic) add('PICK: LDA #PICCOL', 'STA COLUP0', 'STA COLUP1', `LDA #${11 - o.pic.k}`, 'STA LINE',
+      ...(o.pic.pad ? [`LDX #${o.pic.pad}`, 'PKW: STA WSYNC', 'DEX', 'BNE PKW'] : []),
+      `LDY #${o.pic.rows - 1}`, 'LDA (P5),Y', 'TAX', 'LDA PAR', 'BNE PKO', 'STA WSYNC', `JMP ${o.pic.rowH === 2 ? 'KE2' : 'KE'}`, 'PKO: STA WSYNC', `JMP ${o.pic.rowH === 2 ? 'KO2' : 'KO'}`);
+    // a chunky title picture: every row drawn on two scanlines (the second line waits 3 cycles where the
+    // loop would have jumped, so the timed writes land in the same places)
+    if (o.pic && o.pic.rowH === 2) for (const [K, odd] of [['KE2', false], ['KO2', true]]) {
+      const body = [`LDA (P1),Y`, 'STA GRP0', 'LDA (P2),Y', 'STA GRP1', 'LDA (P3),Y', 'STA GRP0', 'LDA (P6),Y', 'STA TMPV', ...(odd ? ['BIT $80'] : []),
+        'LDA (P4),Y', 'STA GRP1', 'STX GRP0', 'LDA TMPV', 'STA $001C'];
+      body[0] = `${K}: ` + body[0];
+      add(...body, 'LDA (P5),Y', 'TAX', 'STA WSYNC', 'BIT $80', ...body.map((x, i) => i ? x : x.replace(`${K}: `, '')), 'DEY', 'BMI KX2',
+        'LDA (P5),Y', 'TAX', 'STA WSYNC', `JMP ${K}`);
+      // the same exit as KX (blank the players at the same moment), then on to the gap
+      if (!odd) add('KX2: LDA #0', 'NOP', 'STA GRP0', 'STA GRP1', 'STA GRP0', 'JMP KXC');
+    }
+    add('PARSE: LDA #SPACEI', ...(o.pic ? ['LDX CTX', 'STX COLUP0', 'STX COLUP1'] : []), 'STA P1', 'STA P2', 'STA P3', 'STA P4', 'STA P5', 'STA P6',
       'LDX #0', 'LDA PAR', 'BEQ PA0', 'DEX', 'PA0: LDY #0',
       'PL: LDA (TP),Y', 'INY', 'CMP #NGLYPH', 'BCS PSPEC', 'STA P1,X', 'INX', 'JMP PL',
       'PSPEC: CMP #$FE', 'BCS PEND', 'STY SY', 'SBC #NGLYPH-1', 'TAY', 'LDA (TOKP),Y', 'STA TT', 'LDY #0',
@@ -1490,24 +1532,30 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
       'LDX #0', 'LDA PAR', 'BEQ PPE', 'LDA #XE+8', 'BNE PPP', 'PPE: LDA #XE', 'PPP: STA T1', 'JSR POS',
       'LDA T1', 'CLC', 'ADC #16', 'LDX #1', 'JSR POS', 'STA WSYNC', 'STA HMOVE',
       'LDA HDR+8', 'STA TOKP', 'LDA HDR+9', 'STA TOKP+1', 'LDA HDR+10', 'STA TT+1',
-      'LDA TXT', 'STA TP', 'LDA TXT+1', 'ORA #$F0', 'STA TP+1', 'JMP PARSE',
+      'LDA TXT', 'STA TP', 'LDA TXT+1', 'ORA #$F0', 'STA TP+1',
+      // on the title page the first text line is read in the gap below the picture instead
+      ...(o.pic ? ['LDA STATE', 'ORA PAGE', 'BNE PPN', 'LDY #11', 'LDA PAR', 'BEQ PP0', 'LDY #23', 'PP0: LDX #11',
+        'PP1: LDA PICPTR,Y', 'STA P1,X', 'DEY', 'DEX', 'BPL PP1', 'RTS', 'PPN:'] : []),
+      'JMP PARSE',
       // horizontal positioning: coarse with RESPx after a divide-by-15 delay, fine with HMPx
       'POS: STA WSYNC', 'SEC', 'PD: SBC #15', 'BCS PD', 'EOR #7', 'ASL A', 'ASL A', 'ASL A', 'ASL A', 'STA HMP0,X', 'STA RESP0,X', 'RTS');
     // ---------- controls ----------
     add('INPUT: LDA STATE', 'BEQ IN1');
     if (o.endEvent != null) add(`LDX #${o.endEvent}`, 'LDY #EV', 'JSR BTST', 'BNE ENDED');
     add('JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'LSR A', 'BCC IN1',
-      'ENDED: LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1', 'RTS',
-      'IN1: LDA INPT4', 'BMI NOTPR', 'LDA DEB', 'BNE IRTS', 'INC DEB', 'LDA ROOM', 'STA PREV',
+      // the first frame of the ending plays the tune
+      'ENDED: LDA MENUW', 'CMP #<W_END', 'BNE EN1', 'LDA MENUW+1', 'CMP #>W_END', 'BEQ EN2', 'EN1:', ...snd('S_END'),
+      'LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1', 'EN2: RTS',
+      'IN1: LDA INPT4', 'BMI NOTPR', 'LDA DEB', 'BNE IRTS', 'INC DEB', ...snd('S_FIRE'), 'LDA ROOM', 'STA PREV',
       'LDA MMODE', 'CMP #2', 'BNE IN2', 'JMP HPICK', 'IN2: LDA SELI', 'ASL A', 'TAY', 'LDA (MHAND),Y', 'STA T1', 'INY', 'LDA (MHAND),Y', 'STA T2', 'JMP (T1)',
       'NOTPR: LDA #0', 'STA DEB', 'LDA FRAMEC', 'AND #7', 'BNE IRTS', 'LDA MMODE', 'BNE CYC',
       // walking: the stick picks NORTH/EAST/SOUTH/WEST, centred means LOOK
       'LDA SWCHA', 'LDX #2', 'ASL A', 'BCC SETI', 'LDX #4', 'ASL A', 'BCC SETI', 'LDX #3', 'ASL A', 'BCC SETI',
-      'LDX #1', 'ASL A', 'BCC SETI', 'LDX #0', 'SETI: STX SELI', 'JMP SELWORD',
+      'LDX #1', 'ASL A', 'BCC SETI', 'LDX #0', 'SETI: CPX SELI', 'BEQ IRTS', 'STX SELI', 'JMP CSW',
       // other menus: right / left step through the entries
       'CYC: LDA SWCHA', 'ASL A', 'BCC CRT', 'ASL A', 'BCC CLT', 'IRTS: RTS',
-      'CRT: INC SELI', 'LDA SELI', 'CMP MCOUNT', 'BCC CSW', 'LDA #0', 'STA SELI', 'CSW: JMP SELWORD',
-      'CLT: DEC SELI', 'BPL CSW', 'LDX MCOUNT', 'DEX', 'STX SELI', 'JMP SELWORD');
+      'CRT: INC SELI', 'LDA SELI', 'CMP MCOUNT', 'BCC CSW', 'LDA #0', 'STA SELI', 'CSW:', ...snd('S_TICK'), 'JMP SELWORD',
+      'CLT: DEC SELI', 'BPL CSW', 'LDX MCOUNT', 'DEX', 'STX SELI', 'JMP CSW');
     // ---------- menus ----------
     add('SELWORD: LDA SELI', 'ASL A', 'TAY', 'LDA (MWORDS),Y', 'STA MENUW', 'INY', 'LDA (MWORDS),Y', 'STA MENUW+1', 'RTS',
       // each entry skips the next one's LDX with a BIT absolute ($2C)
@@ -1537,10 +1585,10 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
       'MOVE: JSR PORTAL', 'STA ROOM', 'JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'BEQ MWALL', 'AND #2', 'BEQ MOK',
       'LDX #5', 'JSR GETF', 'LDY #EV', 'JSR BTST', 'BNE MOK',
       // locked: stay put. Through a portal, show the copy of the message kept in the bank we came from.
-      'LDA PREV', 'STA ROOM', 'LDY PHOT', 'BEQ MLK1', 'LDA #0', 'STA PHOT', 'LDA PMSGLO', 'STA TXT', 'LDA PMSGHI', 'STA TXT+1',
+      'LDA PREV', 'STA ROOM', ...snd('S_LOCK'), 'LDY PHOT', 'BEQ MLK1', 'LDA #0', 'STA PHOT', 'LDA PMSGLO', 'STA TXT', 'LDA PMSGHI', 'STA TXT+1',
       'LDA $FF00,Y', 'JMP SETMOVE', 'MLK1: LDX #12', 'JMP SAY',
-      'MWALL: LDA PREV', 'STA ROOM', 'LDY #1', 'JSR SETTY', 'JMP SETMOVE',
-      'MOK: LDA #0', 'STA PHOT', 'LDX #6', 'JMP SAY',
+      'MWALL: LDA PREV', 'STA ROOM', ...snd('S_BUMP'), 'LDY #1', 'JSR SETTY', 'JMP SETMOVE',
+      'MOK: LDA #0', 'STA PHOT', ...snd('S_STEP'), 'LDX #6', 'JMP SAY',
       // portal table (same address in every bank, this bank's own contents):
       // [own hotspot] then [from*2, hotspot, dest*2, locked message lo, hi], $FF ends
       'PORTAL: LDX #0', 'PO1: LDY PTBL+1,X', 'CPY #$FF', 'BEQ PON', 'CMP PTBL+1,X', 'BEQ POH', 'INX', 'INX', 'INX', 'INX', 'INX', 'BNE PO1',
@@ -1556,10 +1604,10 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
       'LKN: LDA #<M_NSPEC', 'STA TXT', 'LDA #>M_NSPEC', 'STA TXT+1', 'JMP SETACT',
       'HGO: JSR GETREC', 'LDX #6', 'JMP SAY',
       'HTAKE: JSR REC0', 'AND #$40', 'BEQ TKN', 'LDX #0', 'JSR GETF', 'BEQ TKN', 'LDY #TK', 'JSR BTST', 'BNE TKN',
-      'LDY #INV', 'JSR BTST', 'BNE TKN', 'LDY #SEEN', 'JSR BTST', 'BEQ TKN', 'LDY #INV', 'JSR BSET', 'LDY #TK', 'JSR BSET',
-      'LDX #8', 'JMP SAY', 'TKN: LDA #<M_NTAKE', 'LDY #>M_NTAKE', 'JMP SAYW',
+      'LDY #INV', 'JSR BTST', 'BNE TKN', 'LDY #SEEN', 'JSR BTST', 'BEQ TKN', 'LDY #INV', 'JSR BSET', 'LDY #TK', 'JSR BSET', ...snd('S_GOOD'),
+      'LDX #8', 'JMP SAY', 'TKN:', ...snd('S_NOPE'), 'LDA #<M_NTAKE', 'LDY #>M_NTAKE', 'JMP SAYW',
       'HTALK: JSR REC0', 'AND #$08', 'BEQ THELLO', 'LDX #3', 'JSR GETF', 'BEQ TDEF', 'LDY #USED', 'JSR BTST', 'BEQ TDEF',
-      'LDX #4', 'JSR GETF', 'BEQ TOK', 'LDY #EV', 'JSR BSET', 'TOK: LDX #11', 'JMP SAY', 'TDEF: LDX #13', 'JMP SAY',
+      ...snd('S_GOOD'), 'LDX #4', 'JSR GETF', 'BEQ TOK', 'JSR EVSET', 'TOK: LDX #11', 'JMP SAY', 'TDEF: LDX #13', 'JMP SAY',
       'THELLO: LDA #<M_HELLO', 'LDY #>M_HELLO', 'JMP SAYW',
       // GIVE / USE / INVENTORY: list the carried items (or one "nothing" entry)
       'HGIVE: LDX #1', 'LDA #<M_SELG', 'LDY #>M_SELG', 'BNE OPEN', 'HUSE: LDX #2', 'LDA #<M_SELU', 'LDY #>M_SELU', 'BNE OPEN',
@@ -1571,12 +1619,25 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
       'INX', 'INX', 'TXA', 'LSR A', 'CMP T2', 'BNE OB4',
       'OB5: LDA #NAMES', 'STA MWORDS', 'LDA #0', 'STA MWORDS+1', 'STA SELI', 'LDA T2', 'STA MCOUNT', 'LDA #2', 'STA MMODE', 'JMP SELWORD',
       'HPICK: LDX SELI', 'LDA LIST,X', 'STA SEL', 'LDA MODE', 'BNE PK1', 'JMP HGO', 'PK1: LSR A', 'BCS GIVEDO',
-      'USEDO: JSR REC0', 'AND #$10', 'BEQ UNO', 'LDX #1', 'JSR GETF', 'CMP SEL', 'BNE UNO', 'LDY #USED', 'JSR BSET',
-      'JSR REC0', 'AND #$04', 'BEQ UOK', 'LDX #4', 'JSR GETF', 'BEQ UOK', 'LDY #EV', 'JSR BSET', 'UOK: LDX #9', 'JMP SAY',
-      'UNO: LDA #<M_CUSE', 'LDY #>M_CUSE', 'JMP SAYW',
-      'GIVEDO: JSR REC0', 'AND #$20', 'BEQ GNO', 'LDX #2', 'JSR GETF', 'CMP SEL', 'BNE GNO', 'LDY #INV', 'JSR BCLR',
-      'LDX #4', 'JSR GETF', 'BEQ GV2', 'LDY #EV', 'JSR BSET', 'GV2: LDX #0', 'JSR GETF', 'BEQ GV3', 'LDY #SEEN', 'JSR BSET',
-      'GV3: LDX #10', 'JMP SAY', 'GNO: LDA #<M_CGIVE', 'LDY #>M_CGIVE', 'JMP SAYW');
+      'USEDO: JSR REC0', 'AND #$10', 'BEQ UNO', 'LDX #1', 'JSR GETF', 'CMP SEL', 'BNE UNO', ...snd('S_GOOD'), 'LDY #USED', 'JSR BSET',
+      'JSR REC0', 'AND #$04', 'BEQ UOK', 'LDX #4', 'JSR GETF', 'BEQ UOK', 'JSR EVSET', 'UOK: LDX #9', 'JMP SAY',
+      'UNO:', ...snd('S_NOPE'), 'LDA #<M_CUSE', 'LDY #>M_CUSE', 'JMP SAYW',
+      'GIVEDO: JSR REC0', 'AND #$20', 'BEQ GNO', 'LDX #2', 'JSR GETF', 'CMP SEL', 'BNE GNO', ...snd('S_GOOD'), 'LDY #INV', 'JSR BCLR',
+      'LDX #4', 'JSR GETF', 'BEQ GV2', 'JSR EVSET', 'GV2: LDX #0', 'JSR GETF', 'BEQ GV3', 'LDY #SEEN', 'JSR BSET',
+      'GV3: LDX #10', 'JMP SAY', 'GNO:', ...snd('S_NOPE'), 'LDA #<M_CGIVE', 'LDY #>M_CGIVE', 'JMP SAYW',
+      'EVSET: LDY #EV', 'JSR BSET', ...snd('S_EVENT'), 'RTS');
+    // ---------- sound: one channel, a list of [control<<4 | volume, frequency, frames-1], 0 ends ----------
+    // all sounds sit in one page, so a sound is named by its low address byte; each entry point loads it
+    // and skips the following loads with a BIT absolute ($2C)
+    if (o.sound) {
+      const names = ['S_TICK', 'S_FIRE', 'S_STEP', 'S_BUMP', 'S_LOCK', 'S_NOPE', 'S_GOOD', 'S_EVENT', 'S_END'];
+      names.forEach((n, i) => add(`P${n}: LDA #<${n}`, ...(i < names.length - 1 ? ['.byte $2C'] : [])));
+      add('PLAY: STA SPTR', 'LDA #0', 'STA SDUR', 'RTS',
+        'SOUND: LDA SDUR', 'BEQ SN1', 'DEC SDUR', 'RTS',
+        'SN1: LDY #0', 'LDA (SPTR),Y', 'STA AUDV0', 'BEQ SNR', 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'STA AUDC0',
+        'INY', 'LDA (SPTR),Y', 'STA AUDF0', 'INY', 'LDA (SPTR),Y', 'STA SDUR',
+        'LDA SPTR', 'CLC', 'ADC #3', 'STA SPTR', 'SNR: RTS');
+    }
     // ---------- tables ----------
     const tbl = (label, names) => { add(`${label}: .byte ` + names.map(n => `<${n},>${n}`).join(',')); };
     add('ML: .byte 1,2,4,8,16,32,64,128,0,0,0,0,0,0,0,0', 'MH: .byte 0,0,0,0,0,0,0,0,1,2,4,8,16,32,64,128');
@@ -1589,11 +1650,157 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
     return L;
   }
 
+  // ---------- Title picture: 96 x up to 128 scanlines above the title page's text ----------
+  const PIC_W = 96, PIC_MAXLINES = 128;
+  function blankTitle() { return { on: false, rowH: 2, color: 0x1E, height: 24, rows: [] }; }
+  // rows are hex strings, 24 digits = 96 pixels, most significant bit leftmost
+  function picRowBytes(hex) { const out = new Uint8Array(12); const h = String(hex || ''); for (let i = 0; i < 12; i++) out[i] = parseInt(h.substr(i * 2, 2), 16) || 0; return out; }
+  // what the cartridge draws: scanline rows (top blank rows trimmed), K text lines replaced, padding above
+  function picLayout(P) {
+    const t = P.picture;
+    if (!t || !t.on || P.engine !== 'tak') return null;
+    const rowH = t.rowH === 1 ? 1 : 2, all = [];
+    for (let r = 0; r < t.height; r++) all.push(picRowBytes(t.rows[r]));
+    let top = 0; while (top < all.length && all[top].every(v => !v)) top++;
+    const maxRows = Math.floor(PIC_MAXLINES / rowH), rows = all.slice(top, top + maxRows);
+    if (!rows.length) return null;
+    const h = rows.length * rowH, k = Math.ceil((h + 10) / 16), pad = 16 * k - 10 - h;
+    return { rows, rowH, h, k, pad, cut: all.length - top > maxRows, color: t.color & 0xFE, textLines: 10 - k };
+  }
+  // the cartridge's picture block: unique columns (a blank one shared), each stored bottom row first
+  function picBlock(L) {
+    const cols = [];
+    for (let c = 0; c < 12; c++) { const a = []; for (let y = L.rows.length - 1; y >= 0; y--) a.push(L.rows[y][c]); cols.push(a); }
+    const uniq = [], idx = cols.map(a => { const key = a.join(','); let i = uniq.findIndex(u => u.key === key); if (i < 0) { uniq.push({ key, a }); i = uniq.length - 1; } return i; });
+    // columns never cross a page, so count the gaps that leaves (the builder lets text use them when it can)
+    const R = L.rows.length, per = Math.floor(256 / R), pages = Math.ceil(uniq.length / per);
+    return { data: uniq.flatMap(u => u.a), idx, size: uniq.length * R + 24 + (pages - 1) * (256 - per * R) + Math.min(255, R) };
+  }
+
+  // ---------- Sound: effects, tunes, and a TIA audio model for playtesting ----------
+  const TIA_CLK = 31400; // audio clock: two ticks per scanline
+  // best TIA setting for a pitch: pure tones divide the clock by 2 (AUDC 4), 6 (AUDC 12) or 31 (AUDC 6)
+  function tiaNote(hz) {
+    let best = null;
+    for (const [c, d] of [[4, 2], [12, 6], [6, 31]]) for (let f = 0; f < 32; f++) {
+      const got = TIA_CLK / (d * (f + 1)), cents = Math.abs(1200 * Math.log2(got / hz));
+      if (!best || cents < best.cents) best = { c, f, cents, hz: got };
+    }
+    return best;
+  }
+  const NOTE_IX = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+  // "C5:8 E5 G#5:12 -:6": note name and octave (or - for a rest), then frames (default 8)
+  function parseTune(text) {
+    const notes = [], bad = [];
+    for (const tok of String(text || '').toUpperCase().split(/[\s,]+/).filter(Boolean)) {
+      const m = /^(-|R|([A-G])([#B]?)(\d))(?::(\d+))?$/.exec(tok);
+      if (!m) { bad.push(tok); continue; }
+      const frames = Math.max(2, Math.min(120, m[5] ? +m[5] : 8));
+      if (m[1] === '-' || m[1] === 'R') { notes.push({ rest: true, frames }); continue; }
+      const semi = NOTE_IX[m[2]] + (m[3] === '#' ? 1 : m[3] === 'B' ? -1 : 0) + 12 * (+m[4] + 1);
+      notes.push({ hz: 440 * Math.pow(2, (semi - 69) / 12), frames });
+    }
+    return { notes: notes.slice(0, 64), bad };
+  }
+  const TUNES = {
+    fanfare: { name: 'Fanfare', text: 'G4:6 C5:6 E5:6 G5:14 E5:6 G5:30' },
+    homecoming: { name: 'Homecoming', text: 'C5:12 E5:12 D5:12 G4:12 C5:12 E5:12 G5:24 F5:10 E5:10 D5:10 C5:30' },
+    jig: { name: 'Jig', text: 'G5:6 E5:6 C5:6 E5:6 G5:6 C6:12 B5:6 A5:6 G5:6 E5:6 G5:18' },
+    lament: { name: 'Lament', text: 'A4:14 C5:14 E5:14 D5:14 C5:14 B4:14 A4:36' },
+    none: { name: 'No tune', text: '' },
+  };
+  // a tune as player steps; a note followed by the same pitch fades for its last two frames so the two are heard apart
+  function tuneSteps(text) {
+    const out = [], ns = parseTune(text).notes.map(n => n.rest ? n : Object.assign({}, n, tiaNote(n.hz)));
+    ns.forEach((n, i) => {
+      if (n.rest) { out.push([4, 0, 0, n.frames]); return; }
+      const nx = ns[i + 1];
+      if (nx && !nx.rest && nx.c === n.c && nx.f === n.f) out.push([n.c, n.f, 8, Math.max(1, n.frames - 2)], [n.c, n.f, 3, 2]);
+      else out.push([n.c, n.f, 8, n.frames]);
+    });
+    return out;
+  }
+  // effects as [AUDC, AUDF, AUDV, frames]
+  const SFX = {
+    S_TICK: [[4, 6, 3, 2]],
+    S_FIRE: [[4, 3, 5, 2], [4, 5, 2, 2]],
+    S_STEP: [[8, 24, 3, 2], [8, 28, 2, 2]],
+    S_BUMP: [[6, 28, 8, 3], [6, 31, 5, 4], [6, 31, 2, 3]],
+    S_LOCK: [[1, 14, 6, 6], [1, 18, 4, 8]],
+    S_NOPE: [[12, 14, 6, 5], [12, 19, 5, 8]],
+    S_GOOD: [[4, 15, 6, 3], [4, 11, 6, 3], [4, 8, 6, 6], [4, 8, 2, 3]],
+    S_EVENT: [[4, 14, 7, 4], [4, 11, 7, 4], [4, 9, 7, 4], [4, 7, 8, 10], [4, 7, 3, 6], [4, 7, 1, 6]],
+  };
+  const SFX_NAMES = { S_TICK: 'Menu tick', S_FIRE: 'Button', S_STEP: 'Footstep', S_BUMP: 'Wall', S_LOCK: 'Locked', S_NOPE: "Can't do that", S_GOOD: 'Success', S_EVENT: 'Event' };
+  function endTuneText(P) { const k = P.settings.tune; return k === 'custom' ? P.settings.customTune : (TUNES[k] || TUNES.fanfare).text; }
+  const stepBytes = steps => steps.flatMap(([c, f, v, n]) => [((c & 15) << 4) | (v & 15) || 0x40, f & 31, Math.max(0, n - 1)]).concat([0]);
+  // bytes left for the ending tune: all sounds share one page
+  const TUNE_ROOM = () => 256 - 1 - Object.values(SFX).reduce((t, st) => t + st.length * 3 + 1, 0) - 1;
+  const tuneBytes = text => tuneSteps(text).length * 3;
+  function soundData(P) {
+    const d = { S_QUIET: [0] };
+    for (const [k, st] of Object.entries(SFX)) d[k] = stepBytes(st);
+    d.S_END = stepBytes(tuneSteps(endTuneText(P)));
+    return d;
+  }
+  // TIA audio channel model (after Ron Fries' TIASound): AUDC selects the divider/poly chain,
+  // AUDF divides the 31.4 kHz clock, AUDV is the output level.
+  const lfsr = (bits, taps) => { const out = []; let r = (1 << bits) - 1; for (let i = 0; i < (1 << bits) - 1; i++) { out.push(r & 1); const fb = ((r >> 0) ^ (r >> (bits - taps))) & 1; r = (r >> 1) | (fb << (bits - 1)); } return out; };
+  const BIT4 = lfsr(4, 3), BIT5 = lfsr(5, 3), BIT9 = lfsr(9, 5);
+  const DIV31 = Array.from({ length: 31 }, (_, i) => i === 0 || i === 18 ? 1 : 0);
+  class TiaVoice {
+    constructor() { this.c = 0; this.f = 0; this.v = 0; this.cnt = 0; this.max = 0; this.p4 = 0; this.p5 = 0; this.p9 = 0; this.out = 0; }
+    set(c, f, v) {
+      c &= 15; f &= 31; v &= 15;
+      if (c !== this.c || f !== this.f) {
+        this.c = c; this.f = f;
+        if (c === 0 || c === 11) { this.max = 0; this.out = v; }
+        else { this.max = (f + 1) * ((c & 12) === 12 ? 3 : 1); if (this.cnt === 0 || this.cnt > this.max) this.cnt = this.max; }
+      }
+      if (v !== this.v) { if (this.out) this.out = v; if (this.max === 0) this.out = v; this.v = v; }
+    }
+    tick() {
+      if (this.max === 0) return this.v;
+      if (this.cnt > 1) { this.cnt--; return this.out; }
+      this.cnt = this.max;
+      const c = this.c;
+      this.p5 = (this.p5 + 1) % 31;
+      if (!(c & 2) || (!(c & 1) && DIV31[this.p5]) || ((c & 1) && BIT5[this.p5])) {
+        if (c & 4) this.out = this.out ? 0 : this.v;
+        else if (c & 8) { if (c === 8) { this.p9 = (this.p9 + 1) % 511; this.out = BIT9[this.p9] ? this.v : 0; } else this.out = BIT5[this.p5] ? this.v : 0; }
+        else { this.p4 = (this.p4 + 1) % 15; this.out = BIT4[this.p4] ? this.v : 0; }
+      }
+      return this.out;
+    }
+  }
+  class TiaSound {
+    constructor() { this.ch = [new TiaVoice(), new TiaVoice()]; this.frac = 0; }
+    // regs: [AUDC0, AUDC1, AUDF0, AUDF1, AUDV0, AUDV1] as the emulator records them
+    regs(a) { this.ch[0].set(a[0], a[2], a[4]); this.ch[1].set(a[1], a[3], a[5]); }
+    // one video frame of samples at 31,400 Hz, as floats in -0.5..0.5
+    frame() {
+      this.frac += TIA_CLK / 59.94; const n = Math.floor(this.frac); this.frac -= n;
+      const out = new Float32Array(n);
+      for (let i = 0; i < n; i++) out[i] = (this.ch[0].tick() + this.ch[1].tick()) / 20 - 0.3;
+      return out;
+    }
+  }
+  // render a list of steps ([AUDC, AUDF, AUDV, frames]) to samples, for previews in the editor
+  function renderSteps(steps) {
+    const t = new TiaSound(), parts = [];
+    for (const [c, f, v, n] of steps) { t.regs([c, 0, f, 0, v, 0]); for (let i = 0; i < n; i++) parts.push(t.frame()); }
+    t.regs([0, 0, 0, 0, 0, 0]); for (let i = 0; i < 3; i++) parts.push(t.frame());
+    const len = parts.reduce((s, p) => s + p.length, 0), out = new Float32Array(len); let o = 0;
+    for (const p of parts) { out.set(p, o); o += p.length; }
+    return out;
+  }
+
   // ---------- Build a cartridge on the Workshop engine (no Dark Mage ROM needed) ----------
   const TAK_HDR = 0xFFD0;
   function takSyms(extra) { return Object.assign({}, TAK_ZP, TAK_GEO, extra); }
   const TAK_DUMMY = {
-    STARTHOT: 0xFFF9, NPAGES: 2, START2: 2, STARTINV: 0, PTBL: 0xF000, INTRO: 0xF000, ITEMS: 0xF000, FONT: 0xF100, HOTS: 0xFFF8, SPACEI: 0, GMAP: 0xF000, NGLYPH: 51,
+    STARTHOT: 0xFFF9, NPAGES: 2, START2: 2, STARTINV: 0, PTBL: 0xF000, INTRO: 0xF000, ITEMS: 0xF000, FONT: 0xF100, HOTS: 0xFFF8, SPACEI: 0, PICPTR: 0xF000, PICCOL: 0,
+    S_QUIET: 0xF000, S_TICK: 0xF000, S_FIRE: 0xF000, S_STEP: 0xF000, S_BUMP: 0xF000, S_LOCK: 0xF000, S_NOPE: 0xF000, S_GOOD: 0xF000, S_EVENT: 0xF000, S_END: 0xF000, GMAP: 0xF000, NGLYPH: 51,
     W_LOOK: 0xF000, W_NORTH: 0xF000, W_EAST: 0xF000, W_SOUTH: 0xF000, W_WEST: 0xF000, W_GO: 0xF000, W_TAKE: 0xF000, W_GIVE: 0xF000,
     W_USE: 0xF000, W_TALK: 0xF000, W_INV: 0xF000, W_MORE: 0xF000, W_START: 0xF000, W_END: 0xF000, W_NOTHING: 0xF000,
     M_NSPEC: 0xF000, M_NTAKE: 0xF000, M_HELLO: 0xF000, M_SELG: 0xF000, M_CGIVE: 0xF000, M_SELU: 0xF000, M_CUSE: 0xF000, M_CARRY: 0xF000,
@@ -1611,7 +1818,8 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
       const LIM = Math.min(cart.base, TAK_HDR);
       const rom = new Uint8Array(4096 * NB).fill(0xFF);
       const banks = Array.from({ length: NB }, (_, b) => rom.subarray(b * 4096, (b + 1) * 4096));
-      const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent };
+      const PL = picLayout(P), PB = PL && picBlock(PL);
+      const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent, sound: P.settings.sound !== false, pic: PL && { k: PL.k, pad: PL.pad, rows: PL.rows.length, rowH: PL.rowH } };
       const dummy = assemble(takEngineSource(srcOpts), BASE, takSyms(TAK_DUMMY));
       const codeLen = dummy.bytes.length, logicAt = dummy.labels.INPUT;
       const codeEnd = BASE + codeLen;
@@ -1634,6 +1842,12 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
         pend.sort((a, b) => b[1].length - a[1].length);
         for (const [s, bytes] of pend) sym[s] = cw.str(bytes);
         sym.GMAP = cw.put(GMAP);
+        if (srcOpts.sound) {
+          const sd = Object.entries(soundData(P)), n = sd.reduce((t, [, b]) => t + b.length, 0);
+          if (n > 256) return { ok: false, errs: [`Ending tune: ${tuneBytes(endTuneText(P))} bytes, but there is room for ${TUNE_ROOM()}. Use fewer notes.`], warns };
+          if ((cw.pc & 0xFF) + n > 0x100) { const nx = (cw.pc + 0xFF) & ~0xFF; cw.holes.push({ pc: cw.pc, end: nx, start: cw.pc }); cw.pc = nx; }
+          for (const [k, bytes] of sd) sym[k] = cw.put(bytes);
+        }
         sym.ITEMS = cw.put(Array.from({ length: 16 }, (_, i) => [lo(sym['I' + i]), hi(sym['I' + i])]).flat());
         sym.PTBL = cw.put(new Array(maxPortals * 5 + 2).fill(0xFF));
         sym.INTRO = cw.put(new Array(P.intro.length * 2).fill(0));
@@ -1673,16 +1887,20 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
       const byBank = []; maps.forEach(x => byBank[x.b] = x);
       // room for text in each bank: everything after the shared block, plus the logic code area in a bank no map uses
       const holeFree0 = commonHoles.reduce((t, [a, e]) => t + (e - a), 0);
-      const cap = byBank.map(x => LIM - commonEnd + holeFree0 + (x.used ? 0 : codeEnd - logicAt) - x.fixed - 12);
+      const margin = opts._margin || 12;
+      const cap = byBank.map(x => LIM - commonEnd + holeFree0 + (x.used ? 0 : codeEnd - logicAt) - x.fixed - margin);
       // ---- place every message in a bank: first its own map's, then wherever there is room ----
       const place = new Map();
       for (const [k, t] of T) place.set(k, Math.min(...[...t.refs].map(m => order[m])));
+      // the title picture travels with the title page's text: the kernel reads both from the same bank
+      const picKey = PB ? maps[0].introKeys[0] : null;
+      if (picKey) T.get(picKey).extra = PB.size;
       const sizeOf = keys => {
         if (!keys.length) return { size: 0, plain: 0, packed: 0, words: 0 };
-        const pages = keys.map(k => T.get(k).bytes);
+        const pages = keys.map(k => T.get(k).bytes), extra = keys.reduce((t, k) => t + (T.get(k).extra || 0), 0);
         const cz = opts.compress === false ? { toks: [], pages, dictBytes: 0 } : takCompress(pages);
         const packed = cz.pages.reduce((t, p) => t + p.length, 0) + cz.dictBytes + cz.toks.length;
-        return { size: packed, plain: pages.reduce((t, p) => t + p.length, 0), packed, words: cz.toks.length };
+        return { size: packed + extra, plain: pages.reduce((t, p) => t + p.length, 0), packed, words: cz.toks.length, pic: extra };
       };
       const keysIn = b => [...place.keys()].filter(k => place.get(k) === b);
       let est = byBank.map((_, b) => sizeOf(keysIn(b)));
@@ -1694,13 +1912,14 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
         const room = byBank.map((_, b) => cap[b] - est[b].size);
         const ks = keysIn(worst).sort((a, c) => {
           const own = k => T.get(k).refs.has(byBank[worst].m) ? 1 : 0;
-          return own(a) - own(c) || T.get(c).bytes.length - T.get(a).bytes.length;
+          const sz = k => T.get(k).bytes.length + (T.get(k).extra || 0);
+          return own(a) - own(c) || sz(c) - sz(a);
         });
         let need = over[worst] + 8, moved = false;
         const touched = new Set([worst]);
         for (const k of ks) {
           if (need <= 0) break;
-          const len = T.get(k).bytes.length, guess = Math.ceil(len * 0.85);
+          const len = T.get(k).bytes.length, guess = Math.ceil(len * 0.85) + (T.get(k).extra || 0);
           let tgt = -1;
           for (let b = 0; b < NB; b++) if (b !== worst && b < 15 && room[b] - guess > 8 && (tgt < 0 || room[b] > room[tgt])) tgt = b;
           if (tgt < 0) break;
@@ -1734,6 +1953,21 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
           const table = x.used ? w.put(new Array(x.map.cells.length * 2).fill(0)) : 0;
           w.searchFrom = w.pc;
           const keys = keysIn(b);
+          if (picKey && keys.includes(picKey)) {
+            // a column that crossed a page would cost the kernel's loads a cycle and shift those pixels
+            const R = PL.rows.length, at = [];
+            const fitAt = a => ((a & 0xFF) + R > 0x100) ? (a + 0xFF) & ~0xFF : a; // first address from a that keeps R bytes in one page
+            for (let u = 0; u * R < PB.data.length; u++) {
+              const col = PB.data.slice(u * R, (u + 1) * R);
+              // a free gap (such as the game-logic area of a text-only bank) first, then the main area
+              const h = w.holes.find(h => fitAt(h.pc) + R <= h.end);
+              if (h) { const a = fitAt(h.pc); if (a > h.pc) w.holes.push({ pc: h.pc, end: a, start: h.pc }); for (let i = 0; i < R; i++) bk[a + i - BASE] = col[i]; h.pc = a + R; at.push(a); continue; }
+              const a = fitAt(w.pc); if (a > w.pc) { w.holes.push({ pc: w.pc, end: a, start: w.pc }); w.pc = a; }
+              at.push(w.put(col));
+            }
+            const ptr = c => at[PB.idx[c]];
+            sym.PICPTR = w.put([0, 2, 4, 6, 8, 10, 1, 3, 5, 7, 9, 11].flatMap(c => [lo(ptr(c)), hi(ptr(c))]));
+          }
           const cz = !keys.length || opts.compress === false ? { toks: [], pages: keys.map(k => T.get(k).bytes) } : takCompress(keys.map(k => T.get(k).bytes));
           const toklo = w.put(new Array(Math.max(1, cz.toks.length)).fill(0));
           const dict = [], at = [];
@@ -1800,6 +2034,7 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
         for (const bk of banks) bk.set(it, sym.INTRO - BASE);
       } catch (x) {
         if (x.message === 'OUT_OF_SPACE') {
+          if (margin < 400) return buildTak(project, Object.assign({}, opts, { _margin: margin * 3 }));
           const u = usageOf();
           return { ok: false, errs: ['Out of room: the text only just fails to fit. Shorten a message or two, or choose a bigger cartridge.'], warns, usage: { maps: u, mapA: u[0], mapB: u[1] } };
         }
@@ -1815,7 +2050,7 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
       });
       // ---- the code, assembled with the real addresses, in every bank ----
       Object.assign(sym, {
-        FONT, SPACEI: GIDX[' '], NGLYPH, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
+        FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? PL.color : 0, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
         STARTINV: P.start.inventory.reduce((acc, i) => acc | bit(i), 0),
       });
       const code = assemble(takEngineSource(srcOpts), BASE, takSyms(sym));
@@ -2012,7 +2247,8 @@ table.rec td:first-child { font: 12px var(--font-mono); color: var(--amber); whi
     normalize(P);
     return P.engine === 'tak' ? buildTak(P, opts) : buildRom(P, engineRom, opts);
   }
-  root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX };
+  root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX,
+    TIA_CLK, tiaNote, parseTune, TUNES, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps };
 })(typeof window !== 'undefined' ? window : globalThis);
 if (typeof module !== 'undefined') module.exports = globalThis.TAK;
 
@@ -2031,7 +2267,7 @@ if (typeof module !== 'undefined') module.exports = globalThis.TAK;
     P.events = ['Stairs open', 'Keeper helps', 'Lamp lit', 'Event 4', 'Event 5', 'Event 6', 'Event 7', 'Event 8'];
     P.start = { room: 7, inventory: [0] };
     P.intro = [
-      '\n\n THE LAST\n LIGHTHOUSE\n\n\n   A 2600\n ADVENTURE',
+      '  THE LAST\n LIGHTHOUSE\n\n   A 2600\n ADVENTURE',
       'THE LAMP ON\nGULL ROCK\nHAS GONE\nDARK.',
       'SHIPS ARE\nLOST IN THE\nQUIET FOG.\n\nONLY YOU\nCAN LIGHT\nIT AGAIN.',
     ];
@@ -2077,7 +2313,9 @@ if (typeof module !== 'undefined') module.exports = globalThis.TAK;
       use: { on: true, item: 4, setsEvent: true, text: 'YOU FILL THE\nLAMP. LIGHT\nSWEEPS THE\nSEA ONCE\nMORE.\n\nSHIPS SAIL\nHOME SAFE.' },
       sets: 2,
     });
-    P.settings.endEvent = 2;
+    P.settings.endEvent = 2; P.settings.tune = 'homecoming';
+    // title picture: the lighthouse above the title (96 x 28, two scanlines per row)
+    P.picture = { on: true, rowH: 2, color: 0x1E, height: 28, rows: ["000000000001800000000000","000000000007e00000000000","00000000001ff80000000000","000000000033cc0000000000","000000036db3cdb6c0000000","000036d80033cc001b6c0000","036d80000033cc000001b6c0","000000000033cc0000000000","00000000003ffc0000000000","0000000003ffffc000000000","00000000001ff80000000000","00000000001ff80000000000","00000000001ff80000000000","000000000000000000000000","000000000000000000000000","00000000003ffc0000000000","00000000007ffe0000000000","00000000007ffe0000000000","00000000007ffe0000000000","000000000000000000000000","000000000000000000000000","0000000000ffff0000000000","0000000001fc3f8000000000","0000000001fc3f8000000000","0000000001fc3f8000000000","00000003ffffffffc0000000","c1f07c3fffffffffff07c1f0","3e0f83e0f83e0f83e0f83e0f"] };
     // the way back from the island lands on the beach, below the (locked) cliff stairs
     P.portals[1].toIdx = 13;
     // the rope bridge east of the cliff path crosses to the island
@@ -2237,7 +2475,7 @@ function tvField(label, get, set, opts = {}) {
   const meta = el('div', { class: 'tvmeta' });
   const upd = () => {
     const t = TAK.normText(ta.value), lines = t.split('\n'), longest = Math.max(0, ...lines.map(l => l.length));
-    const maxL = opts.menu ? 1 : 10;
+    const maxL = opts.menu ? 1 : opts.title ? titleLines() : 10;
     const bad = TAK.badChars(t);
     meta.replaceChildren(...[
       el('span', { class: lines.length > maxL ? 'bad' : '', text: `${lines.length}/${maxL} line${maxL > 1 ? 's' : ''}` }),
@@ -2247,7 +2485,7 @@ function tvField(label, get, set, opts = {}) {
     ].filter(Boolean));
     ta.classList.toggle('bad', lines.length > maxL || longest > 12);
   };
-  const showPrev = () => { preview = { map: leftTab === 'story' ? 0 : sel.map, text: opts.menu ? '' : TAK.normText(ta.value), menu: opts.menu ? TAK.normText(ta.value) : (opts.menuWord || P.system.look), label }; if (tvMode === 'preview') drawPreview(); };
+  const showPrev = () => { preview = { map: leftTab === 'story' ? 0 : sel.map, text: opts.menu ? '' : TAK.normText(ta.value), menu: opts.menu ? TAK.normText(ta.value) : (opts.menuWord || P.system.look), label, title: !!opts.title }; if (tvMode === 'preview') drawPreview(); };
   const input = () => {
     const pos = ta.selectionStart; const up = ta.value.toUpperCase();
     if (up !== ta.value) { ta.value = up; ta.setSelectionRange(pos, pos); }
@@ -2260,6 +2498,89 @@ function tvField(label, get, set, opts = {}) {
   if (opts.help) f.append(el('div', { class: 'help', text: opts.help }));
   return f;
 }
+
+// ---------------- title picture editor ----------------
+let picSrc = null, picTool = 1; // the last imported image (kept for re-dithering); 1 draws, 0 erases
+function picGet(x, y) { const h = P.picture.rows[y] || ''; const v = parseInt(h.substr((x >> 3) * 2, 2), 16) || 0; return (v >> (7 - (x & 7))) & 1; }
+function picSetRows(bits) { // bits: array of rows of 96 0/1 values
+  P.picture.rows = bits.map(r => { let h = ''; for (let i = 0; i < 96; i += 8) { let v = 0; for (let b = 0; b < 8; b++) v = v << 1 | (r[i + b] ? 1 : 0); h += v.toString(16).padStart(2, '0'); } return h; });
+}
+function picBits() { return Array.from({ length: P.picture.height }, (_, y) => Array.from({ length: 96 }, (_, x) => picGet(x, y))); }
+function picFromImage(img, dither) {
+  const t = P.picture, rows = Math.max(1, Math.min(Math.floor(TAK.PIC_MAXLINES / t.rowH), Math.round(96 * 2 * img.height / img.width / t.rowH)));
+  const c = document.createElement('canvas'); c.width = 96; c.height = rows; const x = c.getContext('2d');
+  x.drawImage(img, 0, 0, 96, rows);
+  const d = x.getImageData(0, 0, 96, rows).data, lum = new Float32Array(96 * rows);
+  for (let i = 0; i < 96 * rows; i++) lum[i] = d[i * 4 + 3] < 128 ? 0 : (0.299 * d[i * 4] + 0.587 * d[i * 4 + 1] + 0.114 * d[i * 4 + 2]) / 255;
+  const mean = lum.reduce((a, b) => a + b, 0) / lum.length, th = Math.min(0.75, Math.max(0.25, mean));
+  const bits = [];
+  for (let y = 0; y < rows; y++) { const r = []; for (let xx = 0; xx < 96; xx++) {
+    const i = y * 96 + xx, v = lum[i], on = v > th ? 1 : 0; r.push(on);
+    if (dither) { const e = v - on; if (xx < 95) lum[i + 1] += e * 7 / 16; if (y < rows - 1) { if (xx > 0) lum[i + 95] += e * 3 / 16; lum[i + 96] += e * 5 / 16; if (xx < 95) lum[i + 97] += e / 16; } }
+  } bits.push(r); }
+  t.height = rows; picSetRows(bits);
+}
+function pictureEditor() {
+  const t = P.picture, out = [];
+  const on = el('input', { type: 'checkbox', class: 'switch', checked: !!t.on, 'aria-label': 'Title picture' });
+  on.addEventListener('change', () => { t.on = on.checked; if (t.on && !t.rows.length) picSetRows(Array.from({ length: t.height }, () => Array(96).fill(0))); renderLeft(); changed(); histCommit(); showTitle(); });
+  out.push(el('div', { class: 'flabel', text: 'TITLE PICTURE' }),
+    el('div', { class: 'feature' + (t.on ? '' : ' off') }, el('div', { class: 'fh' }, on, el('div', {},
+      el('div', { class: 'ft', text: 'A picture above the title page’s text' }),
+      el('div', { class: 'fd', text: '96 pixels wide, one colour, drawn by the same kernel as the text (so it shimmers the same way on a real TV). It takes the place of the title page’s first text lines.' })))));
+  if (!t.on) return out;
+  const L = titleLayout();
+  const cw = 5, ch = t.rowH === 2 ? 5 : 3;
+  const cv = el('canvas', { width: 96 * cw, height: t.height * ch, class: 'picgrid', 'aria-label': 'Title picture: click or drag to draw' });
+  const cx = cv.getContext('2d');
+  const paint = () => {
+    cx.fillStyle = rgb(P.maps[0].colors.bg); cx.fillRect(0, 0, cv.width, cv.height);
+    cx.fillStyle = rgb(t.color);
+    for (let y = 0; y < t.height; y++) for (let x = 0; x < 96; x++) if (picGet(x, y)) cx.fillRect(x * cw, y * ch, cw, ch);
+    cx.fillStyle = 'rgba(255,255,255,.08)';
+    for (let x = 8; x < 96; x += 8) cx.fillRect(x * cw, 0, 1, cv.height);
+  };
+  let down = false, val = 1;
+  const at = e => { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * 96), Math.floor((e.clientY - r.top) / r.height * t.height)]; };
+  const set = (e) => {
+    const [x, y] = at(e); if (x < 0 || x >= 96 || y < 0 || y >= t.height) return;
+    if (picGet(x, y) === val) return;
+    const bits = picBits(); bits[y][x] = val; picSetRows(bits); paint(); showTitle(); changedLight();
+  };
+  cv.addEventListener('pointerdown', e => { e.preventDefault(); cv.setPointerCapture(e.pointerId); down = true; const [x, y] = at(e); val = e.button === 2 || picTool === 0 ? 0 : (picTool === 1 && e.shiftKey ? 0 : 1); if (picTool === 2) val = picGet(x, y) ? 0 : 1; set(e); });
+  cv.addEventListener('pointermove', e => { if (down) set(e); });
+  cv.addEventListener('pointerup', () => { if (down) { down = false; histCommit(); changed(); } });
+  cv.addEventListener('contextmenu', e => e.preventDefault());
+  paint();
+  const tool = (v, label) => el('button', { type: 'button', class: 'btn small' + (picTool === v ? '' : ' ghost'), 'aria-pressed': String(picTool === v), text: label, onclick: () => { picTool = v; renderLeft(); } });
+  const act = (label, fn) => el('button', { type: 'button', class: 'btn small ghost', text: label, onclick: () => { fn(); renderLeft(); changed(); histCommit(); showTitle(); } });
+  const shift = (dx, dy) => { const b = picBits(), n = b.map((r, y) => r.map((_, x) => { const sx = x - dx, sy = y - dy; return sy >= 0 && sy < b.length && sx >= 0 && sx < 96 ? b[sy][sx] : 0; })); picSetRows(n); };
+  const file = el('input', { type: 'file', accept: 'image/*', hidden: true });
+  file.addEventListener('change', () => { const f = file.files[0]; if (!f) return; const img = new Image(); img.onload = () => { picSrc = img; picFromImage(img, true); renderLeft(); changed(); histCommit(); showTitle(); toast('Image converted to 96 × ' + P.picture.height + '. Touch it up with the pencil.'); }; img.onerror = () => toast('That file could not be read as an image.'); img.src = URL.createObjectURL(f); });
+  const height = el('input', { type: 'number', min: 1, max: Math.floor(TAK.PIC_MAXLINES / t.rowH), value: t.height, 'aria-label': 'Picture rows', style: 'width:72px' });
+  height.addEventListener('change', () => { const n = Math.max(1, Math.min(Math.floor(TAK.PIC_MAXLINES / t.rowH), Math.round(+height.value) || 1)); const b = picBits(); while (b.length < n) b.push(Array(96).fill(0)); b.length = n; t.height = n; picSetRows(b); renderLeft(); changed(); histCommit(); showTitle(); });
+  const rowSel = el('select', { 'aria-label': 'Row height' }, el('option', { value: '2', text: 'Chunky: 2 scanlines a row', selected: t.rowH === 2 }), el('option', { value: '1', text: 'Fine: 1 scanline a row', selected: t.rowH === 1 }));
+  rowSel.addEventListener('change', () => { t.rowH = +rowSel.value; const max = Math.floor(TAK.PIC_MAXLINES / t.rowH); if (t.height > max) { const b = picBits(); b.length = max; t.height = max; picSetRows(b); } renderLeft(); changed(); histCommit(); showTitle(); });
+  const bytes = L ? TAK.picBlock(L) : null;
+  out.push(el('div', { class: 'inline', style: 'flex-wrap:wrap;gap:6px;margin:8px 0' },
+      tool(1, '✎ Draw'), tool(0, 'Erase'), tool(2, 'Toggle'),
+      act('←', () => shift(-1, 0)), act('→', () => shift(1, 0)), act('↑', () => shift(0, -1)), act('↓', () => shift(0, 1)),
+      act('Invert', () => picSetRows(picBits().map(r => r.map(v => v ? 0 : 1)))), act('Mirror', () => picSetRows(picBits().map(r => r.slice().reverse()))),
+      act('Clear', () => picSetRows(picBits().map(r => r.map(() => 0)))),
+      el('button', { type: 'button', class: 'btn small ghost', text: 'Import image…', onclick: () => file.click() }), file,
+      picSrc ? el('button', { type: 'button', class: 'btn small ghost', text: 'Re-import without dithering', onclick: () => { picFromImage(picSrc, false); renderLeft(); changed(); histCommit(); showTitle(); } }) : null),
+    el('div', { class: 'picwrap' }, cv),
+    el('div', { class: 'help', text: 'Click or drag to draw; right-click or Shift to erase. Thin lines one pixel wide flicker less if you make them two pixels wide.' }),
+    el('div', { class: 'inline', style: 'flex-wrap:wrap;gap:12px;align-items:end;margin-top:8px' },
+      el('div', { class: 'field', style: 'margin:0' }, el('label', { text: 'Rows' }), height),
+      el('div', { class: 'field', style: 'margin:0' }, el('label', { text: 'Row height' }), rowSel),
+      colorField('Picture colour', () => t.color, v => { t.color = v; paint(); showTitle(); })),
+    el('p', { class: 'empty', style: 'margin:6px 0 0', text: L
+      ? `Drawn ${L.h} scanlines tall, in place of ${L.k} text line${L.k > 1 ? 's' : ''}: the title page has room for ${L.textLines} line${L.textLines === 1 ? '' : 's'} of text. Uses about ${bytes.size.toLocaleString()} bytes in one bank (blank and repeated columns are stored once).${L.cut ? ` Only the top ${TAK.PIC_MAXLINES} scanlines are drawn.` : ''}`
+      : 'Nothing drawn yet: the cartridge leaves the picture out until you draw something.' }));
+  return out;
+}
+function showTitle() { preview = { map: 0, text: TAK.normText(P.intro[0]), menu: P.intro.length > 1 ? P.system.more : P.system.start, label: 'Intro page 1 (title screen)', title: true }; if (tvMode === 'preview') drawPreview(); }
 
 // ---------------- left: map board ----------------
 function renderLeft() {
@@ -2515,10 +2836,12 @@ function renderStory(body) {
   }
   body.append(el('p', { class: 'empty', style: 'margin:0', text: usesTak() ? 'Each map has its own 4K bank. Banks share their free space for text, so a bigger cartridge adds room even for maps you leave empty.' : 'Each map lives in its own 4K bank with its own copy of the engine, so every map adds about 2.7K of room for text.' }));
 
+  if (usesTak()) body.append(...pictureEditor());
+
   // intro
   const intro = el('div', { class: 'list-ed' });
   P.intro.forEach((t, i) => {
-    const f = tvField(`Intro page ${i + 1}${i === 0 ? ' (title screen)' : ''}`, () => P.intro[i], v => P.intro[i] = v, { menuWord: i === P.intro.length - 1 ? P.system.start : P.system.more });
+    const f = tvField(`Intro page ${i + 1}${i === 0 ? ' (title screen)' : ''}`, () => P.intro[i], v => P.intro[i] = v, { menuWord: i === P.intro.length - 1 ? P.system.start : P.system.more, title: i === 0 });
     if (P.intro.length > 2) f.append(el('div', {}, el('button', { class: 'btn small ghost', type: 'button', text: 'Remove page', onclick: () => { P.intro.splice(i, 1); renderLeft(); changed(); } })));
     intro.append(f);
   });
@@ -2553,6 +2876,35 @@ function renderStory(body) {
   body.append(el('div', { class: 'flabel', text: 'HOW THE GAME ENDS' }),
     el('div', { class: 'field' }, el('label', { text: 'The game ends when this event happens' }), endSel,
       el('div', { class: 'help', text: 'Rooms can also be marked as endings (arriving there ends the game). When the game ends, the last message stays on screen, the menu shows the "the end" word, and the controls stop working until the console is reset.' })));
+
+  // sound (Workshop engine)
+  if (usesTak()) {
+    const on = el('input', { type: 'checkbox', class: 'switch', checked: P.settings.sound !== false, 'aria-label': 'Sound' });
+    on.addEventListener('change', () => { P.settings.sound = on.checked; renderLeft(); changed(); histCommit(); });
+    body.append(el('div', { class: 'flabel', text: 'SOUND' }),
+      el('div', { class: 'feature' + (P.settings.sound !== false ? '' : ' off') }, el('div', { class: 'fh' }, on, el('div', {},
+        el('div', { class: 'ft', text: 'Sound effects and an ending tune' }),
+        el('div', { class: 'fd', text: 'One TIA channel: a tick when the menu changes, clicks, footsteps, a thud at walls, a buzz at locks, chimes for success and events, and a tune when the game ends. Costs about 220 bytes in every bank.' })))));
+    if (P.settings.sound !== false) {
+      const fx = el('div', { class: 'inline', style: 'flex-wrap:wrap;gap:6px' });
+      for (const [k, name] of Object.entries(TAK.SFX_NAMES)) fx.append(el('button', { class: 'btn small ghost', type: 'button', text: '▶ ' + name, onclick: () => previewSound(TAK.SFX[k]) }));
+      const tsel = el('select', { 'aria-label': 'Ending tune' });
+      for (const [k, t] of Object.entries(TAK.TUNES)) tsel.append(el('option', { value: k, text: t.name, selected: P.settings.tune === k }));
+      tsel.append(el('option', { value: 'custom', text: 'Your own tune…', selected: P.settings.tune === 'custom' }));
+      tsel.addEventListener('change', () => { P.settings.tune = tsel.value; renderLeft(); changed(); histCommit(); });
+      const playTune = el('button', { class: 'btn small', type: 'button', text: '▶ Play tune', onclick: () => previewSound(TAK.tuneSteps(TAK.endTuneText(P))) });
+      body.append(el('div', { class: 'field' }, el('label', { text: 'Effects (click to hear)' }), fx),
+        el('div', { class: 'field' }, el('label', { text: 'Ending tune' }), el('div', { class: 'inline', style: 'gap:6px' }, tsel, playTune)));
+      if (P.settings.tune === 'custom') {
+        const inp = el('input', { type: 'text', value: P.settings.customTune, spellcheck: 'false', 'aria-label': 'Your tune', style: 'font-family:var(--font-mono)' });
+        const help = el('div', { class: 'help' });
+        const check = () => { const r = TAK.parseTune(inp.value); const nb = TAK.tuneBytes(inp.value), room = TAK.TUNE_ROOM(); help.textContent = (r.bad.length ? `Couldn't read: ${r.bad.slice(0, 4).join(' ')}. ` : '') + `${r.notes.length} note${r.notes.length === 1 ? '' : 's'}, ${nb} of ${room} bytes. Write notes as name, octave and length in frames (60 a second): C5:8 E5:8 G5:16. Use # for sharps, b for flats, - for a rest. The 2600 can only play some pitches, so each note is rounded to the nearest one it has.`; help.style.color = nb > room ? 'var(--bad)' : r.bad.length ? 'var(--warn)' : ''; };
+        inp.addEventListener('input', () => { P.settings.customTune = inp.value; check(); changed(); });
+        check();
+        body.append(el('div', { class: 'field' }, el('label', { text: 'Your tune' }), inp, help));
+      }
+    }
+  }
 
   // menu words
   const words = el('div', { class: 'two' });
@@ -2590,6 +2942,10 @@ function renderEngineNotes(body) {
 <p>Both players are set to three medium copies (32 pixels apart) with player 1 sixteen pixels right of player 0, giving six character slots per scanline. Even frames draw characters 0, 2 … 10; odd frames move the players 8 pixels right and draw 1, 3 … 11. Player 0 is vertically delayed, so one write to GRP1 both changes player 1 and releases player 0's next image: three timed writes per scanline change the four images after the first two. Each text line is read into six glyph pointers during the ten blank scanlines above it, timed with the 8-cycle RIOT timer.</p>
 <h3>THE WORKSHOP ENGINE'S TEXT BANKS</h3>
 <p>A message can live in any bank. Message addresses always start with <code>$F</code>, so the builder uses the top four bits of a pointer to name the bank holding the message, keeping <code>$F</code> for the map's own bank. After the game logic runs in the map's bank, the frame code copies that map's colours and bank number into RAM, switches to the message's bank (every bank has the display code at the same addresses, so the program carries on there), reads and draws the text with that bank's own dictionary, and switches back during overscan. The builder fills each map's own bank first; when a bank overflows it moves the largest messages to the banks with the most room, then checks again. A map with no rooms and no way in needs no game logic, so its bank keeps only the display code and gives the rest (about 1,100 bytes more) to text. Room records store only the fields a room uses: <code>[flags, field mask lo, hi]</code> then the item and event numbers it has, then its message pointers.</p>
+<h3>THE TITLE PICTURE</h3>
+<p>The picture is drawn by the text kernel itself. On the title page the frame code points the six glyph pointers at picture columns instead of letters and starts Y at the picture's last row, so the same loop that draws six scanlines of a letter draws the whole picture: 96 pixels wide, half the columns on even frames and half on odd ones, exactly like text. A chunky picture uses a second copy of the loop that draws each row twice, so its data is half the size. The picture fills the space of the first few text lines (padding above it, then the usual ten-line gap in which the first line of text is read), so every frame stays 262 lines. Each column is stored once, bottom row first, never across a page boundary: a load that crosses a page takes an extra cycle and would shift that column's pixels. The picture sits in the same bank as the title page's text, since the kernel reads both from there.</p>
+<h3>THE WORKSHOP ENGINE'S SOUND</h3>
+<p>Sound uses TIA channel 0. Each sound is a list of three-byte steps: <code>AUDC&lt;&lt;4 | AUDV</code>, <code>AUDF</code>, and how many frames to hold it; a 0 byte ends it (a rest is control 4 at volume 0). Every frame, after the game logic, a small player counts down the current step and loads the next. All sounds sit in one page, so starting one is a single <code>JSR</code> to an entry that loads its low address byte; the entries are chained with <code>BIT</code> absolute so each skips the others. The ending tune is written as notes (<code>C5:8</code>) and each one is rounded to the nearest pitch the TIA can make: the clock divided by 2, 6 or 31 times <code>AUDF+1</code>. That is why 2600 music is famously a little out of tune. The playtest plays the same register values through a model of the TIA's dividers and polynomial counters.</p>
 <h3>64K CARTRIDGES</h3>
 <p>64K uses EF bank switching: reading <code>$FFE0</code>–<code>$FFEF</code> selects one of 16 banks. Every bank carries <code>EFEF</code> at <code>$FFF8</code>, the marker Stella and flash carts use to recognise the scheme. Bank 15 can't be named by the top bits of a pointer (<code>$F</code> means "this map's bank"), so it never holds other maps' text.</p>
 <h3>THE WORKSHOP ENGINE'S TEXT COMPRESSION</h3>
@@ -2826,14 +3182,25 @@ function drawChar(ch, x, y, color) {
   // one 2600 pixel = 2 canvas pixels wide, one glyph row = 1 scanline (matches Stella's output)
   for (let r = 0; r < 6; r++) for (let b = 0; b < 8; b++) if (rows[r] & (0x80 >> b)) g.fillRect(x + b * 2, y + r, 2, 1);
 }
-function drawScreen(text, menu, note) {
+// the title picture as the cartridge draws it: above the text, bottom 10 scanlines above the first text line
+function titleLayout() { return usesTak() ? TAK.picLayout(P) : null; }
+function titleLines() { const L = titleLayout(); return L ? L.textLines : 10; }
+function drawPicture(L) {
+  if (!L) return 0;
+  g.fillStyle = rgb(L.color);
+  const y0 = 34 + L.pad;
+  L.rows.forEach((row, r) => { for (let x = 0; x < 96; x++) if ((row[x >> 3] >> (7 - (x & 7))) & 1) g.fillRect(27 + x * 2, y0 + r * L.rowH, 2, L.rowH); });
+  return L.k;
+}
+function drawScreen(text, menu, note, pic) {
   g.fillStyle = COL.bg; g.fillRect(0, 0, 320, 228);
   g.fillStyle = COL.win; g.fillRect(0, 24, 320, 168);
+  const skip = drawPicture(pic);
   const lines = TAK.normText(text || '').split('\n');
-  for (let l = 0; l < Math.min(10, lines.length); l++) {
-    const s = lines[l];
-    for (let k = 0; k < Math.min(12, s.length); k++) drawChar(s[k], 27 + k * 16, 34 + l * 16, COL.text);
-    if (s.length > 12) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(27 + 12 * 16, 34 + l * 16, 3, 6); }
+  for (let l = 0; l < Math.min(10 - skip, lines.length); l++) {
+    const s = lines[l], y = 34 + (l + skip) * 16;
+    for (let k = 0; k < Math.min(12, s.length); k++) drawChar(s[k], 27 + k * 16, y, COL.text);
+    if (s.length > 12) { g.fillStyle = 'rgba(255,255,255,.85)'; g.fillRect(27 + 12 * 16, y, 3, 6); }
   }
   g.fillStyle = COL.menu; g.fillRect(0, 192, 320, 22);
   const mw = TAK.normText(menu || '').split('\n')[0];
@@ -2842,7 +3209,7 @@ function drawScreen(text, menu, note) {
 }
 function drawPreview() {
   setColors(P.maps[preview.map != null ? preview.map : 0].colors);
-  drawScreen(preview.text, preview.menu);
+  drawScreen(preview.text, preview.menu, null, preview.title ? titleLayout() : null);
   $('#tvCap').textContent = preview.label ? 'Previewing: ' + preview.label : 'Click any text box to preview it';
   const ext = usesTak() || TAK.fontMode(P) === 'extended';
   $('#tvCap2').textContent = ext ? 'workshop font' : engine ? 'Dark Mage font' : 'stand-in font: load the Dark Mage ROM for the real one';
@@ -2855,17 +3222,34 @@ function drawEmu() {
   g.fillStyle = COL.win; g.fillRect(0, 24, 320, 168);
   g.fillStyle = COL.menu; g.fillRect(0, 192, 320, 22);
   const plot = (code, x, y, color) => { g.fillStyle = color; for (let r = 0; r < 6; r++) { const v = emu.glyph(code, 5 - r); for (let b = 0; b < 8; b++) if (v & (0x80 >> b)) g.fillRect(x + b * 2, y + r, 2, 1); } };
-  lines.forEach((ln, l) => ln.forEach((code, k) => plot(code, 27 + k * 16, 34 + l * 16, COL.text)));
+  // title page (state 0, page 0): the picture the cartridge was built with
+  const skip = emu.layout === 'tak' && emu.ram[0x4C] === 0 && emu.ram[0x4B] === 0 ? drawPicture(emu.pic) : 0;
+  lines.slice(0, 10 - skip).forEach((ln, l) => ln.forEach((code, k) => plot(code, 27 + k * 16, 34 + (l + skip) * 16, COL.text)));
   menu.forEach((code, k) => plot(code, 27 + k * 16, 201, COL.menuText));
 }
 
 // ---------------- playtest ----------------
 let emu = null, raf = 0, keys = { N: 0, S: 0, E: 0, W: 0, fire: 0 };
+const audio = { ctx: null, gain: null, t: 0, tia: null, on: (() => { try { return localStorage.getItem('act-sound') !== 'off'; } catch (e) { return true; } })() };
+function audioReady() {
+  if (!audio.ctx) { try { audio.ctx = new (window.AudioContext || window.webkitAudioContext)(); audio.gain = audio.ctx.createGain(); audio.gain.gain.value = 0.9; audio.gain.connect(audio.ctx.destination); } catch (e) { return null; } }
+  if (audio.ctx.state === 'suspended') audio.ctx.resume().catch(() => {});
+  return audio.ctx;
+}
+function audioPlay(samples) {
+  const c = audio.ctx; if (!c || !samples.length) return;
+  const buf = c.createBuffer(1, samples.length, TAK.TIA_CLK); buf.copyToChannel(samples, 0);
+  const src = c.createBufferSource(); src.buffer = buf; src.connect(audio.gain);
+  if (audio.t < c.currentTime + 0.01 || audio.t > c.currentTime + 0.25) audio.t = c.currentTime + 0.04;
+  src.start(audio.t); audio.t += buf.duration;
+}
+function previewSound(steps) { if (!audioReady()) { toast('This browser cannot play sound here.'); return; } audio.t = 0; audioPlay(TAK.renderSteps(steps)); }
+function updateSoundBtn() { const b = $('#soundBtn'); b.textContent = audio.on ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(audio.on)); }
 function setTvMode(m) {
   tvMode = m;
   $('#tv-preview').setAttribute('aria-selected', String(m === 'preview'));
   $('#tv-play').setAttribute('aria-selected', String(m === 'play'));
-  $('#playUi').hidden = m !== 'play'; $('#restartBtn').hidden = m !== 'play';
+  $('#playUi').hidden = m !== 'play'; $('#restartBtn').hidden = m !== 'play'; $('#soundBtn').hidden = m !== 'play';
   if (m === 'play') startPlay(); else { stopPlay(); drawPreview(); }
 }
 function startPlay() {
@@ -2876,12 +3260,13 @@ function startPlay() {
   if (!res.ok) { drawScreen('FIX THE\nPROBLEMS\nLISTED BELOW\nTO PLAYTEST', ''); $('#tvCap').textContent = res.errs.length + ' problem(s) block the build'; $('#playState').textContent = ''; return; }
   emu = new TAK.Emu(res.rom);
   emu.wide = !!(res.fixes && res.fixes.wide);
-  if (usesTak()) emu.layout = 'tak';
+  audio.tia = new TAK.TiaSound(); if (audio.on) audioReady(); updateSoundBtn();
+  if (usesTak()) { emu.layout = 'tak'; emu.pic = titleLayout(); }
   $('#tvCap').textContent = 'Running the built ROM\'s 6502 code';
   $('#tvCap2').textContent = '';
   const loop = () => {
     try {
-      const perTick = watch ? watch.speed : 1;
+      const perTick = watch ? watch.speed : 1, chunks = [];
       for (let f = 0; f < perTick; f++) {
         if (watch) { if (!watchInput()) break; }
         else {
@@ -2889,7 +3274,10 @@ function startPlay() {
           emu.swcha = sw; emu.inpt4 = keys.fire ? 0x00 : 0x80;
         }
         emu.runFrame();
+        // sound: every frame when playing, the last frame of each tick when the walkthrough runs fast
+        if (audio.on && audio.ctx && emu.aud && (!watch || f === perTick - 1)) { audio.tia.regs(emu.aud); chunks.push(audio.tia.frame()); }
       }
+      if (chunks.length) { const n = chunks.reduce((t, c) => t + c.length, 0), all = new Float32Array(n); let o = 0; for (const c of chunks) { all.set(c, o); o += c.length; } audioPlay(all); }
       drawEmu();
       if ((emu.frames & 7) === 0) showPlayState();
       raf = requestAnimationFrame(loop);
@@ -3003,6 +3391,7 @@ function typing(e) { const t = e.target; return t && (t.tagName === 'TEXTAREA' |
 window.addEventListener('keydown', e => { if (tvMode !== 'play' || typing(e) || !KEYMAP[e.key] || onBoard(e)) return; e.preventDefault(); keys[KEYMAP[e.key]] = 1; });
 window.addEventListener('keyup', e => { if (!KEYMAP[e.key]) return; keys[KEYMAP[e.key]] = 0; });
 $('#restartBtn').addEventListener('click', startPlay);
+$('#soundBtn').addEventListener('click', () => { audio.on = !audio.on; try { localStorage.setItem('act-sound', audio.on ? 'on' : 'off'); } catch (e) { } if (audio.on) audioReady(); updateSoundBtn(); });
 $('#tv-preview').addEventListener('click', () => setTvMode('preview'));
 $('#tv-play').addEventListener('click', () => setTvMode('play'));
 
