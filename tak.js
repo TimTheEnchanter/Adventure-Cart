@@ -342,6 +342,7 @@
     P.maps.forEach((m, i) => { if (m.width == null) m.width = 6; m.name = 'Map ' + LETTERS[i]; });
     P.settings.endEvent = P.settings.endEvent === undefined ? null : P.settings.endEvent;
     if (P.settings.sound == null) P.settings.sound = true;
+    if (!TV[P.settings.tv]) P.settings.tv = 'ntsc';
     if (!P.picture || typeof P.picture !== 'object') P.picture = blankTitle();
     if (P.settings.tune == null) P.settings.tune = 'fanfare';
     if (P.settings.customTune == null) P.settings.customTune = 'C5:8 E5:8 G5:8 C6:24';
@@ -443,6 +444,7 @@
         if (L.cut) warns.push(`Title picture: only the top ${PIC_MAXLINES} scanlines are drawn`);
       }
     }
+    if (P.settings.tv !== 'ntsc' && P.engine !== 'tak') warns.push(`${tvOf(P).name} needs the Workshop engine; the Dark Mage engine builds NTSC only`);
     if (cart && cart.takOnly && P.engine !== 'tak') errs.push(`${P.cart} cartridges need the Workshop engine (Story & items › Engine)`);
     P.maps.forEach(m => {
       if (!(m.width >= 2 && m.width <= 16)) errs.push(`${m.name}: width must be 2 to 16 columns`);
@@ -1183,6 +1185,23 @@
   };
   // screen geometry (scanlines) and sprite positions; see the calibration notes in the builder
   const TAK_GEO = { TOPLINES: 11, PADLINES: 5, GAPT: 80, MENUPAD: 2, RESTLINES: 5, VBT: 43, OST: 35, XE: 29 };
+  // PAL (50 Hz, 312 lines): the same picture with more blank lines above and below it, and longer blanking
+  const TAK_GEO_PAL = { TOPLINES: 11 + 25, RESTLINES: 5 + 12, VBT: 43 + 10, OST: 35 + 6 };
+  // ---------- TV systems: NTSC (60 Hz), PAL (50 Hz, 312 lines) and PAL60 (PAL colours at 60 Hz) ----------
+  // The editor's colours are NTSC values; for a PAL cartridge each becomes the PAL colour that looks closest.
+  const NTSC_RGB = ["000000", "4a4a4a", "6f6f6f", "8e8e8e", "aaaaaa", "c0c0c0", "d6d6d6", "ececec", "484800", "69690f", "86861d", "a2a22a", "bbbb35", "d2d240", "e8e84a", "fcfc54", "7c2c00", "904811", "a26221", "b47a30", "c3903d", "d2a44a", "dfb755", "ecc860", "901c00", "a33915", "b55328", "c66c3a", "d5824a", "e39759", "f0aa67", "fcbc74", "940000", "a71a1a", "b83232", "c84848", "d65c5c", "e46f6f", "f08080", "fc9090", "840064", "97197a", "a8308f", "b846a2", "c659b3", "d46cc3", "e07cd2", "ec8ce0", "500084", "68199a", "7d30ad", "9246c0", "a459d0", "b56ce0", "c57cee", "d48cfc", "140090", "331aa3", "4e32b5", "6848c6", "7f5cd5", "956fe3", "a980f0", "bc90fc", "000094", "181aa7", "2d32b8", "4248c8", "545cd6", "656fe4", "7580f0", "8490fc", "001c88", "183b9d", "2d57b0", "4272c2", "548ad2", "65a0e1", "75b5ef", "84c8fc", "003064", "185080", "2d6d98", "4288b0", "54a0c5", "65b7d9", "75cceb", "84e0fc", "004030", "18624e", "2d8169", "429e82", "54b899", "65d1ae", "75e7c2", "84fcd4", "004400", "1a661a", "328432", "48a048", "5cba5c", "6fd26f", "80e880", "90fc90", "143c00", "355f18", "527e2d", "6e9c42", "87b754", "9ed065", "b4e775", "c8fc84", "303800", "505916", "6d762b", "88923e", "a0ab4f", "b7c25f", "ccd86e", "e0ec7c", "482c00", "694d14", "866a26", "a28638", "bb9f47", "d2b656", "e8cc63", "fce070"];
+  const PAL_RGB = ["0b0b0b","333333","595959","7b7b7b","999999","b6b6b6","cfcfcf","e6e6e6","0b0b0b","333333","595959","7b7b7b","999999","b6b6b6","cfcfcf","e6e6e6","3b2400","664700","8b7000","ac9200","c5ae36","dec85e","f7e27f","fff19e","004500","006f00","3b9200","65b009","85ca3d","a3e364","bffc84","d5ffa5","590000","802700","a15700","bc7937","d6985f","eeb381","ffce9e","ffdcbd","004900","007200","169216","45af45","6bc96b","8be38b","a9fba9","c5ffc5","640012","890821","a73d4d","c26472","dc8491","f4a3ae","ffbeca","ffdae0","003d29","006a48","048e63","3caa84","62c5a2","83dfbe","a1f8d9","beffe9","550046","88006e","a5318d","c159aa","da7cc5","f39adf","ffb9f3","ffd4f6","003651","005a7d","117e9c","429cb8","68b7d2","88d2eb","a6ebff","c3ffff","4c007c","75009d","932eb8","af57d2","ca7aeb","e499ff","ecb7ff","f3d4ff","002d83","003ea4","2d65bf","5685da","79a2f2","99bfff","b7dbff","d3f5ff","220096","5200b6","7538cf","945fe8","b181ff","c5a0ff","d6bdff","e8daff","00009a","241db6","504ad0","746fe9","928eff","b1adff","cecaff","e9e5ff","0b0b0b","333333","595959","7b7b7b","999999","b6b6b6","cfcfcf","e6e6e6","0b0b0b","333333","595959","7b7b7b","999999","b6b6b6","cfcfcf","e6e6e6"];
+  const TV = { ntsc: { name: 'NTSC', hz: 60, pal: false }, pal: { name: 'PAL', hz: 50, pal: true }, pal60: { name: 'PAL60', hz: 60, pal: true } };
+  const tvOf = P => TV[P && P.settings && P.settings.tv] || TV.ntsc;
+  const NTSC_TO_PAL = (() => {
+    const rgb = h => [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    const dist = (a, b) => { const r = (a[0] + b[0]) / 2, dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2]; return (2 + r / 256) * dr * dr + 4 * dg * dg + (2 + (255 - r) / 256) * db * db; };
+    return NTSC_RGB.map(n => { const a = rgb(n); let best = 0, bd = Infinity; PAL_RGB.forEach((p, i) => { const d = dist(a, rgb(p)); if (d < bd) { bd = d; best = i; } }); return best * 2; });
+  })();
+  // the colour value to put in the cartridge for an editor (NTSC) colour
+  const tvColor = (P, v) => tvOf(P).pal ? NTSC_TO_PAL[(v & 0xFE) >> 1] : v & 0xFE;
+  // the RGB a TIA colour value shows on this system's TV
+  const tiaRgb = (pal, v) => '#' + (pal ? PAL_RGB : NTSC_RGB)[(v & 0xFE) >> 1];
 
   function takEngineSource(o) {
     const L = [];
@@ -1515,9 +1534,10 @@
   const TUNE_ROOM = () => 256 - 1 - Object.values(SFX).reduce((t, st) => t + st.length * 3 + 1, 0) - 1;
   const tuneBytes = text => tuneSteps(text).length * 3;
   function soundData(P) {
-    const d = { S_QUIET: [0] };
-    for (const [k, st] of Object.entries(SFX)) d[k] = stepBytes(st);
-    d.S_END = stepBytes(tuneSteps(endTuneText(P)));
+    const d = { S_QUIET: [0] }, hz = tvOf(P).hz;
+    const tempo = st => hz === 60 ? st : st.map(([c, f, v, n]) => [c, f, v, Math.max(1, Math.round(n * hz / 60))]);
+    for (const [k, st] of Object.entries(SFX)) d[k] = stepBytes(tempo(st));
+    d.S_END = stepBytes(tempo(tuneSteps(endTuneText(P))));
     return d;
   }
   // TIA audio channel model (after Ron Fries' TIASound): AUDC selects the divider/poly chain,
@@ -1551,12 +1571,13 @@
     }
   }
   class TiaSound {
-    constructor() { this.ch = [new TiaVoice(), new TiaVoice()]; this.frac = 0; }
+    // PAL: 312 lines at 50 Hz, two audio ticks a line (31,200 Hz); NTSC: 31,400 Hz at 59.94 Hz
+    constructor(pal50) { this.ch = [new TiaVoice(), new TiaVoice()]; this.frac = 0; this.clk = pal50 ? 31200 : TIA_CLK; this.fps = pal50 ? 50 : 59.94; }
     // regs: [AUDC0, AUDC1, AUDF0, AUDF1, AUDV0, AUDV1] as the emulator records them
     regs(a) { this.ch[0].set(a[0], a[2], a[4]); this.ch[1].set(a[1], a[3], a[5]); }
     // one video frame of samples at 31,400 Hz, as floats in -0.5..0.5
     frame() {
-      this.frac += TIA_CLK / 59.94; const n = Math.floor(this.frac); this.frac -= n;
+      this.frac += this.clk / this.fps; const n = Math.floor(this.frac); this.frac -= n;
       const out = new Float32Array(n);
       for (let i = 0; i < n; i++) out[i] = (this.ch[0].tick() + this.ch[1].tick()) / 20 - 0.3;
       return out;
@@ -1644,6 +1665,238 @@
       'HC2: LDA NCH', 'BNE HC3', 'LDA INTRO+NPAGES*2-2', 'STA TXT', 'LDA INTRO+NPAGES*2-1', 'STA TXT+1', 'JMP SETSTARTM',
       'HC3: DEC NCH', 'DEC CI', 'JSR CPOS', 'LDA #DASH', 'STA BUF,X', 'RTS'];
   }
+  // ---------- Game script: the whole project as one plain-text file, and back ----------
+  // Text lines start with "|" (everything after it is kept exactly); "#" starts a comment line;
+  // rows and columns count from 1; items and events are numbered 1-16.
+  const SCRIPT_WORDS = [['look', 'look'], ['north', 'north'], ['east', 'east'], ['south', 'south'], ['west', 'west'], ['go', 'go'], ['take', 'take'],
+    ['give', 'give'], ['use', 'use'], ['talk', 'talk'], ['inventory', 'inventory'], ['more', 'more'], ['start', 'start'], ['the end', 'theEnd'],
+    ['nothing', 'nothing'], ['try again', 'tryAgain'], ['code', 'code'], ['delete', 'delete']];
+  const SCRIPT_MSGS = [['nothing special', 'nothingSpecial'], ['nothing to take', 'nothingToTake'], ['nobody answers', 'talkDefault'],
+    ['give prompt', 'selectGive'], ["can't give", 'cantGive'], ['use prompt', 'selectUse'], ["can't use", 'cantUse'], ['carrying', 'carrying'],
+    ['power-on screen', 'bootB']];
+  function toScript(project) {
+    const P = normalize(JSON.parse(JSON.stringify(project)));
+    const out = [];
+    const put = (...l) => out.push(...l);
+    const text = (ind, t) => { const s = String(t == null ? '' : t); if (s === '') return; for (const l of s.split('\n')) out.push(ind + '|' + l); };
+    const num = v => v == null ? 'none' : String(v + 1);
+    const safe = x => String(x).replace(/[:()\n|#]/g, ' ').replace(/\s+/g, ' ').trim();
+    const itemName = v => v != null && safe(P.items[v] || '') ? ` (${safe(P.items[v])})` : '';
+    const evName = v => v != null && safe(P.events[v] || '') ? ` (${safe(P.events[v])})` : '';
+    const rc = (m, i) => `${Math.floor(i / P.maps[m].width) + 1},${i % P.maps[m].width + 1}`;
+    put('# Adventure Cart Workshop script',
+      '# Lines starting with # are comments. Text lines start with |, and everything after the | is kept exactly.',
+      '# Rows and columns count from 1. Items and events are numbered 1 to 16. A name in brackets after a number is only a reminder.',
+      '', `title: ${P.title}`, `engine: ${P.engine === 'tak' ? 'workshop' : 'dark mage'}`, `cart: ${P.cart}`,
+      `start: ${LETTERS[0]} ${rc(0, P.start.room)}`,
+      `carrying: ${P.start.inventory.length ? P.start.inventory.map(i => i + 1).join(', ') : 'nothing'}`,
+      `game ends on event: ${num(P.settings.endEvent)}${evName(P.settings.endEvent)}`,
+      `sound: ${P.settings.sound !== false ? 'on' : 'off'}`, `tune: ${P.settings.tune}`, `custom tune: ${P.settings.customTune || ''}`,
+      `passwords: ${P.settings.passwords ? 'on' : 'off'}`, `tv: ${tvOf(P).name}`, '', 'items:');
+    P.items.forEach((t, i) => put(`  ${i + 1}: ${t}`));
+    put('', 'events:');
+    P.events.forEach((t, i) => put(`  ${i + 1}: ${t}`));
+    put('', 'words:');
+    for (const [k, key] of SCRIPT_WORDS) put(`  ${k}: ${P.system[key] == null ? '' : P.system[key]}`);
+    put('', 'messages:');
+    for (const [k, key] of SCRIPT_MSGS) { put(`  ${k}:`); text('    ', P.system[key]); }
+    for (const t of P.intro) { put('', 'intro page:'); text('  ', t); }
+    const pic = P.picture;
+    put('', `picture: ${pic.on ? 'on' : 'off'}`, `  rows: ${pic.height}`, `  row height: ${pic.rowH === 1 ? 1 : 2}`, `  colour: $${(pic.color & 0xFF).toString(16).toUpperCase().padStart(2, '0')}`);
+    if (pic.rows.some(r => /[1-9a-f]/i.test(r || ''))) for (let r = 0; r < pic.height; r++) {
+      const b = picRowBytes(pic.rows[r]); let s = '';
+      for (let x = 0; x < 96; x++) s += (b[x >> 3] >> (7 - (x & 7))) & 1 ? '#' : '.';
+      put('  |' + s.replace(/\.+$/, ''));
+    }
+    const hx = v => '$' + (v & 0xFF).toString(16).toUpperCase().padStart(2, '0');
+    P.maps.forEach((map, m) => {
+      const L = LETTERS[m];
+      // the most common wall text becomes the map's default
+      const counts = new Map(); for (const c of map.cells) if (c.type === 'wall') counts.set(c.text, (counts.get(c.text) || 0) + 1);
+      const def = [...counts.entries()].sort((a, b) => b[1] - a[1])[0];
+      const defText = def ? def[0] : "YOU CAN'T GO\nTHAT WAY.";
+      put('', `map ${L}: ${map.width} x ${map.rows}`, `  colours: background ${hx(map.colors.bg)}, text ${hx(map.colors.text)}, menu ${hx(map.colors.menuBg)}, menu text ${hx(map.colors.menuText)}`, '  default wall:');
+      text('    ', defText);
+      put('  # layout: R room, . wall, > portal, * start');
+      put('  #     ' + Array.from({ length: map.width }, (_, c) => String((c + 1) % 10)).join(' '));
+      for (let r = 0; r < map.rows; r++) put('  # ' + String(r + 1).padStart(3) + ' ' + map.cells.slice(r * map.width, (r + 1) * map.width).map((c, k) => {
+        const i = r * map.width + k; return portalAt(P, m, i) ? '>' : m === 0 && i === P.start.room ? '*' : c.type === 'room' ? 'R' : '.'; }).join(' '));
+      map.cells.forEach((c, i) => {
+        const pt = P.portals.find(p => p.map === m && p.idx === i);
+        if (pt) { put('', `  portal ${rc(m, i)}: to ${LETTERS[pt.toMap]} ${rc(pt.toMap, pt.toIdx)}`); return; }
+        if (c.type === 'wall') { if (c.text !== defText) { put('', `  wall ${rc(m, i)}:`); text('    ', c.text); } return; }
+        put('', `  room ${rc(m, i)}: ${c.name || ''}`, '    arrive:'); text('      ', c.desc);
+        put('    look:'); text('      ', c.look);
+        if (c.item != null) put(`    item: ${c.item + 1}${itemName(c.item)}`);
+        if (c.lookReveals) put('    look reveals the item: yes');
+        if (c.take.on) { put('    take:'); text('      ', c.take.text); }
+        if (c.use.on) { put(`    use item ${num(c.use.item)}${itemName(c.use.item)}${c.use.setsEvent ? ', sets the event' : ''}:`); text('      ', c.use.text); }
+        if (c.give.on) { put(`    give item ${num(c.give.item)}${itemName(c.give.item)}:`); text('      ', c.give.text); }
+        if (c.talk.on) {
+          put('    talk:'); text('      ', c.talk.no);
+          if (c.talk.needUsed != null) { put(`    talk after using item ${c.talk.needUsed + 1}${itemName(c.talk.needUsed)}:`); text('      ', c.talk.ok); }
+        }
+        if (c.sets != null) put(`    sets event: ${c.sets + 1}${evName(c.sets)}`);
+        if (c.door.on) { put(`    locked until event ${num(c.door.needEvent)}${evName(c.door.needEvent)}:`); text('      ', c.door.text); }
+        if (c.ending) put(`    ending: ${c.deadly ? 'game over' : 'win'}`);
+        if (c.alt && c.alt.on) {
+          put(`    after event ${num(c.alt.event)}${evName(c.alt.event)}, arrive:`); text('      ', c.alt.desc);
+          put(`    after event ${num(c.alt.event)}${evName(c.alt.event)}, look:`); text('      ', c.alt.look);
+        }
+      });
+    });
+    return out.join('\n') + '\n';
+  }
+  function fromScript(src) {
+    const errs = [];
+    const P = newProject();
+    P.maps = []; P.portals = []; P.intro = []; P.picture = blankTitle(); P.settings.passwords = false;
+    const lines = String(src).replace(/\r/g, '').split('\n');
+    let block = null;             // where | lines go: { set(text) , lines: [] }
+    let section = 'top', map = null, mi = -1, cell = null, ci = -1, pendingStart = null, picRows = [], cartBad = false;
+    const portalsTodo = [];
+    const flush = () => { if (block) { block.set(block.lines.join('\n')); block = null; } };
+    const textTo = setter => { flush(); block = { set: setter, lines: [] }; };
+    const nItem = (s, n) => { const v = parseInt(s, 10); if (!(v >= 1 && v <= 16)) { errs.push({ line: n, msg: `"${s}" is not an item number (1-16)` }); return null; } return v - 1; };
+    const nEvent = (s, n) => { const v = parseInt(s, 10); if (!(v >= 1 && v <= 16)) { errs.push({ line: n, msg: `"${s}" is not an event number (1-16)` }); return null; } return v - 1; };
+    const optNum = (s, f, n) => /^none\b/i.test(s.trim()) ? null : f(s.trim(), n);
+    const where = (s, n, mapIdx) => {
+      const m = /^(\d+)\s*,\s*(\d+)$/.exec(s.trim()); if (!m) { errs.push({ line: n, msg: `"${s}" is not a row,column position` }); return null; }
+      const mp = P.maps[mapIdx]; const r = +m[1] - 1, c = +m[2] - 1;
+      if (!mp || r < 0 || c < 0 || r >= mp.rows || c >= mp.width) { errs.push({ line: n, msg: `${s} is outside ${mp ? mp.name : 'the map'} (${mp ? mp.rows + ' rows, ' + mp.width + ' columns' : ''})` }); return null; }
+      return r * mp.width + c;
+    };
+    const mapOf = (s, n) => { const k = LETTERS.indexOf(s.trim().toUpperCase()); if (k < 0) errs.push({ line: n, msg: `"${s}" is not a map letter` }); return k; };
+    const wordKey = Object.fromEntries(SCRIPT_WORDS), msgKey = Object.fromEntries(SCRIPT_MSGS);
+    const strip = s => s.replace(/\s+\(.*\)\s*$/, '').trim(); // "2 (SOME ROPE)" -> "2"
+    for (let n = 1; n <= lines.length; n++) {
+      const raw = lines[n - 1], t = raw.trim();
+      const bar = /^\s*\|/.exec(raw);
+      if (bar) {
+        const body = raw.slice(bar[0].length);
+        if (section === 'picture' && !block) { picRows.push(body); continue; }
+        if (!block) { errs.push({ line: n, msg: 'text line (|) with no heading above it' }); continue; }
+        block.lines.push(body); continue;
+      }
+      if (t === '' || t.startsWith('#')) continue;
+      flush();
+      let m;
+      const kv = /^([^:]+):\s*(.*)$/.exec(t);
+      if (!kv) { errs.push({ line: n, msg: `can't read "${t}"` }); continue; }
+      const key = kv[1].trim().toLowerCase();
+      let val = raw.slice(raw.indexOf(':') + 1); if (val[0] === ' ') val = val.slice(1); // one-line values keep their spaces
+      const indented = /^\s/.test(raw);
+      // ---- section headings ----
+      if (!indented) {
+        cell = null;
+        if (key === 'items' || key === 'events' || key === 'words' || key === 'messages') { section = key; continue; }
+        if (key === 'intro page') { section = 'top'; const k = P.intro.length; P.intro.push(''); textTo(v => P.intro[k] = v); continue; }
+        if (key === 'picture') { section = 'picture'; P.picture.on = /^on\b/i.test(val.trim()); continue; }
+        if ((m = /^map ([a-p])$/i.exec(key))) {
+          const d = /^(\d+)\s*x\s*(\d+)$/i.exec(val.trim());
+          if (!d) { errs.push({ line: n, msg: 'write a map heading like "map A: 6 x 5" (columns x rows)' }); continue; }
+          mi = LETTERS.indexOf(m[1].toUpperCase());
+          if (mi !== P.maps.length) errs.push({ line: n, msg: `maps must come in order: expected map ${LETTERS[P.maps.length]}` });
+          map = blankMap(P.maps.length, +d[1], +d[2]); mi = P.maps.length; P.maps.push(map); section = 'map'; continue;
+        }
+        section = 'top';
+        if (key === 'title') P.title = val.trim();
+        else if (key === 'engine') P.engine = /dark/i.test(val) ? 'darkmage' : 'tak';
+        else if (key === 'cart') { const c = val.trim().toUpperCase(); if (!CARTS[c]) { errs.push({ line: n, msg: `unknown cartridge "${val.trim()}" (8K, 16K, 32K or 64K)` }); cartBad = true; } else P.cart = c; }
+        else if (key === 'start') { pendingStart = { s: val, n }; }
+        else if (key === 'carrying') P.start.inventory = /^(nothing|none)?$/i.test(val.trim()) ? [] : val.split(',').map(x => nItem(x.trim(), n)).filter(x => x != null);
+        else if (key === 'game ends on event') P.settings.endEvent = optNum(strip(val), nEvent, n);
+        else if (key === 'sound') P.settings.sound = !/^off/i.test(val.trim());
+        else if (key === 'tune') { const k = val.trim().toLowerCase(); if (!TUNES[k] && k !== 'custom') errs.push({ line: n, msg: `unknown tune "${val.trim()}"` }); else P.settings.tune = k; }
+        else if (key === 'custom tune') P.settings.customTune = val.trim();
+        else if (key === 'passwords') P.settings.passwords = /^on/i.test(val.trim());
+        else if (key === 'tv') { const k = val.trim().toLowerCase(); if (!TV[k]) errs.push({ line: n, msg: `unknown TV system "${val.trim()}" (NTSC, PAL or PAL60)` }); else P.settings.tv = k; }
+        else errs.push({ line: n, msg: `unknown setting "${kv[1].trim()}"` });
+        continue;
+      }
+      // ---- inside a section ----
+      if (section === 'items') { const k = nItem(key, n); if (k != null) P.items[k] = val; continue; }
+      if (section === 'events') { const k = nEvent(key, n); if (k != null) P.events[k] = val; continue; }
+      if (section === 'words') { if (!wordKey[key]) errs.push({ line: n, msg: `unknown menu word "${kv[1].trim()}"` }); else P.system[wordKey[key]] = val; continue; }
+      if (section === 'messages') { if (!msgKey[key]) errs.push({ line: n, msg: `unknown message "${kv[1].trim()}"` }); else { const k = msgKey[key]; textTo(v => P.system[k] = v); } continue; }
+      if (section === 'picture') {
+        if (key === 'rows') P.picture.height = Math.max(1, Math.min(128, parseInt(val, 10) || 1));
+        else if (key === 'row height') P.picture.rowH = +val.trim() === 1 ? 1 : 2;
+        else if (key === 'colour' || key === 'color') P.picture.color = parseInt(val.trim().replace('$', ''), 16) & 0xFF;
+        else errs.push({ line: n, msg: `unknown picture setting "${kv[1].trim()}"` });
+        continue;
+      }
+      if (section !== 'map') { errs.push({ line: n, msg: `"${t}" is indented but not inside a section` }); continue; }
+      // map level
+      if (key === 'colours' || key === 'colors') {
+        const c = map.colors;
+        for (const [re, k] of [[/background\s+\$?([0-9a-f]{1,2})/i, 'bg'], [/(?:^|,)\s*text\s+\$?([0-9a-f]{1,2})/i, 'text'], [/menu\s+\$?([0-9a-f]{1,2})/i, 'menuBg'], [/menu text\s+\$?([0-9a-f]{1,2})/i, 'menuText']]) {
+          const x = re.exec(val); if (x) c[k] = parseInt(x[1], 16);
+        }
+        continue;
+      }
+      if (key === 'default wall') { const mp = map; textTo(v => { for (const c of mp.cells) if (c.type === 'wall' && !c.custom) c.text = v; mp.defWall = v; }); continue; }
+      if ((m = /^wall (.+)$/.exec(key))) { const i = where(m[1], n, mi); if (i == null) { textTo(() => {}); continue; } const c = wall(''); c.custom = true; map.cells[i] = c; cell = null; textTo(v => c.text = v); continue; }
+      if ((m = /^portal (.+)$/.exec(key))) {
+        const i = where(m[1], n, mi); const d = /^to\s+([a-p])\s+(.+)$/i.exec(val.trim());
+        if (i == null) continue; if (!d) { errs.push({ line: n, msg: 'write a portal like "portal 3,6: to B 3,1"' }); continue; }
+        portalsTodo.push({ map: mi, idx: i, to: d[1], at: d[2], n }); cell = null; continue;
+      }
+      if ((m = /^room (.+)$/.exec(key))) {
+        const i = where(m[1], n, mi); if (i == null) { cell = room('', '', ''); continue; } // keep reading its lines without placing it
+        cell = room(val.trim(), '', ''); map.cells[i] = cell; ci = i; continue;
+      }
+      if (!cell) { errs.push({ line: n, msg: `"${t}" must come under a room` }); continue; }
+      const c = cell;
+      if (key === 'arrive') textTo(v => c.desc = v);
+      else if (key === 'look') textTo(v => c.look = v);
+      else if (key === 'item') c.item = optNum(strip(val), nItem, n);
+      else if (key === 'look reveals the item') c.lookReveals = /^y/i.test(val.trim());
+      else if (key === 'take') { c.take.on = true; textTo(v => c.take.text = v); }
+      else if ((m = /^use item (\S+)(?:\s*\(.*?\))?(,\s*sets the event)?$/.exec(key))) { c.use.on = true; c.use.item = optNum(m[1], nItem, n); c.use.setsEvent = !!m[2]; textTo(v => c.use.text = v); }
+      else if ((m = /^give item (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.give.on = true; c.give.item = optNum(m[1], nItem, n); textTo(v => c.give.text = v); }
+      else if (key === 'talk') { c.talk.on = true; textTo(v => c.talk.no = v); }
+      else if ((m = /^talk after using item (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.talk.on = true; c.talk.needUsed = nItem(m[1], n); textTo(v => c.talk.ok = v); }
+      else if (key === 'sets event') c.sets = optNum(strip(val), nEvent, n);
+      else if ((m = /^locked until event (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.door.on = true; c.door.needEvent = optNum(m[1], nEvent, n); textTo(v => c.door.text = v); }
+      else if (key === 'ending') { const v = val.trim().toLowerCase(); if (v === 'win') { c.ending = true; c.deadly = false; } else if (v === 'game over') { c.ending = true; c.deadly = true; } else if (v === 'no' || v === 'none') c.ending = false; else errs.push({ line: n, msg: 'ending is "win" or "game over"' }); }
+      else if ((m = /^after event (\S+)(?:\s*\(.*?\))?,\s*(arrive|look)$/.exec(key))) {
+        c.alt.on = true; c.alt.event = optNum(m[1], nEvent, n); const k = m[2] === 'arrive' ? 'desc' : 'look'; textTo(v => c.alt[k] = v);
+      }
+      else errs.push({ line: n, msg: `unknown room line "${kv[1].trim()}"` });
+    }
+    flush();
+    // wall texts set before the map's default was read keep the default
+    for (const mp of P.maps) { for (const c of mp.cells) delete c.custom; delete mp.defWall; }
+    // portals and the start, now that every map exists
+    for (const p of portalsTodo) {
+      const tm = mapOf(p.to, p.n); if (tm < 0) continue;
+      if (!P.maps[tm]) { errs.push({ line: p.n, msg: `there is no map ${p.to.toUpperCase()}` }); continue; }
+      const ti = where(p.at, p.n, tm); if (ti == null) continue;
+      P.portals.push({ map: p.map, idx: p.idx, toMap: tm, toIdx: ti });
+      P.maps[p.map].cells[p.idx] = wall("YOU CAN'T GO\nTHAT WAY.");
+    }
+    if (pendingStart) {
+      const d = /^([a-p])\s+(.+)$/i.exec(pendingStart.s.trim());
+      if (!d || d[1].toUpperCase() !== 'A') errs.push({ line: pendingStart.n, msg: 'the start must be on map A, like "start: A 2,2"' });
+      else if (P.maps[0]) { const i = where(d[2], pendingStart.n, 0); if (i != null) P.start.room = i; }
+    }
+    // picture rows
+    if (picRows.length) {
+      P.picture.rows = Array.from({ length: P.picture.height }, (_, r) => {
+        const s = picRows[r] || ''; let h = '';
+        for (let x = 0; x < 96; x += 8) { let v = 0; for (let b = 0; b < 8; b++) v = v << 1 | (s[x + b] === '#' ? 1 : 0); h += v.toString(16).padStart(2, '0'); }
+        return h;
+      });
+    } else P.picture.rows = Array.from({ length: P.picture.height }, () => '0'.repeat(24));
+    if (!P.maps.length) errs.push({ line: lines.length, msg: 'the script has no maps' });
+    else if (!cartBad && CARTS[P.cart] && P.maps.length !== CARTS[P.cart].banks) errs.push({ line: lines.length, msg: `a ${P.cart} cartridge needs ${CARTS[P.cart].banks} maps; the script has ${P.maps.length}` });
+    if (!P.intro.length) P.intro = ['', ''];
+    if (P.intro.length < 2) P.intro.push('');
+    normalize(P);
+    return { ok: !errs.length, project: P, errors: errs.sort((a, b) => a.line - b.line) };
+  }
+
   // ---------- Build a cartridge on the Workshop engine (no Dark Mage ROM needed) ----------
   const TAK_HDR = 0xFFD0;
   function takSyms(extra) { return Object.assign({}, TAK_ZP, TAK_GEO, extra); }
@@ -1669,6 +1922,7 @@
       const rom = new Uint8Array(4096 * NB).fill(0xFF);
       const banks = Array.from({ length: NB }, (_, b) => rom.subarray(b * 4096, (b + 1) * 4096));
       const PL = picLayout(P), PB = PL && picBlock(PL);
+      const tv = tvOf(P), geo = tv.hz === 50 ? TAK_GEO_PAL : {};
       const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent, sound: P.settings.sound !== false, pic: PL && { k: PL.k, pad: PL.pad, rows: PL.rows.length, rowH: PL.rowH },
         alt: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.alt && c.alt.on && c.alt.event != null)),
         deadly: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly)), pw: !!pwLayout(P) };
@@ -1807,7 +2061,7 @@
         const own = [...T.entries()].filter(([k, t]) => t.refs.has(x.m));
         const away = own.filter(([k]) => place.get(k) !== b).reduce((t, [, v]) => t + v.bytes.length, 0);
         const guests = keysIn(b).filter(k => !T.get(k).refs.has(x.m)).reduce((t, k) => t + T.get(k).bytes.length, 0);
-        return { used, total, free: total - used, text: est[b].plain, packed: est[b].packed, words: est[b].words, away, guests, textOnly: !x.used };
+        return { used, total, free: total - used, text: est[b].plain, packed: est[b].packed, words: est[b].words, away, guests, textOnly: !x.used, recs: x.fixed - (x.m === 0 ? pwLen : 0), pwCode: x.m === 0 ? pwLen : 0, pic: est[b].pic || 0 };
       });
       if (overBy.some(v => v > 0)) {
         const short = overBy.reduce((t, v) => t + Math.max(0, v), 0), roomLeft = overBy.reduce((t, v) => t + Math.max(0, -v), 0);
@@ -1904,7 +2158,7 @@
             ents = P.portals.filter(p => p.map === m).flatMap((p, k) => { const a = x.lockKeys[k] ? ptr(m, x.lockKeys[k]) : 0; return [(p.idx * 2) & 0xFF, lo(cart.base + order[p.toMap]), (p.toIdx * 2) & 0xFF, lo(a), hi(a)]; });
           }
           bk.set([lo(cart.base + b), ...ents, 0xFF], sym.PTBL - BASE);
-          bk.set([col.bg & 0xFE, col.text & 0xFE, col.menuBg & 0xFE, col.menuText & 0xFE, (x.map.width * 2) & 0xFF, lo(table), hi(table), FONT >> 8,
+          bk.set([tvColor(P, col.bg), tvColor(P, col.text), tvColor(P, col.menuBg), tvColor(P, col.menuText), (x.map.width * 2) & 0xFF, lo(table), hi(table), FONT >> 8,
             lo(toklo), hi(toklo), hi(dictAt), lo(sym.GMAP), hi(sym.GMAP), NGLYPH, x.used ? (x.map.cells.length * 2 - 2) & 0xFF : 0], TAK_HDR - BASE);
         }
         // intro page table (shared; read in the start bank)
@@ -1928,7 +2182,7 @@
       });
       // ---- the code, assembled with the real addresses, in every bank ----
       Object.assign(sym, {
-        FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? PL.color : 0, HOTLO: lo(cart.base), NBANKS: NB, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
+        ...geo, FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? tvColor(P, PL.color) : 0, HOTLO: lo(cart.base), NBANKS: NB, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
         STARTINV: P.start.inventory.reduce((acc, i) => acc | bit(i), 0),
       });
       if (picLen && picBank >= 0) {
@@ -2143,6 +2397,6 @@
     return P.engine === 'tak' ? buildTak(P, opts) : buildRom(P, engineRom, opts);
   }
   root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX,
-    TIA_CLK, tiaNote, parseTune, TUNES, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, PW_ALPHA, pwLayout, makeCode, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps };
+    toScript, fromScript, TIA_CLK, tiaNote, parseTune, TUNES, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, TV, tvOf, tvColor, tiaRgb, NTSC_RGB, PAL_RGB, NTSC_TO_PAL, PW_ALPHA, pwLayout, makeCode, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps };
 })(typeof window !== 'undefined' ? window : globalThis);
 if (typeof module !== 'undefined') module.exports = globalThis.TAK;
