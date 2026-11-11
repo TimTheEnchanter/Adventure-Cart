@@ -346,12 +346,19 @@
     if (!P.picture || typeof P.picture !== 'object') P.picture = blankTitle();
     if (P.settings.tune == null) P.settings.tune = 'fanfare';
     if (P.settings.customTune == null) P.settings.customTune = 'C5:8 E5:8 G5:8 C6:24';
+    if (P.settings.titleTune == null) P.settings.titleTune = 'none';
+    if (P.settings.customTitleTune == null) P.settings.customTitleTune = 'C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24';
     if (P.system.theEnd == null) P.system.theEnd = 'THE END';
     if (P.system.nothing == null) P.system.nothing = 'NOTHING';
     if (P.system.tryAgain == null) P.system.tryAgain = 'TRY AGAIN';
     if (P.system.code == null) P.system.code = 'CODE';
     if (P.system.delete == null) P.system.delete = 'DELETE';
     if (P.settings.passwords == null) P.settings.passwords = false;
+    if (!Array.isArray(P.verbs)) P.verbs = [];
+    if (!P.print || typeof P.print !== 'object') P.print = {};
+    for (const [k, v] of Object.entries({ author: '', year: '', story: '', notes: '', labelW: 84, labelH: 64, labelStyle: 'picture', tagline: 'TEXT ADVENTURE', code: '' })) if (P.print[k] == null) P.print[k] = v;
+    if (P.verbs.length > MAX_VERBS) P.verbs.length = MAX_VERBS;
+    P.verbs.forEach((v, i) => { if (!v || typeof v !== 'object') P.verbs[i] = v = {}; if (v.word == null) v.word = 'VERB'; if (v.none == null) v.none = ''; });
     if (!P.events) P.events = [];
     while (P.events.length < 16) P.events.push('Event ' + (P.events.length + 1));
     while (P.items.length < 16) P.items.push('');
@@ -361,6 +368,8 @@
         if (c.ending == null) c.ending = false; if (c.use.setsEvent == null) c.use.setsEvent = false;
         if (!c.alt) c.alt = { on: false, event: null, desc: '', look: '' };
         if (c.deadly == null) c.deadly = false;
+        if (!Array.isArray(c.verbs)) c.verbs = [];
+        for (const e of c.verbs) for (const k of ['text', 'fail', 'done']) if (e[k] == null) e[k] = '';
       }
     }
     return P;
@@ -428,6 +437,11 @@
       const nb = tuneBytes(P.settings.customTune), room = TUNE_ROOM();
       if (nb > room) errs.push(`Ending tune: ${nb} bytes, but there is room for ${room}. Use fewer notes.`);
     }
+    if (P.engine === 'tak' && P.settings.sound !== false && P.settings.titleTune === 'custom') {
+      const t = parseTune(P.settings.customTitleTune);
+      if (t.bad.length) warns.push(`Title music: couldn't read ${t.bad.slice(0, 4).join(' ')} (write notes like C5:8, or - for a rest)`);
+      if (tuneSteps(P.settings.customTitleTune).length > 64) warns.push('Title music: only the first 64 notes are played');
+    }
     if (P.settings.passwords && P.engine === 'tak') {
       checkPage(P.system.code, 'Menu word "code"', errs, warns, { menuWord: true });
       checkPage(P.system.delete, 'Menu word "delete"', errs, warns, { menuWord: true });
@@ -474,7 +488,10 @@
     checkPage(P.system.theEnd, 'Menu word "the end"', errs, warns, { menuWord: true });
     checkPage(P.system.nothing, 'Menu word "nothing"', errs, warns, { menuWord: true });
     if (P.engine === 'tak' && P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly))) checkPage(P.system.tryAgain, 'Menu word "try again"', errs, warns, { menuWord: true });
-    if (P.settings.endEvent != null && !P.maps.some(m => m.cells.some(c => c.type === 'room' && c.sets === P.settings.endEvent && (c.give.on || c.talk.on || (c.use.on && c.use.setsEvent)))))
+    if (P.verbs.length && P.engine !== 'tak') warns.push('Your own verbs need the Workshop engine; the Dark Mage engine leaves them out');
+    P.verbs.forEach((v, i) => { checkPage(v.word, `Verb ${i + 1} word`, errs, warns, { menuWord: true }); checkPage(v.none, `Verb ${i + 1} (${normText(v.word)}) default reply`, errs, warns); });
+    const verbSets = e => P.engine === 'tak' && P.maps.some(m => m.cells.some(c => c.type === 'room' && (c.verbs || []).some(x => x.verb < P.verbs.length && x.sets === e)));
+    if (P.settings.endEvent != null && !verbSets(P.settings.endEvent) && !P.maps.some(m => m.cells.some(c => c.type === 'room' && c.sets === P.settings.endEvent && (c.give.on || c.talk.on || (c.use.on && c.use.setsEvent)))))
       warns.push('No room ever sets the event that ends the game');
     if (P.maps.some(m => m.cells.some(c => c.type === 'room' && c.use.on && c.use.setsEvent && c.sets == null)))
       warns.push('A room\'s USE is set to trigger an event, but that room has no event chosen');
@@ -497,6 +514,16 @@
         if (normText(c.alt.desc).trim()) checkPage(c.alt.desc, L + ' description after the event', errs, warns);
         if (normText(c.alt.look).trim()) checkPage(c.alt.look, L + ' LOOK text after the event', errs, warns);
       }
+      const vseen = new Set();
+      (c.verbs || []).forEach(x => {
+        const vw = P.verbs[x.verb];
+        if (!vw) { errs.push(`${L}: a reply for verb ${x.verb + 1}, but the game has ${P.verbs.length} verb${P.verbs.length === 1 ? '' : 's'}`); return; }
+        const nm = normText(vw.word);
+        if (vseen.has(x.verb)) errs.push(`${L}: two replies for ${nm}`); vseen.add(x.verb);
+        checkPage(x.text, `${L} ${nm} text`, errs, warns);
+        if (normText(x.fail).trim()) checkPage(x.fail, `${L} ${nm} refused text`, errs, warns);
+        if (normText(x.done).trim()) checkPage(x.done, `${L} ${nm} already-done text`, errs, warns);
+      });
       if (c.ending && c.deadly && P.engine !== 'tak') warns.push(L + ': game-over rooms need the Workshop engine; the Dark Mage engine treats this as a normal ending');
       // an ending stops the controls, so its edges never matter
       const nb = c.ending ? {} : neighbors(P, mi, i);
@@ -866,8 +893,11 @@
   function room(name, desc, look) {
     return { type: 'room', name, desc, look, lookReveals: false, item: null, take: { on: false, text: '' }, use: { on: false, item: null, text: '', setsEvent: false },
       give: { on: false, item: null, text: '' }, talk: { on: false, needUsed: null, ok: '', no: '' }, sets: null, door: { on: false, needEvent: null, text: '' }, ending: false,
-      alt: { on: false, event: null, desc: '', look: '' }, deadly: false };
+      alt: { on: false, event: null, desc: '', look: '' }, deadly: false, verbs: [] };
   }
+  // a room's reply to one of the game's own verbs
+  function verbEntry(v) { return { verb: v || 0, needItem: null, needEvent: null, gives: null, sets: null, text: '', fail: '', done: '' }; }
+  const MAX_VERBS = 4;
   function wall(text) { return { type: 'wall', text }; }
   function blankMap(i, W, rows) {
     return { name: 'Map ' + LETTERS[i], width: W, rows, cells: Array.from({ length: rows * W }, () => wall("YOU CAN'T GO\nTHAT WAY.")), colors: Object.assign({}, DEFAULT_COLORS) };
@@ -889,7 +919,7 @@
     A[pB] = room('Portal path (Map A side)', 'A NARROW\nPASSAGE\nLEADS EAST.', 'YOU FEEL A\nCOLD DRAFT.');
     B[pA] = room('Portal path (Map B side)', 'YOU HAVE\nCROSSED INTO\nA NEW LAND.', 'THE PASSAGE\nWEST LEADS\nBACK HOME.');
     return {
-      kit: 'tak', version: 1, title: opts.title || 'My adventure', engine: 'tak',
+      kit: 'tak', version: 1, title: opts.title || 'My adventure', engine: 'tak', verbs: [],
       cart: '8K',
       settings: { endEvent: null },
       portals: [{ map: 0, idx: pA, toMap: 1, toIdx: pA }, { map: 1, idx: pB, toMap: 0, toIdx: pB }],
@@ -1176,7 +1206,7 @@
     LINE: 0x90, TP: 0x91, PAR: 0x93, TXT: 0x9C, MENUW: 0x9E, SELI: 0xA0, PMSGHI: 0xA1, ROOM: 0xA2, REC: 0xA3,
     PREV: 0xA5, TK: 0xA6, INV: 0xA7, SEEN: 0xA8, USED: 0xA9, PHOT: 0xAA, PMSGLO: 0xAB, EV: 0xAC, MMODE: 0xAD,
     DEB: 0xAE, LIST: 0xAF, MCOUNT: 0xBF, MWORDS: 0xC0, MHAND: 0xC2, SEL: 0xC8, MODE: 0xC9, PAGE: 0xCB, STATE: 0xCC,
-    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD, SPTR: 0xEE, SDUR: 0xF0, CTX: 0xF1, TMPA: 0xF2,
+    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD, SPTR: 0xEE, SDUR: 0xF0, CTX: 0xF1, TMPA: 0xF2, TPTR: 0xF3, TDUR: 0xF5, AUDC1: 0x16, AUDF1: 0x18, AUDV1: 0x1A,
     // passwords use the item-menu areas, free while a code is made or typed
     V0: 0xAF, V1: 0xB0, ACC: 0xB1, KB: 0xB2, SUM: 0xB3, DI: 0xB4, CI: 0xB5, NCH: 0xB6, SCR: 0xB7, TROOM: 0xB8, TBANK: 0xB9, NB: 0xBA, MB: 0xBB, PWS: 0xBD, BUDG: 0xBE, BUF: 0xCE, AUDC0: 0x15, AUDF0: 0x17, AUDV0: 0x19,
     VSYNC: 0x00, VBLANK: 0x01, WSYNC: 0x02, NUSIZ0: 0x04, NUSIZ1: 0x05, COLUP0: 0x06, COLUP1: 0x07, COLUBK: 0x09,
@@ -1211,13 +1241,14 @@
     // ---------- reset: make sure we run in the start bank, clear RAM and the TIA ----------
     add('RESET: SEI', 'CLD', 'LDA STARTHOT', 'LDX #0', 'TXA', 'RCLR: DEX', 'TXS', 'PHA', 'BNE RCLR',
       ...(o.sound ? ['LDA #<S_QUIET', 'STA SPTR', 'LDA #>S_QUIET', 'STA SPTR+1'] : []),
+      ...(o.title ? ['LDA #<T_TITLE', 'STA TPTR', 'LDA #>T_TITLE', 'STA TPTR+1'] : []),
       'LDA INTRO', 'STA TXT', 'LDA INTRO+1', 'STA TXT+1');
     add(o.npages > 1 ? 'JSR SETMOREM' : 'JSR SETSTARTM');
     // ---------- frame ----------
     add('FRAME: LDA #2', 'STA VBLANK', 'STA WSYNC', 'STA VSYNC', 'STA WSYNC', 'STA WSYNC', 'STA WSYNC', 'LDA #0', 'STA VSYNC',
       'LDA #VBT', 'STA TIM64T', 'INC FRAMEC', 'LDA FRAMEC', 'AND #1', 'STA PAR',
       'LDA SWCHB', 'LSR A', 'BCS NORES', 'JMP RESET',
-      'NORES: JSR INPUT', ...(o.sound ? ['JSR SOUND'] : []),
+      'NORES: JSR INPUT', ...(o.sound ? ['JSR SOUND'] : []), ...(o.title ? ['JSR TSOUND'] : []),
       // text can live in any bank: the high nibble of the message address names it ($F = this map's bank)
       'LDA PTBL', 'STA MHOT', 'LDA HDR', 'STA CBG', 'LDA HDR+2', 'STA CMB', 'LDA HDR+3', 'STA CMT',
       'LDA HDR+1', 'STA COLUP0', 'STA COLUP1', ...(o.pic ? ['STA CTX'] : []),
@@ -1248,8 +1279,16 @@
       // overscan
       'LDA #2', 'STA VBLANK', 'LDA #OST', 'STA TIM64T', 'LDY MHOT', 'LDA $FF00,Y',
       // a code being made or checked: a slice of the work in the start bank each overscan
-      ...(o.pw ? ['LDA PWS', 'BEQ OSW', 'LDA STARTHOT', 'JSR PWSTEP', 'LDY MHOT', 'LDA $FF00,Y'] : []),
+      ...(o.pw ? ['LDA PWS', 'BEQ OSW', 'JSR PWSTP'] : []),
       'OSW: LDA INTIM', 'BNE OSW', 'JMP FRAME');
+    // ---------- passwords: the code routines sit in one bank (PWHOT), which may hold only text and display code,
+    // so every way in and out goes through these, which every bank has at the same address ----------
+    if (o.pw) add('PWSAVE: LDA PWHOT', 'JSR XSAVE', 'JMP PWBACK', 'PWSTP: LDA PWHOT', 'JSR PWSTEP', 'JMP PWBACK',
+      'PWCODE: LDA PWHOT', 'JSR HCODE', 'JMP PWBACK', 'PWCF: LDA PWHOT', 'JSR HCODEF', 'JMP PWBACK',
+      'PWSEL: LDA PWHOT', 'JSR SELC', 'JMP PWBACK', 'PWBAD: LDA PWHOT', 'JSR BAD',
+      'PWBACK: LDY MHOT', 'LDA $FF00,Y', 'RTS',
+      // out of the code bank: resume in a map's bank, or back to the start menu in the start bank
+      'BSW: LDA $FF00,Y', 'JMP XRESUME', 'BSM: LDA STARTHOT', 'JMP SETSTARTM');
     // ---------- read one text line from TP into the six glyph pointers (this frame's half) ----------
     // Every character is stored at P1+X with X = its column (odd frames start at -1), so this frame's
     // half land on the pointers' low bytes; the others land on high bytes, which are reset afterwards.
@@ -1294,7 +1333,7 @@
       'ENDED: LDA MENUW', 'CMP #<W_END', 'BNE EN1', 'LDA MENUW+1', 'CMP #>W_END', 'BEQ EN2', 'EN1:', ...snd('S_END'),
       'LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1', 'EN2: RTS',
       ...(o.pw ? ['IN1: LDA PWS', 'BNE IRTS', 'LDA INPT4'] : ['IN1: LDA INPT4']), 'BMI NOTPR', 'LDA DEB', 'BNE IRTS', 'INC DEB', ...snd('S_FIRE'), 'LDA ROOM', 'STA PREV',
-      'LDA MMODE', ...(o.pw ? ['CMP #3', 'BNE IN3', 'JMP HCODEF', 'IN3:'] : []), 'CMP #2', 'BNE IN2', 'JMP HPICK', 'IN2: LDA SELI', 'ASL A', 'TAY', 'LDA (MHAND),Y', 'STA T1', 'INY', 'LDA (MHAND),Y', 'STA T2', 'JMP (T1)',
+      'LDA MMODE', ...(o.pw ? ['CMP #3', 'BNE IN3', 'JMP PWCF', 'IN3:'] : []), 'CMP #2', 'BNE IN2', 'JMP HPICK', 'IN2: LDA SELI', 'ASL A', 'TAY', 'LDA (MHAND),Y', 'STA T1', 'INY', 'LDA (MHAND),Y', 'STA T2', 'JMP (T1)',
       'NOTPR: LDA #0', 'STA DEB', 'LDA FRAMEC', 'AND #7', 'BNE IRTS', 'LDA MMODE', 'BNE CYC',
       // walking: the stick picks NORTH/EAST/SOUTH/WEST, centred means LOOK
       'LDA SWCHA', 'LDX #2', 'ASL A', 'BCC SETI', 'LDX #4', 'ASL A', 'BCC SETI', 'LDX #3', 'ASL A', 'BCC SETI',
@@ -1304,7 +1343,7 @@
       'CRT: INC SELI', 'LDA SELI', 'CMP MCOUNT', 'BCC CSW', 'LDA #0', 'STA SELI', 'CSW:', ...snd('S_TICK'), 'JMP SELWORD',
       'CLT: DEC SELI', 'BPL CSW', 'LDX MCOUNT', 'DEX', 'STX SELI', 'JMP CSW');
     // ---------- menus ----------
-    add(...(o.pw ? ['SELWORD: LDA MMODE', 'CMP #3', 'BNE SW0', 'JMP SELC', 'SW0: LDA SELI'] : ['SELWORD: LDA SELI']), 'ASL A', 'TAY', 'LDA (MWORDS),Y', 'STA MENUW', 'INY', 'LDA (MWORDS),Y', 'STA MENUW+1', 'RTS',
+    add(...(o.pw ? ['SELWORD: LDA MMODE', 'CMP #3', 'BNE SW0', 'JMP PWSEL', 'SW0: LDA SELI'] : ['SELWORD: LDA SELI']), 'ASL A', 'TAY', 'LDA (MWORDS),Y', 'STA MENUW', 'INY', 'LDA (MWORDS),Y', 'STA MENUW+1', 'RTS',
       // each entry skips the next one's LDX with a BIT absolute ($2C)
       'SETMOVE: LDX #0', '.byte $2C', 'SETACT: LDX #6', '.byte $2C', 'SETMOREM: LDX #12', '.byte $2C', 'SETSTARTM: LDX #18',
       'LDA MT,X', 'STA MWORDS', 'LDA MT+1,X', 'STA MWORDS+1', 'LDA MT+2,X', 'STA MHAND', 'LDA MT+3,X', 'STA MHAND+1',
@@ -1378,17 +1417,38 @@
       'LDX #4', 'JSR GETF', 'BEQ GV2', 'JSR EVSET', 'GV2: LDX #0', 'JSR GETF', 'BEQ GV3', 'LDY #SEEN', 'JSR BSET',
       'GV3: LDX #10', 'JMP SAY', 'GNO:', ...snd('S_NOPE'), 'LDA #<M_CGIVE', 'LDY #>M_CGIVE', 'JMP SAYW',
       'EVSET: LDY #EV', 'JSR BSET', ...snd('S_EVENT'), 'RTS');
+    // ---------- the game's own verbs ----------
+    // field 14 points at [alt event, alt arrival lo/hi, alt LOOK lo/hi, n, n entries of
+    // verb, needs item, needs event, sets event, gives item ($FF = none), text lo/hi, refused lo/hi, already-done lo/hi]
+    if (o.verbs) add(
+      ...Array.from({ length: o.verbs }, (_, i) => [`HV${i}: LDX #${i}`, ...(i < o.verbs - 1 ? ['.byte $2C'] : [])]).flat(),
+      'HVERB: STX TMPA', 'JSR GETREC', 'LDX #14', 'JSR FLD', 'BCC VNONE',
+      'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'LDY #5', 'LDA (T1),Y', 'BEQ VNONE', 'STA SY', 'INY',
+      'VL: LDA (T1),Y', 'CMP TMPA', 'BEQ VHIT', 'TYA', 'CLC', 'ADC #11', 'TAY', 'DEC SY', 'BNE VL',
+      'VNONE:', ...snd('S_NOPE'), 'LDA TMPA', 'ASL A', 'TAX', 'LDA VDEF,X', 'LDY VDEF+1,X', 'JMP SAYW',
+      'VFAIL: LDA #7', 'JSR VT', 'BEQ VNONE', ...snd('S_NOPE'), 'JMP SETMOVE',
+      // done already (its event set, or its item handed over before)?  then do the needs hold?
+      'VHIT: STY SY', 'LDA #3', 'JSR VF', 'BEQ VH1', 'LDY #EV', 'JSR BTST', 'BNE VDONE',
+      'VH1: LDA #4', 'JSR VF', 'BEQ VH2', 'LDY #TK', 'JSR BTST', 'BNE VDONE',
+      'VH2: LDA #1', 'JSR VF', 'BEQ VH3', 'LDY #INV', 'JSR BTST', 'BEQ VFAIL',
+      'VH3: LDA #2', 'JSR VF', 'BEQ VH4', 'LDY #EV', 'JSR BTST', 'BEQ VFAIL',
+      'VH4:', ...snd('S_GOOD'), 'LDA #4', 'JSR VF', 'BEQ VH5', 'LDY #INV', 'JSR BSET', 'LDY #TK', 'JSR BSET',
+      'VH5: LDA #3', 'JSR VF', 'BEQ VH6', 'JSR EVSET',
+      'VH6: LDA #5', 'JSR VT', 'JMP SETMOVE',
+      'VDONE: LDA #9', 'JSR VT', 'BEQ VH6', 'JMP SETMOVE',
+      'VF: CLC', 'ADC SY', 'TAY', 'LDA (T1),Y', 'TAX', 'CMP #$FF', 'RTS',
+      'VT: CLC', 'ADC SY', 'TAY', 'LDA (T1),Y', 'STA TXT', 'INY', 'LDA (T1),Y', 'STA TXT+1', 'RTS');
     // ---------- passwords ----------
     // Making and checking codes is long, so that code sits only in the start bank (see takPwBlock). Here are the
     // pieces every bank needs: CODE in the action menu borrows the start bank for a moment, and a typed code
     // that checks out switches to its map's bank and carries on here.
     if (o.pw) add(
-      'HSAVE: LDA STARTHOT', 'JSR XSAVE', 'LDY MHOT', 'LDA $FF00,Y', 'JMP SETMOVE',
+      'HSAVE: JSR PWSAVE', 'JMP SETMOVE',
       'XRESUME: LDA $FF00,Y', 'LDA TROOM', 'ASL A', 'STA ROOM', 'CMP HDR+14', 'BEQ XR1', 'BCS XRB',
       'XR1: JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'BEQ XRB',
       // from now on the frame returns to this map's bank
       'LDA PTBL', 'STA MHOT', 'LDA #1', 'STA STATE', 'STA DEB', 'LDA #0', 'STA PHOT', ...snd('S_GOOD'), 'LDX #6', 'JMP SAY',
-      'XRB: LDA STARTHOT', 'JMP BAD');
+      'XRB: JMP PWBAD');
     // ---------- sound: one channel, a list of [control<<4 | volume, frequency, frames-1], 0 ends ----------
     // all sounds sit in one page, so a sound is named by its low address byte; each entry point loads it
     // and skips the following loads with a BIT absolute ($2C)
@@ -1401,15 +1461,24 @@
         'INY', 'LDA (SPTR),Y', 'STA AUDF0', 'INY', 'LDA (SPTR),Y', 'STA SDUR',
         'LDA SPTR', 'CLC', 'ADC #3', 'STA SPTR', 'SNR: RTS');
     }
+    // ---------- title music: the second channel, looping while the title and intro pages show ----------
+    // its notes sit in the start bank only (the bank that is switched in until START); 16-bit pointer, 0 loops
+    if (o.title) add('TSOUND: LDA STATE', 'BNE TSQ', 'LDA TDUR', 'BEQ TS1', 'DEC TDUR', 'RTS',
+      'TS1: LDY #0', 'LDA (TPTR),Y', 'BNE TS2', 'LDA #<T_TITLE', 'STA TPTR', 'LDA #>T_TITLE', 'STA TPTR+1', 'LDA (TPTR),Y',
+      'TS2: STA AUDV1', 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'STA AUDC1', 'INY', 'LDA (TPTR),Y', 'STA AUDF1', 'INY', 'LDA (TPTR),Y', 'STA TDUR',
+      'LDA TPTR', 'CLC', 'ADC #3', 'STA TPTR', 'BCC TSR', 'INC TPTR+1', 'TSR: RTS',
+      'TSQ: LDA #0', 'STA AUDV1', 'RTS');
     // ---------- tables ----------
     const tbl = (label, names) => { add(`${label}: .byte ` + names.map(n => `<${n},>${n}`).join(',')); };
     add('ML: .byte 1,2,4,8,16,32,64,128,0,0,0,0,0,0,0,0', 'MH: .byte 0,0,0,0,0,0,0,0,1,2,4,8,16,32,64,128');
     tbl('MOVEW', ['W_LOOK', 'W_NORTH', 'W_EAST', 'W_SOUTH', 'W_WEST']);
     tbl('MOVEH', ['HLOOK', 'HN', 'HE', 'HS', 'HW']);
-    tbl('ACTW', ['W_GO', 'W_TAKE', 'W_GIVE', 'W_USE', 'W_TALK', 'W_INV', ...(o.pw ? ['W_CODE'] : [])]);
-    tbl('ACTH', ['HGO', 'HTAKE', 'HGIVE', 'HUSE', 'HTALK', 'HINV', ...(o.pw ? ['HSAVE'] : [])]);
-    tbl('MOREW', ['W_MORE']); tbl('MOREH', ['HMORE']); tbl('STARTW', ['W_START', ...(o.pw ? ['W_CODE'] : [])]); tbl('STARTH', ['HSTART', ...(o.pw ? ['HCODE'] : [])]);
-    add(`MT: .byte <MOVEW,>MOVEW,<MOVEH,>MOVEH,5,0, <ACTW,>ACTW,<ACTH,>ACTH,${o.pw ? 7 : 6},1, <MOREW,>MOREW,<MOREH,>MOREH,1,1, <STARTW,>STARTW,<STARTH,>STARTH,${o.pw ? 2 : 1},1`);
+    const nv = o.verbs || 0, vr = p => Array.from({ length: nv }, (_, i) => p + i);
+    tbl('ACTW', ['W_GO', 'W_TAKE', 'W_GIVE', 'W_USE', 'W_TALK', 'W_INV', ...vr('W_V'), ...(o.pw ? ['W_CODE'] : [])]);
+    tbl('ACTH', ['HGO', 'HTAKE', 'HGIVE', 'HUSE', 'HTALK', 'HINV', ...vr('HV'), ...(o.pw ? ['HSAVE'] : [])]);
+    if (nv) tbl('VDEF', vr('M_V'));
+    tbl('MOREW', ['W_MORE']); tbl('MOREH', ['HMORE']); tbl('STARTW', ['W_START', ...(o.pw ? ['W_CODE'] : [])]); tbl('STARTH', ['HSTART', ...(o.pw ? ['PWCODE'] : [])]);
+    add(`MT: .byte <MOVEW,>MOVEW,<MOVEH,>MOVEH,5,0, <ACTW,>ACTW,<ACTH,>ACTH,${6 + nv + (o.pw ? 1 : 0)},1, <MOREW,>MOREW,<MOREH,>MOREH,1,1, <STARTW,>STARTW,<STARTH,>STARTH,${o.pw ? 2 : 1},1`);
     return L;
   }
 
@@ -1504,6 +1573,21 @@
     lament: { name: 'Lament', text: 'A4:14 C5:14 E5:14 D5:14 C5:14 B4:14 A4:36' },
     none: { name: 'No tune', text: '' },
   };
+  // title music: loops on the second channel until START (rests at the end give a breath before it repeats)
+  const TITLE_TUNES = {
+    harbor: { name: 'Harbor song', text: 'E5:18 G5:18 A5:18 G5:18 E5:18 D5:18 C5:36 D5:18 E5:18 G5:18 E5:18 D5:36 -:30' },
+    quest: { name: 'Quest', text: 'G4:9 C5:9 D5:9 E5:18 D5:9 C5:9 D5:9 G4:18 C5:9 E5:9 G5:9 A5:18 G5:9 E5:9 D5:9 C5:27 -:18' },
+    mystery: { name: 'Mystery', text: 'A4:16 C5:16 E5:16 A5:32 G5:16 E5:16 C5:16 D5:32 -:16 A4:16 B4:16 C5:16 E5:32 D5:16 B4:16 A4:40 -:30' },
+    lullaby: { name: 'Lullaby', text: 'G5:24 E5:12 G5:24 E5:12 F5:12 E5:12 D5:12 C5:36 D5:24 E5:12 F5:24 D5:12 C5:48 -:36' },
+    none: { name: 'No title music', text: '' },
+  };
+  const TITLE_ROOM = 64 * 3 + 1; // bytes: up to 64 notes, in the start bank
+  function titleTuneText(P) { const k = P.settings.titleTune; return k === 'custom' ? P.settings.customTitleTune : (TITLE_TUNES[k] || TITLE_TUNES.none).text; }
+  function titleOn(P) { return P.engine === 'tak' && P.settings.sound !== false && tuneSteps(titleTuneText(P)).length > 0; }
+  function titleData(P) {
+    const hz = tvOf(P).hz, st = tuneSteps(titleTuneText(P)).map(([c, f, v, n]) => [c, f, v === 8 ? 6 : v, hz === 60 ? n : Math.max(1, Math.round(n * hz / 60))]);
+    return stepBytes(st.slice(0, 64));
+  }
   // a tune as player steps; a note followed by the same pitch fades for its last two frames so the two are heard apart
   function tuneSteps(text) {
     const out = [], ns = parseTune(text).notes.map(n => n.rest ? n : Object.assign({}, n, tiaNote(n.hz)));
@@ -1619,7 +1703,7 @@
   }
   // the password code that lives only in the start bank (assembled at its own address by the builder)
   function takPwBlock(o) {
-    const snd = (name) => o.sound ? ['JSR P' + name] : [];
+    const snd = (name) => o.sound ? ['LDA #<' + name, 'STA SPTR', 'LDA #0', 'STA SDUR'] : [];
     return [
       // copy the template ("CODE:" / dashes) into RAM and point the text at it
       'CTPL: LDX #CODETL-1', 'CT1: LDA CODET,X', 'STA BUF,X', 'DEX', 'BPL CT1', 'LDA #<BUF', 'STA TXT', 'LDA #1', 'STA TXT+1', 'RTS',
@@ -1653,7 +1737,7 @@
       'UN6: LDY DESC,X', 'LDA V0', 'STA $0000,Y', 'LDA DESC+1,X', 'CMP #9', 'BCC UN7', 'LDA V1', 'STA $001E,Y', 'UN7: INC DI', 'INC DI', 'LDA DI', 'CMP #ND*2', 'BEQ UN9',
       'UN4: DEC BUDG', 'BNE UN0', 'UN9: RTS',
       // ---- the place: a real map here, a real room checked in its own bank ----
-      'UNE: LDA #0', 'STA PWS', 'LDA TBANK', 'CMP #NBANKS', 'BCS BAD', 'CLC', 'ADC #HOTLO', 'TAY', 'JMP XRESUME',
+      'UNE: LDA #0', 'STA PWS', 'LDA TBANK', 'CMP #NBANKS', 'BCS BAD', 'CLC', 'ADC #HOTLO', 'TAY', 'JMP BSW',
       'BAD: LDA #0', 'STA PWS', 'LDX #3', 'BD1: STA TK,X', 'STA TK+$1E,X', 'DEX', 'BPL BD1', 'STA EV', 'STA EV+$1E', ...snd('S_NOPE'),
       // ---- CODE on the start menu: type a code letter by letter (left/right choose, fire adds) ----
       'HCODE: JSR CTPL', 'LDA #0', 'STA NCH', 'STA SELI', 'LDA #33', 'STA MCOUNT', 'LDA #3', 'STA MMODE',
@@ -1662,7 +1746,7 @@
       'HCODEF: LDA NCH', 'STA CI', 'JSR CPOS', 'LDY SELI', 'CPY #32', 'BEQ HC2', 'LDA ALPHA,Y', 'STA BUF,X', 'INC NCH', 'LDA NCH', 'CMP #NCODE', 'BNE HC9',
       'JSR PWINIT', 'LDA #2', 'STA PWS', 'HC9: RTS',
       // DELETE: the last letter, or back to the start menu when there is none
-      'HC2: LDA NCH', 'BNE HC3', 'LDA INTRO+NPAGES*2-2', 'STA TXT', 'LDA INTRO+NPAGES*2-1', 'STA TXT+1', 'JMP SETSTARTM',
+      'HC2: LDA NCH', 'BNE HC3', 'LDA INTRO+NPAGES*2-2', 'STA TXT', 'LDA INTRO+NPAGES*2-1', 'STA TXT+1', 'JMP BSM',
       'HC3: DEC NCH', 'DEC CI', 'JSR CPOS', 'LDA #DASH', 'STA BUF,X', 'RTS'];
   }
   // ---------- Game script: the whole project as one plain-text file, and back ----------
@@ -1692,15 +1776,23 @@
       `carrying: ${P.start.inventory.length ? P.start.inventory.map(i => i + 1).join(', ') : 'nothing'}`,
       `game ends on event: ${num(P.settings.endEvent)}${evName(P.settings.endEvent)}`,
       `sound: ${P.settings.sound !== false ? 'on' : 'off'}`, `tune: ${P.settings.tune}`, `custom tune: ${P.settings.customTune || ''}`,
-      `passwords: ${P.settings.passwords ? 'on' : 'off'}`, `tv: ${tvOf(P).name}`, '', 'items:');
+      `title music: ${P.settings.titleTune}`, `custom title music: ${P.settings.customTitleTune || ''}`,
+      `passwords: ${P.settings.passwords ? 'on' : 'off'}`, `tv: ${tvOf(P).name}`,
+      `author: ${P.print.author}`, `year: ${P.print.year}`, `label size: ${P.print.labelW} x ${P.print.labelH} mm`, `label style: ${P.print.labelStyle}`, `label tagline: ${P.print.tagline}`, `label code: ${P.print.code}`, '', 'items:');
     P.items.forEach((t, i) => put(`  ${i + 1}: ${t}`));
     put('', 'events:');
     P.events.forEach((t, i) => put(`  ${i + 1}: ${t}`));
+    if (P.verbs.length) {
+      put('', '# your own verbs: the menu word, then what it says in a room with no reply of its own');
+      put('verbs:'); P.verbs.forEach((v, i) => { put(`  ${i + 1}: ${v.word}`); text('    ', v.none); });
+    }
     put('', 'words:');
     for (const [k, key] of SCRIPT_WORDS) put(`  ${k}: ${P.system[key] == null ? '' : P.system[key]}`);
     put('', 'messages:');
     for (const [k, key] of SCRIPT_MSGS) { put(`  ${k}:`); text('    ', P.system[key]); }
     for (const t of P.intro) { put('', 'intro page:'); text('  ', t); }
+    if (P.print.story) { put('', 'manual story:'); text('  ', P.print.story); }
+    if (P.print.notes) { put('', 'manual notes:'); text('  ', P.print.notes); }
     const pic = P.picture;
     put('', `picture: ${pic.on ? 'on' : 'off'}`, `  rows: ${pic.height}`, `  row height: ${pic.rowH === 1 ? 1 : 2}`, `  colour: $${(pic.color & 0xFF).toString(16).toUpperCase().padStart(2, '0')}`);
     if (pic.rows.some(r => /[1-9a-f]/i.test(r || ''))) for (let r = 0; r < pic.height; r++) {
@@ -1739,6 +1831,14 @@
         if (c.sets != null) put(`    sets event: ${c.sets + 1}${evName(c.sets)}`);
         if (c.door.on) { put(`    locked until event ${num(c.door.needEvent)}${evName(c.door.needEvent)}:`); text('      ', c.door.text); }
         if (c.ending) put(`    ending: ${c.deadly ? 'game over' : 'win'}`);
+        for (const x of c.verbs || []) {
+          const vn = P.verbs[x.verb] ? ` (${safe(P.verbs[x.verb].word)})` : '';
+          const cl = [x.needItem != null ? `needs item ${x.needItem + 1}${itemName(x.needItem)}` : '', x.needEvent != null ? `needs event ${x.needEvent + 1}${evName(x.needEvent)}` : '',
+            x.gives != null ? `gives item ${x.gives + 1}${itemName(x.gives)}` : '', x.sets != null ? `sets event ${x.sets + 1}${evName(x.sets)}` : ''].filter(Boolean);
+          put(`    verb ${x.verb + 1}${vn}${cl.map(t => ', ' + t).join('')}:`); text('      ', x.text);
+          if (normText(x.fail).trim()) { put(`    verb ${x.verb + 1}${vn} refused:`); text('      ', x.fail); }
+          if (normText(x.done).trim()) { put(`    verb ${x.verb + 1}${vn} already done:`); text('      ', x.done); }
+        }
         if (c.alt && c.alt.on) {
           put(`    after event ${num(c.alt.event)}${evName(c.alt.event)}, arrive:`); text('      ', c.alt.desc);
           put(`    after event ${num(c.alt.event)}${evName(c.alt.event)}, look:`); text('      ', c.alt.look);
@@ -1750,7 +1850,7 @@
   function fromScript(src) {
     const errs = [];
     const P = newProject();
-    P.maps = []; P.portals = []; P.intro = []; P.picture = blankTitle(); P.settings.passwords = false;
+    P.maps = []; P.portals = []; P.intro = []; P.picture = blankTitle(); P.settings.passwords = false; P.print = { author: '', year: '', story: '', notes: '', labelW: 84, labelH: 64, labelStyle: 'picture', tagline: 'TEXT ADVENTURE', code: '' };
     const lines = String(src).replace(/\r/g, '').split('\n');
     let block = null;             // where | lines go: { set(text) , lines: [] }
     let section = 'top', map = null, mi = -1, cell = null, ci = -1, pendingStart = null, picRows = [], cartBad = false;
@@ -1789,7 +1889,8 @@
       // ---- section headings ----
       if (!indented) {
         cell = null;
-        if (key === 'items' || key === 'events' || key === 'words' || key === 'messages') { section = key; continue; }
+        if (key === 'items' || key === 'events' || key === 'words' || key === 'messages' || key === 'verbs') { section = key; continue; }
+        if (key === 'manual story' || key === 'manual notes') { section = 'top'; const k = key === 'manual story' ? 'story' : 'notes'; textTo(v => P.print[k] = v); continue; }
         if (key === 'intro page') { section = 'top'; const k = P.intro.length; P.intro.push(''); textTo(v => P.intro[k] = v); continue; }
         if (key === 'picture') { section = 'picture'; P.picture.on = /^on\b/i.test(val.trim()); continue; }
         if ((m = /^map ([a-p])$/i.exec(key))) {
@@ -1809,7 +1910,15 @@
         else if (key === 'sound') P.settings.sound = !/^off/i.test(val.trim());
         else if (key === 'tune') { const k = val.trim().toLowerCase(); if (!TUNES[k] && k !== 'custom') errs.push({ line: n, msg: `unknown tune "${val.trim()}"` }); else P.settings.tune = k; }
         else if (key === 'custom tune') P.settings.customTune = val.trim();
+        else if (key === 'title music') { const k = val.trim().toLowerCase(); if (!TITLE_TUNES[k] && k !== 'custom') errs.push({ line: n, msg: `unknown title music "${val.trim()}"` }); else P.settings.titleTune = k; }
+        else if (key === 'custom title music') P.settings.customTitleTune = val.trim();
         else if (key === 'passwords') P.settings.passwords = /^on/i.test(val.trim());
+        else if (key === 'author') P.print.author = val.trim();
+        else if (key === 'year') P.print.year = val.trim();
+        else if (key === 'label style') { const k = val.trim().toLowerCase(); if (!LABEL_STYLES[k]) errs.push({ line: n, msg: `unknown label style "${val.trim()}" (${Object.keys(LABEL_STYLES).join(', ')})` }); else P.print.labelStyle = k; }
+        else if (key === 'label tagline') P.print.tagline = val.trim();
+        else if (key === 'label code') P.print.code = val.trim();
+        else if (key === 'label size') { const d = /^(\d+)\s*x\s*(\d+)/i.exec(val.trim()); if (!d) errs.push({ line: n, msg: 'write the label size like "84 x 64 mm"' }); else { P.print.labelW = +d[1]; P.print.labelH = +d[2]; } }
         else if (key === 'tv') { const k = val.trim().toLowerCase(); if (!TV[k]) errs.push({ line: n, msg: `unknown TV system "${val.trim()}" (NTSC, PAL or PAL60)` }); else P.settings.tv = k; }
         else errs.push({ line: n, msg: `unknown setting "${kv[1].trim()}"` });
         continue;
@@ -1817,6 +1926,11 @@
       // ---- inside a section ----
       if (section === 'items') { const k = nItem(key, n); if (k != null) P.items[k] = val; continue; }
       if (section === 'events') { const k = nEvent(key, n); if (k != null) P.events[k] = val; continue; }
+      if (section === 'verbs') {
+        const v = parseInt(key, 10);
+        if (!(v >= 1 && v <= MAX_VERBS) || v > P.verbs.length + 1) { errs.push({ line: n, msg: `"${kv[1].trim()}": number the verbs 1 to ${MAX_VERBS}, in order` }); continue; }
+        const e = P.verbs[v - 1] = { word: val.trim(), none: '' }; textTo(t => e.none = t); continue;
+      }
       if (section === 'words') { if (!wordKey[key]) errs.push({ line: n, msg: `unknown menu word "${kv[1].trim()}"` }); else P.system[wordKey[key]] = val; continue; }
       if (section === 'messages') { if (!msgKey[key]) errs.push({ line: n, msg: `unknown message "${kv[1].trim()}"` }); else { const k = msgKey[key]; textTo(v => P.system[k] = v); } continue; }
       if (section === 'picture') {
@@ -1860,6 +1974,23 @@
       else if (key === 'sets event') c.sets = optNum(strip(val), nEvent, n);
       else if ((m = /^locked until event (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.door.on = true; c.door.needEvent = optNum(m[1], nEvent, n); textTo(v => c.door.text = v); }
       else if (key === 'ending') { const v = val.trim().toLowerCase(); if (v === 'win') { c.ending = true; c.deadly = false; } else if (v === 'game over') { c.ending = true; c.deadly = true; } else if (v === 'no' || v === 'none') c.ending = false; else errs.push({ line: n, msg: 'ending is "win" or "game over"' }); }
+      else if ((m = /^verb (\d+)(?:\s*\([^)]*\))?(.*)$/.exec(key))) {
+        const v = +m[1] - 1, rest = m[2].trim();
+        if (!(v >= 0 && v < MAX_VERBS)) { errs.push({ line: n, msg: `"${m[1]}" is not a verb number (1-${MAX_VERBS})` }); textTo(() => {}); continue; }
+        let e = c.verbs.find(x => x.verb === v);
+        if (rest === 'refused' || rest === 'already done') {
+          if (!e) { errs.push({ line: n, msg: `"verb ${v + 1} ${rest}" must come after that room's "verb ${v + 1}" line` }); textTo(() => {}); continue; }
+          const k = rest === 'refused' ? 'fail' : 'done'; textTo(t => e[k] = t); continue;
+        }
+        if (e) errs.push({ line: n, msg: `this room already has a reply for verb ${v + 1}` });
+        e = verbEntry(v); if (!e) continue; c.verbs.push(e);
+        const left = rest.replace(/,\s*(needs item|needs event|gives item|sets event)\s+(\S+)(?:\s*\([^)]*\))?/g, (_, w, num) => {
+          const f = w === 'needs item' ? ['needItem', nItem] : w === 'needs event' ? ['needEvent', nEvent] : w === 'gives item' ? ['gives', nItem] : ['sets', nEvent];
+          e[f[0]] = optNum(num, f[1], n); return '';
+        }).trim();
+        if (left) errs.push({ line: n, msg: `can't read "${left}" (write needs item N, needs event N, gives item N or sets event N, separated by commas)` });
+        textTo(t => e.text = t);
+      }
       else if ((m = /^after event (\S+)(?:\s*\(.*?\))?,\s*(arrive|look)$/.exec(key))) {
         c.alt.on = true; c.alt.event = optNum(m[1], nEvent, n); const k = m[2] === 'arrive' ? 'desc' : 'look'; textTo(v => c.alt[k] = v);
       }
@@ -1907,6 +2038,7 @@
     W_LOOK: 0xF000, W_NORTH: 0xF000, W_EAST: 0xF000, W_SOUTH: 0xF000, W_WEST: 0xF000, W_GO: 0xF000, W_TAKE: 0xF000, W_GIVE: 0xF000,
     W_USE: 0xF000, W_TALK: 0xF000, W_INV: 0xF000, W_MORE: 0xF000, W_START: 0xF000, W_END: 0xF000, W_NOTHING: 0xF000,
     M_NSPEC: 0xF000, M_NTAKE: 0xF000, M_HELLO: 0xF000, M_SELG: 0xF000, M_CGIVE: 0xF000, M_SELU: 0xF000, M_CUSE: 0xF000, M_CARRY: 0xF000,
+    T_TITLE: 0xF000, PWHOT: 0xFFF9, BSW: 0xF000, BSM: 0xF000, W_V0: 0xF000, W_V1: 0xF000, W_V2: 0xF000, W_V3: 0xF000, M_V0: 0xF000, M_V1: 0xF000, M_V2: 0xF000, M_V3: 0xF000,
   };
   function buildTak(project, opts = {}) {
     const measure = !!opts.measure;
@@ -1925,10 +2057,11 @@
       const tv = tvOf(P), geo = tv.hz === 50 ? TAK_GEO_PAL : {};
       const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent, sound: P.settings.sound !== false, pic: PL && { k: PL.k, pad: PL.pad, rows: PL.rows.length, rowH: PL.rowH },
         alt: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.alt && c.alt.on && c.alt.event != null)),
-        deadly: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly)), pw: !!pwLayout(P) };
+        deadly: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly)), pw: !!pwLayout(P), verbs: P.verbs.length, title: titleOn(P) };
+      const titleBytes = srcOpts.title ? titleData(P) : null;
       const PWL = pwLayout(P);
       // the start bank's own password routines: assembled once for their size, placed with the data, assembled again in place
-      const pwFrom = L => { const o = {}; for (const k of ['SETSTARTM', 'XRESUME', 'PS_NOPE', 'PS_GOOD']) if (L[k] != null) o[k] = L[k]; return o; };
+      const pwFrom = L => { const o = {}; for (const k of ['BSW', 'BSM']) if (L[k] != null) o[k] = L[k]; return o; };
       const dummy = assemble(takEngineSource(srcOpts), BASE, takSyms(TAK_DUMMY));
       const codeLen = dummy.bytes.length, logicAt = dummy.labels.INPUT;
       const picFrom = L => ({ KE: L.KE, KO: L.KO, KXC: L.KXC });
@@ -1952,6 +2085,7 @@
         const pend = [];
         for (const [s, k] of Object.entries(words)) pend.push([s, encodePage(P.system[k], true)]);
         for (const [s, k] of Object.entries(msgs)) pend.push([s, encodePage(P.system[k])]);
+        P.verbs.forEach((v, i) => { pend.push(['W_V' + i, encodePage(v.word, true)]); pend.push(['M_V' + i, encodePage(v.none)]); });
         P.items.slice(0, 16).forEach((t, i) => pend.push(['I' + i, encodePage(t, true)]));
         pend.sort((a, b) => b[1].length - a[1].length);
         for (const [s, bytes] of pend) sym[s] = cw.str(bytes);
@@ -2000,18 +2134,27 @@
           info.fixed += 3 + one.filter(v => v != null).length + 2 * r.k.filter(Boolean).length;
           if (srcOpts.alt && c.alt && c.alt.on && c.alt.event != null) {
             r.alt = { ev: c.alt.event, d: normText(c.alt.desc).trim() ? want(m, c.alt.desc) : null, l: normText(c.alt.look).trim() ? want(m, c.alt.look) : null };
-            info.fixed += 2 + 5;
           }
+          const vs = (c.verbs || []).filter(x => x.verb < P.verbs.length);
+          if (vs.length) r.verbs = vs.map(x => ({ x, t: want(m, x.text), f: normText(x.fail).trim() ? want(m, x.fail) : null, d: normText(x.done).trim() ? want(m, x.done) : null }));
+          if (r.alt || r.verbs) info.fixed += 2 + 6 + 11 * (r.verbs ? r.verbs.length : 0);
           return r;
         });
         if (!info.recs.some(Boolean)) info.fixed += 3;
-        if (m === 0) info.fixed += pwLen;
+        if (m === 0) info.fixed += titleBytes ? titleBytes.length : 0;
         info.fixed += map.cells.length * 2;
         info.lockKeys = P.portals.filter(p => p.map === m).map(p => { const d = P.maps[p.toMap].cells[p.toIdx]; return d && d.type === 'room' && d.door.on ? want(m, d.door.text) : null; });
         if (m === 0) info.introKeys = P.intro.map(t => want(m, t));
         return info;
       });
       const byBank = []; maps.forEach(x => byBank[x.b] = x);
+      // the password routines go to the bank with the most room (a bank holding only text has the game-logic area free)
+      let pwBank = startBank;
+      if (pwLen) {
+        const roomIn = b => { const x = byBank[b]; return (x.used ? 0 : codeEnd - logicAt) - x.fixed - [...T.values()].filter(t => t.refs.has(x.m)).reduce((n, t) => n + t.bytes.length, 0) * 0.8; };
+        for (let b = 0; b < NB; b++) if (roomIn(b) > roomIn(pwBank) + 16) pwBank = b;
+        byBank[pwBank].fixed += pwLen;
+      }
       // room for text in each bank: everything after the shared block, plus the logic code area in a bank no map uses
       const holeFree0 = commonHoles.reduce((t, [a, e]) => t + (e - a), 0);
       const margin = opts._margin || 12;
@@ -2061,7 +2204,7 @@
         const own = [...T.entries()].filter(([k, t]) => t.refs.has(x.m));
         const away = own.filter(([k]) => place.get(k) !== b).reduce((t, [, v]) => t + v.bytes.length, 0);
         const guests = keysIn(b).filter(k => !T.get(k).refs.has(x.m)).reduce((t, k) => t + T.get(k).bytes.length, 0);
-        return { used, total, free: total - used, text: est[b].plain, packed: est[b].packed, words: est[b].words, away, guests, textOnly: !x.used, recs: x.fixed - (x.m === 0 ? pwLen : 0), pwCode: x.m === 0 ? pwLen : 0, pic: est[b].pic || 0 };
+        return { used, total, free: total - used, text: est[b].plain, packed: est[b].packed, words: est[b].words, away, guests, textOnly: !x.used, recs: x.fixed - (b === pwBank ? pwLen : 0), pwCode: b === pwBank ? pwLen : 0, pic: est[b].pic || 0 };
       });
       if (overBy.some(v => v > 0)) {
         const short = overBy.reduce((t, v) => t + Math.max(0, v), 0), roomLeft = overBy.reduce((t, v) => t + Math.max(0, -v), 0);
@@ -2080,7 +2223,8 @@
           const table = x.used ? w.put(new Array(x.map.cells.length * 2).fill(0)) : 0;
           w.searchFrom = w.pc;
           const keys = keysIn(b);
-          if (pwLen && b === startBank) sym.PWBLK = w.put(new Array(pwLen).fill(0));
+          if (pwLen && b === pwBank) { const h = w.holes.find(h => h.pc + pwLen <= h.end); if (h) { sym.PWBLK = h.pc; h.pc += pwLen; } else sym.PWBLK = w.put(new Array(pwLen).fill(0)); }
+          if (titleBytes && b === startBank) sym.T_TITLE = w.put(titleBytes);
           if (picKey && keys.includes(picKey)) {
             // a column that crossed a page would cost the kernel's loads a cycle and shift those pixels
             const R = PL.rows.length, at = [];
@@ -2144,7 +2288,12 @@
                 one.forEach((v, i) => { if (v != null) { mask |= 1 << i; body.push(v); } });
                 r.k.forEach((k, i) => { if (k) { mask |= 1 << (6 + i); const a = ptr(m, k); body.push(lo(a), hi(a)); } });
                 // 14: the text to use after an event; 15: a game-over room (no data, just the bit)
-                if (r.alt) { const pa = k => k ? ptr(m, k) : 0; const blk = w.put([r.alt.ev, lo(pa(r.alt.d)), hi(pa(r.alt.d)), lo(pa(r.alt.l)), hi(pa(r.alt.l))]); mask |= 1 << 14; body.push(lo(blk), hi(blk)); }
+                if (r.alt || r.verbs) {
+                  const pa = k => k ? ptr(m, k) : 0, A = r.alt || { ev: 0, d: null, l: null }, V = r.verbs || [], ff = v => v == null ? 0xFF : v;
+                  const blk = w.put([A.ev, lo(pa(A.d)), hi(pa(A.d)), lo(pa(A.l)), hi(pa(A.l)), V.length,
+                    ...V.flatMap(({ x, t, f, d }) => [x.verb, ff(x.needItem), ff(x.needEvent), ff(x.sets), ff(x.gives), lo(pa(t)), hi(pa(t)), lo(pa(f)), hi(pa(f)), lo(pa(d)), hi(pa(d))])]);
+                  mask |= 1 << 14; body.push(lo(blk), hi(blk));
+                }
                 if (srcOpts.deadly && c.ending && c.deadly) mask |= 1 << 15;
                 bytes = [f, mask & 0xFF, mask >> 8, ...body];
               }
@@ -2182,7 +2331,7 @@
       });
       // ---- the code, assembled with the real addresses, in every bank ----
       Object.assign(sym, {
-        ...geo, FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? tvColor(P, PL.color) : 0, HOTLO: lo(cart.base), NBANKS: NB, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
+        ...geo, FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? tvColor(P, PL.color) : 0, HOTLO: lo(cart.base), NBANKS: NB, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), PWHOT: cart.base + pwBank, NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
         STARTINV: P.start.inventory.reduce((acc, i) => acc | bit(i), 0),
       });
       if (picLen && picBank >= 0) {
@@ -2194,7 +2343,7 @@
       if (pwLen) {
         const blk = assemble(takPwBlock(srcOpts), sym.PWBLK, takSyms(Object.assign({}, sym, pwFrom(dummy.labels))));
         if (blk.bytes.length !== pwLen) throw new Error('password block size changed');
-        banks[startBank].set(blk.bytes, sym.PWBLK - BASE);
+        banks[pwBank].set(blk.bytes, sym.PWBLK - BASE);
         for (const k of ['XSAVE', 'PWSTEP', 'HCODE', 'HCODEF', 'SELC', 'BAD']) sym[k] = blk.labels[k];
       }
       const code = assemble(takEngineSource(srcOpts), BASE, takSyms(sym));
@@ -2213,7 +2362,7 @@
   // A model of the engine's rules, searched breadth-first over every reachable game state:
   // map, room, inventory, taken, revealed, used and event bytes.
   const DIRS = ['N', 'E', 'S', 'W'];
-  const K = { MOVE: 0, LOOK: 4, TAKE: 5, GIVE: 6, USE: 7, TALK: 8 };
+  const K = { MOVE: 0, LOOK: 4, TAKE: 5, GIVE: 6, USE: 7, TALK: 8, VERB: 9 };
   function analyze(project, opts = {}) {
     const P = normalize(project);
     const cap = opts.maxStates || 250000;
@@ -2290,6 +2439,13 @@
         const e2 = ev | bit(c.sets);
         add(m, r, inv, tk, sn2, us, e2, won(e2), id, K.TALK);
       }
+      if (P.engine === 'tak') for (const x of c.verbs || []) {
+        if (x.verb >= P.verbs.length || (x.sets == null && x.gives == null)) continue;
+        if ((x.sets != null && (ev & bit(x.sets))) || (x.gives != null && (tk & bit(x.gives)))) continue;      // already done
+        if ((x.needItem != null && !(inv & bit(x.needItem))) || (x.needEvent != null && !(ev & bit(x.needEvent)))) continue;
+        const g = x.gives != null ? bit(x.gives) : 0, e2 = x.sets != null ? ev | bit(x.sets) : ev;
+        add(m, r, inv | g, tk | g, sn2, us, e2, won(e2), id, K.VERB * 16 + x.verb);
+      }
     }
     // which states can still reach a win (reverse search over the explored graph)
     const canWin = new Uint8Array(n);
@@ -2306,6 +2462,7 @@
       else if (a === K.LOOK) st.action = 'LOOK';
       else if (a === K.TAKE) st.action = 'TAKE';
       else if (a === K.TALK) st.action = 'TALK';
+      else if (kind === K.VERB) { st.action = 'VERB'; st.verb = a & 15; st.word = normText((P.verbs[a & 15] || {}).word || '').split('\n')[0]; }
       else { st.action = (a >> 4) === K.GIVE ? 'GIVE' : 'USE'; st.item = a & 15; }
       return st;
     };
@@ -2323,6 +2480,7 @@
       if (c.type !== 'room') return;
       if (c.take.on && c.item != null) usedItems.add(c.item);
       if (c.sets != null && (c.give.on || (c.talk.on && c.talk.needUsed != null) || (c.use.on && c.use.setsEvent))) usedEvents.add(c.sets);
+      if (P.engine === 'tak') for (const x of c.verbs || []) if (x.verb < P.verbs.length) { if (x.sets != null) usedEvents.add(x.sets); if (x.gives != null) usedItems.add(x.gives); }
     }));
     P.start.inventory.forEach(i => usedItems.add(i));
     const neverItems = [...usedItems].filter(i => !(itemsHeld & bit(i))).sort();
@@ -2337,7 +2495,7 @@
         // walking into a game-over room is a designed danger, reported on its own (once per room)
         if (DEAD[v]) { const k = SM[v] + ':' + SR[v]; if (!deaths.has(k) || depth[u] < deaths.get(k).d) deaths.set(k, { d: depth[u], map: SM[v], idx: SR[v], from: stepOf(u, eAct[i]) }); continue; }
         const st = stepOf(u, eAct[i]);
-        const k2 = `${st.map}:${st.idx}:${st.action}:${st.item}`;
+        const k2 = `${st.map}:${st.idx}:${st.action}:${st.item}:${st.verb}`;
         const prev = seenKey.get(k2);
         if (!prev || depth[u] < prev.d) seenKey.set(k2, { d: depth[u], u, st });
       }
@@ -2372,6 +2530,7 @@
     else if (st.action === 'GIVE') verb(2, st.item);
     else if (st.action === 'USE') verb(3, st.item);
     else if (st.action === 'TALK') verb(4);
+    else if (st.action === 'VERB') verb(6 + st.verb);
     return out;
   }
   function introSegs(P) { const out = []; for (let i = 0; i < P.intro.length; i++) out.push(...actSegs('fire')); return out; }
@@ -2392,11 +2551,350 @@
     return { ok: ended, finalText: e.screenText(), menu: e.menuText() };
   }
 
+  // ---------- Web player: one HTML page that plays a finished cartridge, on a phone or a computer ----------
+  // src is this file's own source (the page runs the same 6502 emulator the editor uses)
+  function b64(bytes) {
+    if (typeof Buffer !== 'undefined') return Buffer.from(bytes).toString('base64');
+    let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s);
+  }
+  const htmlEsc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  function webPlayerHtml(project, rom, src, opts = {}) {
+    const P = normalize(JSON.parse(JSON.stringify(project)));
+    opts = Object.assign({ author: P.print.author, notes: P.print.notes }, opts);
+    const tv = tvOf(P), pal = !!tv.pal, L = picLayout(P);
+    const col = P.maps[0].colors, rgbOf = v => tiaRgb(pal, tvColor(P, v));
+    const words = k => normText(P.system[k] || '').split('\n')[0];
+    const cfg = {
+      title: P.title, hz: tv.hz, pal, wide: true, sound: P.settings.sound !== false,
+      pic: L ? { k: L.k, pad: L.pad, rowH: L.rowH, color: tvColor(P, L.color), rows: L.rows.map(r => Array.from(r)) } : null,
+      accent: rgbOf(col.menuBg), accentInk: rgbOf(col.menuText), screenBg: rgbOf(col.bg),
+    };
+    const verbs = P.verbs.map(v => normText(v.word).split('\n')[0]).filter(Boolean);
+    const acts = [words('go'), words('take'), words('give'), words('use'), words('talk'), words('inventory'), ...verbs, ...(P.settings.passwords ? [words('code')] : [])];
+    const help = [
+      `<p>Push the stick toward a direction and press fire to walk that way. Fire on its own is <b>${htmlEsc(words('look'))}</b>: it shows what is here and opens the action menu.</p>`,
+      `<p>In the action menu, left and right choose <b>${acts.map(htmlEsc).join('</b>, <b>')}</b>; fire picks one. <b>${htmlEsc(words('give'))}</b> and <b>${htmlEsc(words('use'))}</b> then list what you carry.</p>`,
+      P.settings.passwords ? `<p><b>${htmlEsc(words('code'))}</b> shows a code for where you are. Type it back in from <b>${htmlEsc(words('code'))}</b> on the last title page to carry on another time.</p>` : '',
+    ].join('');
+    const esc = s => s.replace(/<\/script/gi, '<\\/script');
+    return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>${htmlEsc(P.title)}</title>
+<style>
+:root { --bg: #15130f; --panel: #211e18; --line: #3a342a; --fg: #efe6d4; --muted: #a39780; --accent: ${cfg.accent}; --accent-ink: ${cfg.accentInk}; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
+body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 18px 16px 28px; -webkit-tap-highlight-color: transparent; }
+header { width: 100%; max-width: 680px; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+h1 { font: 700 clamp(20px, 5vw, 28px)/1.1 ui-serif, Georgia, serif; margin: 0; letter-spacing: .01em; }
+.sub { font: 12px ui-monospace, Menlo, monospace; color: var(--muted); white-space: nowrap; }
+.set { width: 100%; max-width: 680px; background: linear-gradient(#2a251d, #1c1914); border: 1px solid var(--line); border-radius: 18px; padding: clamp(10px, 3vw, 22px); box-shadow: 0 18px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05); }
+.screen { position: relative; border-radius: 14px; overflow: hidden; background: #000; box-shadow: inset 0 0 0 2px #000, 0 0 0 1px #3d372c; }
+canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 228; image-rendering: pixelated; image-rendering: crisp-edges; }
+.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.14) 2px 3px); border-radius: 14px; box-shadow: inset 0 0 60px rgba(0,0,0,.55); }
+.tap { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font: 600 16px ui-sans-serif, system-ui, sans-serif; border: 0; width: 100%; cursor: pointer; }
+.tap[hidden] { display: none; }
+.bar { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.bar .grp { display: flex; gap: 8px; }
+button.sm { font: 600 12px ui-monospace, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--fg); background: #2f2a21; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
+button.sm[aria-pressed="false"] { color: var(--muted); }
+.keys { font: 12px ui-monospace, Menlo, monospace; color: var(--muted); }
+.pad { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; margin-top: 16px; user-select: none; -webkit-user-select: none; touch-action: none; }
+.dpad { display: grid; grid-template-columns: repeat(3, 54px); grid-template-rows: repeat(3, 54px); gap: 4px; }
+.dpad button, .fire { border: 1px solid #0d0c0a; background: #34302a; color: var(--fg); border-radius: 10px; font-size: 18px; cursor: pointer; box-shadow: 0 3px 0 #0d0c0a; touch-action: none; }
+.dpad button.on, .fire.on { transform: translateY(2px); box-shadow: 0 1px 0 #0d0c0a; background: #423c33; }
+.dpad .u { grid-column: 2; grid-row: 1; } .dpad .l { grid-column: 1; grid-row: 2; } .dpad .r { grid-column: 3; grid-row: 2; } .dpad .d { grid-column: 2; grid-row: 3; }
+.dpad .c { grid-column: 2; grid-row: 2; border-radius: 50%; background: #23201b; box-shadow: none; pointer-events: none; }
+.fire { width: 92px; height: 92px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font: 800 14px ui-monospace, Menlo, monospace; letter-spacing: .1em; box-shadow: 0 4px 0 rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.25); }
+.fire.on { background: var(--accent); filter: brightness(1.15); }
+.mid { text-align: center; color: var(--muted); font: 11px ui-monospace, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
+.help { width: 100%; max-width: 680px; margin-top: 18px; color: #d8cfbe; }
+.help h2 { font: 600 12px ui-monospace, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.help p { margin: 0 0 8px; }
+footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
+@media (max-width: 420px) { .dpad { grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); } .fire { width: 80px; height: 80px; } .keys { display: none; } }
+</style></head>
+<body>
+<header><h1>${htmlEsc(P.title)}</h1><span class="sub">ATARI 2600 · ${htmlEsc(tv.name)}</span></header>
+<div class="set">
+  <div class="screen"><canvas id="tv" width="320" height="228" aria-label="Game screen"></canvas><button class="tap" id="tap" type="button">Press to play</button></div>
+  <div class="bar"><div class="grp"><button class="sm" id="snd" type="button" aria-pressed="true">Sound on</button><button class="sm" id="rst" type="button" title="The console's reset switch">Reset</button></div>
+    <span class="keys">arrows or WASD · space to fire · R resets</span></div>
+  <div class="pad">
+    <div class="dpad" aria-label="Joystick"><button class="u" data-k="N" aria-label="Up">▲</button><button class="l" data-k="W" aria-label="Left">◀</button><span class="c"></span><button class="r" data-k="E" aria-label="Right">▶</button><button class="d" data-k="S" aria-label="Down">▼</button></div>
+    <div class="mid">${htmlEsc(opts.author ? 'by ' + opts.author : '')}</div>
+    <button class="fire" data-k="fire" aria-label="Fire">FIRE</button>
+  </div>
+</div>
+<section class="help"><h2>How to play</h2>${help}${opts.notes ? `<p>${htmlEsc(opts.notes)}</p>` : ''}</section>
+<footer>Made with Adventure Cart Workshop. The cartridge file runs on a real 2600 or in any emulator such as Stella.</footer>
+<script>
+${esc(src)}
+<\/script>
+<script>
+(function () {
+'use strict';
+var CFG = ${JSON.stringify(cfg)};
+var ROM = (function (s) { var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; })(${JSON.stringify(b64(rom))});
+var TAK = window.TAK, tv = document.getElementById('tv'), g = tv.getContext('2d');
+var keys = { N: 0, S: 0, E: 0, W: 0, fire: 0 }, emu, audio = { ctx: null, gain: null, t: 0, on: true, tia: new TAK.TiaSound(CFG.hz === 50) };
+try { audio.on = localStorage.getItem('cart-sound') !== 'off'; } catch (e) {}
+function boot() { emu = new TAK.Emu(ROM); emu.layout = 'tak'; emu.wide = true; emu.pic = CFG.pic; }
+function rgb(v) { return TAK.tiaRgb(CFG.pal, v); }
+function draw() {
+  var c = emu.colors(), sb = emu.screenBytes();
+  g.fillStyle = '#000'; g.fillRect(0, 0, 320, 228);
+  g.fillStyle = rgb(c.bg); g.fillRect(0, 24, 320, 168);
+  g.fillStyle = rgb(c.menuBg); g.fillRect(0, 192, 320, 22);
+  function plot(code, x, y, color) { g.fillStyle = color; for (var r = 0; r < 6; r++) { var v = emu.glyph(code, 5 - r); for (var b = 0; b < 8; b++) if (v & (0x80 >> b)) g.fillRect(x + b * 2, y + r, 2, 1); } }
+  var skip = 0, P = CFG.pic;
+  if (P && emu.ram[0x4C] === 0 && emu.ram[0x4B] === 0) {
+    g.fillStyle = rgb(P.color); var y0 = 34 + P.pad;
+    P.rows.forEach(function (row, r) { for (var x = 0; x < 96; x++) if ((row[x >> 3] >> (7 - (x & 7))) & 1) g.fillRect(27 + x * 2, y0 + r * P.rowH, 2, P.rowH); });
+    skip = P.k;
+  }
+  var tc = rgb(c.text), mc = rgb(c.menuText);
+  sb.lines.slice(0, 10 - skip).forEach(function (ln, l) { ln.forEach(function (code, k) { plot(code, 27 + k * 16, 34 + (l + skip) * 16, tc); }); });
+  sb.menu.forEach(function (code, k) { plot(code, 27 + k * 16, 201, mc); });
+}
+function audioReady() {
+  if (!audio.ctx) { try { audio.ctx = new (window.AudioContext || window.webkitAudioContext)(); audio.gain = audio.ctx.createGain(); audio.gain.gain.value = 0.8; audio.gain.connect(audio.ctx.destination); } catch (e) { return null; } }
+  if (audio.ctx.state === 'suspended') audio.ctx.resume().catch(function () {});
+  return audio.ctx;
+}
+function play(samples) {
+  var c = audio.ctx; if (!c || !samples.length) return;
+  var buf = c.createBuffer(1, samples.length, audio.tia.clk); buf.copyToChannel(samples, 0);
+  var s = c.createBufferSource(); s.buffer = buf; s.connect(audio.gain);
+  if (audio.t < c.currentTime + 0.01 || audio.t > c.currentTime + 0.25) audio.t = c.currentTime + 0.04;
+  s.start(audio.t); audio.t += buf.duration;
+}
+var last = performance.now(), acc = 0, crashed = false;
+function loop() {
+  if (crashed) return;
+  try {
+    var now = performance.now(); acc = Math.min(4, acc + (now - last) / 1000 * (CFG.hz === 50 ? 50 : 59.94)); last = now;
+    var due = Math.floor(acc); acc -= due; var chunks = [];
+    for (var f = 0; f < due; f++) {
+      var sw = 0xFF; if (keys.E) sw &= 0x7F; if (keys.W) sw &= 0xBF; if (keys.S) sw &= 0xDF; if (keys.N) sw &= 0xEF;
+      emu.swcha = sw; emu.inpt4 = keys.fire ? 0x00 : 0x80; emu.swchb = keys.reset ? 0x0A : 0x0B;
+      emu.runFrame();
+      if (audio.on && audio.ctx && emu.aud) { audio.tia.regs(emu.aud); chunks.push(audio.tia.frame()); }
+    }
+    if (chunks.length) { var n = 0; chunks.forEach(function (c) { n += c.length; }); var all = new Float32Array(n), o = 0; chunks.forEach(function (c) { all.set(c, o); o += c.length; }); play(all); }
+    if (due) draw();
+  } catch (e) { crashed = true; g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(0, 90, 320, 40); g.fillStyle = '#fff'; g.font = '12px monospace'; g.fillText('The cartridge stopped: ' + e.message, 8, 114); return; }
+  requestAnimationFrame(loop);
+}
+function sndBtn() { var b = document.getElementById('snd'); b.textContent = audio.on ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(audio.on)); }
+document.getElementById('snd').addEventListener('click', function () { audio.on = !audio.on; try { localStorage.setItem('cart-sound', audio.on ? 'on' : 'off'); } catch (e) {} if (audio.on) audioReady(); sndBtn(); });
+document.getElementById('rst').addEventListener('click', function () { keys.reset = 1; setTimeout(function () { keys.reset = 0; }, 120); });
+var tap = document.getElementById('tap');
+tap.addEventListener('click', function () { tap.hidden = true; if (audio.on) audioReady(); });
+// keyboard
+var KM = { ArrowUp: 'N', KeyW: 'N', ArrowDown: 'S', KeyS: 'S', ArrowLeft: 'W', KeyA: 'W', ArrowRight: 'E', KeyD: 'E', Space: 'fire', Enter: 'fire', KeyZ: 'fire', KeyX: 'fire', ControlLeft: 'fire' };
+addEventListener('keydown', function (e) { if (e.code === 'KeyR' && !e.repeat) { keys.reset = 1; return; } var k = KM[e.code]; if (!k) return; e.preventDefault(); keys[k] = 1; tap.hidden = true; if (audio.on) audioReady(); });
+addEventListener('keyup', function (e) { if (e.code === 'KeyR') { keys.reset = 0; return; } var k = KM[e.code]; if (k) { e.preventDefault(); keys[k] = 0; } });
+addEventListener('blur', function () { for (var k in keys) keys[k] = 0; });
+// touch and mouse: each button holds its key while pressed
+document.querySelectorAll('[data-k]').forEach(function (b) {
+  var k = b.getAttribute('data-k');
+  function on(e) { e.preventDefault(); keys[k] = 1; b.classList.add('on'); tap.hidden = true; if (audio.on) audioReady(); try { b.setPointerCapture(e.pointerId); } catch (x) {} }
+  function off() { keys[k] = 0; b.classList.remove('on'); }
+  b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
+  b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+});
+sndBtn(); boot(); draw(); requestAnimationFrame(loop);
+})();
+<\/script>
+</body></html>
+`;
+  }
+
+  // ---------- Manual and cartridge label: one printable page made from the title, picture and intro ----------
+  function picSvg(P, scale, fg) {
+    const L = picLayout(P); if (!L) return '';
+    const W = 96, H = L.rows.length * L.rowH; let rects = '';
+    L.rows.forEach((row, r) => { let x = 0; while (x < W) { if ((row[x >> 3] >> (7 - (x & 7))) & 1) { let e = x; while (e < W && ((row[e >> 3] >> (7 - (e & 7))) & 1)) e++; rects += `<rect x="${x * 2}" y="${r * L.rowH}" width="${(e - x) * 2}" height="${L.rowH}"/>`; x = e; } else x++; } });
+    return `<svg class="pic" viewBox="0 0 ${W * 2} ${H}" width="${W * 2 * scale}" height="${H * scale}" shape-rendering="crispEdges" fill="${fg}" aria-hidden="true">${rects}</svg>`;
+  }
+  function sentenceCase(t) {
+    const s = normText(t).replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+    return s.replace(/(^|[.!?]\s+|['"]\s*)([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\bi\b/g, 'I');
+  }
+  // ---------- Cartridge labels in the style of the era: black label, big condensed title, framed artwork ----------
+  const LABEL_STYLES = { picture: 'Picture label (black, framed artwork)', text: 'Text label (giant title)', stripes: 'Stripes (artwork above, colour bands below)', simple: 'Simple (game colours)' };
+  function picRects(P) {
+    const L = picLayout(P); if (!L) return null;
+    let r = ''; L.rows.forEach((row, y) => { let x = 0; while (x < 96) { if ((row[x >> 3] >> (7 - (x & 7))) & 1) { let e = x; while (e < 96 && ((row[e >> 3] >> (7 - (e & 7))) & 1)) e++; r += `<rect x="${x * 2}" y="${y * L.rowH}" width="${(e - x) * 2}" height="${L.rowH}"/>`; x = e; } else x++; } });
+    // trim empty columns either side so the art fills its frame
+    let x0 = 96, x1 = 0; L.rows.forEach(row => { for (let x = 0; x < 96; x++) if ((row[x >> 3] >> (7 - (x & 7))) & 1) { x0 = Math.min(x0, x); x1 = Math.max(x1, x + 1); } });
+    return { rects: r, x: x0 * 2, w: Math.max(2, (x1 - x0) * 2), h: L.rows.length * L.rowH };
+  }
+  function labelSvg(project, opts = {}) {
+    const P = normalize(JSON.parse(JSON.stringify(project)));
+    const o = Object.assign({}, P.print, opts);
+    const W = Math.max(40, Math.min(160, +o.labelW || 84)), H = Math.max(30, Math.min(160, +o.labelH || 64));
+    const tv = tvOf(P), pal = !!tv.pal, col = P.maps[0].colors, c = v => tiaRgb(pal, tvColor(P, v));
+    const bg = c(col.bg), ink = c(col.text), band = c(col.menuBg), picCol = P.picture && P.picture.on ? c(P.picture.color) : ink;
+    const style = LABEL_STYLES[o.labelStyle] ? o.labelStyle : 'picture';
+    const tag = String(o.tagline == null ? 'TEXT ADVENTURE' : o.tagline).toUpperCase(), code = String(o.code || '').toUpperCase();
+    const author = String(o.author || '').toUpperCase(), title = String(P.title || 'UNTITLED').toUpperCase();
+    const e = htmlEsc, cream = '#f3ead6', black = '#121110';
+    const FONT = `Impact, Haettenschweiler, 'Arial Narrow Bold', 'Franklin Gothic Bold', 'Helvetica Neue', Arial, sans-serif`;
+    // a title line squeezed or stretched to an exact width, slanted a little like the period's logotypes
+    const fit = (s, x, y, w, size, fill, anchor = 'start', slant = -8, exact) => {
+      const natural = s.length * size * 0.5, len = exact ? w : Math.min(w, Math.max(natural, w * 0.55));
+      const ax = anchor === 'middle' ? x - len / 2 : x;
+      return `<text x="${ax}" y="${y}" font-family="${FONT}" font-weight="900" font-size="${size}" fill="${fill}" textLength="${len}" lengthAdjust="spacingAndGlyphs" transform="skewX(${slant})" style="transform-box:fill-box;transform-origin:left bottom">${e(s)}</text>`;
+    };
+    const split = s => { if (s.length <= 13 || !s.includes(' ')) return [s]; let best = [s], d = 1e9; const w = s.split(' '); for (let i = 1; i < w.length; i++) { const a = w.slice(0, i).join(' '), b = w.slice(i).join(' '), k = Math.abs(a.length - b.length); if (k < d) { d = k; best = [a, b]; } } return best; };
+    const small = (s, x, y, size, fill, anchor = 'start', maxW) => { if (!s) return ''; const est = s.length * size * 0.78, lim = maxW && est > maxW ? ` textLength="${maxW}" lengthAdjust="spacingAndGlyphs"` : ''; return `<text x="${x}" y="${y}" font-family="${FONT}" font-weight="700" font-size="${size}" fill="${fill}" text-anchor="${anchor}" letter-spacing="${size * 0.08}"${lim}>${e(s)}</text>`; };
+    const stack = (lines, x, y0, w, fs, fill, gap = 0.96) => { const mx = Math.max(...lines.map(l => l.length)); return lines.map((l, i) => fit(l, x, y0 + fs * 0.86 + i * fs * gap, w * Math.max(0.45, l.length / mx), fs, fill, 'start', -8, true)).join(''); };
+    const pr = picRects(P);
+    // artwork: the title picture over a night-sky gradient in the game's colours, or stars when there is no picture
+    let gid = 0;
+    const art = (x, y, w, h, r) => {
+      const id = 'g' + (++gid) + Math.random().toString(36).slice(2, 6);
+      let s = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05040a"/><stop offset=".55" stop-color="${bg}" stop-opacity=".55"/><stop offset="1" stop-color="${bg}"/></linearGradient><clipPath id="c${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></clipPath></defs>`;
+      s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${bg}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#${id})"/>`;
+      // stars, the same each time for the same title
+      let seed = [...title].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7); const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
+      s += `<g clip-path="url(#c${id})" fill="#fff">`; for (let i = 0; i < 26; i++) s += `<rect x="${(x + rnd() * w).toFixed(2)}" y="${(y + rnd() * h * 0.6).toFixed(2)}" width="${(0.25 + rnd() * 0.35).toFixed(2)}" height="${(0.25 + rnd() * 0.35).toFixed(2)}" opacity="${(0.35 + rnd() * 0.6).toFixed(2)}"/>`; s += '</g>';
+      if (pr) {
+        const k = Math.min((w * 0.9) / pr.w, (h * 0.86) / pr.h), pw = pr.w * k, ph = pr.h * k;
+        s += `<g clip-path="url(#c${id})"><g transform="translate(${(x + (w - pw) / 2 - pr.x * k).toFixed(3)} ${(y + (h - ph) / 2 + h * 0.03).toFixed(3)}) scale(${k.toFixed(4)})" fill="${picCol}" shape-rendering="crispEdges">${pr.rects}</g></g>`;
+      }
+      return s + `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="none" stroke="${cream}" stroke-opacity=".55" stroke-width=".35"/>`;
+    };
+    const m = W * 0.05, svg = (w, h, body, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" class="lbl" viewBox="0 0 ${w} ${h}" width="${w}mm" height="${h}mm" ${extra}>${body}</svg>`;
+    const foot = `FOR USE WITH A JOYSTICK${tv.pal ? ' · ' + tv.name : ''}`;
+    let body = `<rect width="${W}" height="${H}" rx="2" fill="${black}"/>`;
+    if (style === 'picture') {
+      const lines = split(title), th = H * (lines.length > 1 ? 0.27 : 0.2), fs = Math.min(th / lines.length * 1.05, (W - 2 * m) / Math.max(...lines.map(l => l.length)) * 1.9);
+      body += stack(lines, m, m, W - 2 * m - 1.5, fs, picCol, 0.98);
+      const ay = m + th + H * 0.035, ah = H * 0.76 - ay;
+      body += art(m, ay, W - 2 * m, ah, 1.2);
+      const by = ay + ah + H * 0.03;
+      [band, ink, picCol].forEach((cc, i) => body += `<rect x="${m}" y="${by + i * 0.9}" width="${W - 2 * m}" height=".5" fill="${cc}"/>`);
+      body += small(tag, m, by + 3.2 + H * 0.06, H * 0.06, cream, 'start', (W - 2 * m) * (code ? 0.6 : 1)) + small(code, W - m, by + 3.2 + H * 0.06, H * 0.06, cream, 'end');
+      body += small(author ? 'BY ' + author : '', m, H - m * 0.5, H * 0.04, '#9d9484', 'start', (W - 2 * m) * 0.45) + small(foot, W - m, H - m * 0.5, H * 0.04, '#9d9484', 'end', (W - 2 * m) * 0.5);
+    } else if (style === 'text') {
+      const lines = split(title).length > 1 ? split(title) : [title], fs = Math.min(H * 0.5 / lines.length, (W - 2 * m) / Math.max(...lines.map(l => l.length)) * 1.95);
+      body += stack(lines, m, m, W - 2 * m - 2, fs, picCol);
+      const ry = m + lines.length * fs * 0.96 + H * 0.04;
+      body += `<rect x="${m}" y="${ry}" width="${W - 2 * m}" height="1" fill="${band}"/>`;
+      const aw = W * 0.4, ah = H - ry - m - 2, ax = W - m - aw, lw = W - 2 * m - aw - 3;
+      body += art(ax, ry + 2.5, aw, ah - 0.5, 1);
+      body += small(tag, m, ry + 2.5 + H * 0.07, H * 0.065, cream, 'start', lw) + small(author ? 'BY ' + author : '', m, ry + 2.5 + H * 0.15, H * 0.05, '#c9bfae', 'start', lw);
+      body += small(code, m, H - m - H * 0.07, H * 0.05, '#9d9484', 'start', lw) + small(foot, m, H - m, H * 0.04, '#9d9484', 'start', lw);
+    } else if (style === 'stripes') {
+      const ah = H * 0.48; body += art(0, 0, W, ah, 2) + `<rect x="0" y="${ah - 2}" width="${W}" height="2" fill="${black}"/>`;
+      body += `<rect x="0" y="0" width="${W}" height="${H}" rx="2" fill="none"/>`;
+      const lines = split(title), fs = Math.min(H * 0.2 / lines.length, (W - 2 * m) / Math.max(...lines.map(l => l.length)) * 1.9);
+      body += stack(lines, m, ah + m * 0.5, Math.min(W - 2 * m - 2, Math.max(...lines.map(l => l.length)) * fs * 0.62), fs, cream);
+      const sy = ah + m * 0.5 + lines.length * fs * 0.96 + H * 0.025, cols = [picCol, ink, band, bg];
+      cols.forEach((cc, i) => body += `<rect x="0" y="${(sy + i * H * 0.02).toFixed(2)}" width="${W}" height="${(H * 0.012).toFixed(2)}" fill="${cc}"/>`);
+      const ty = sy + 4 * H * 0.02 + H * 0.065;
+      body += small(tag, m, ty, H * 0.06, cream, 'start', (W - 2 * m) * (code ? 0.6 : 1)) + small(code, W - m, ty, H * 0.06, '#c9bfae', 'end');
+      body += small(author ? 'BY ' + author : '', m, H - m * 0.5, H * 0.04, '#9d9484', 'start', (W - 2 * m) * 0.45) + small(foot, W - m, H - m * 0.5, H * 0.04, '#9d9484', 'end', (W - 2 * m) * 0.5);
+    } else {
+      body = `<rect width="${W}" height="${H}" rx="2" fill="${bg}"/>` + (pr ? art(m, m, W - 2 * m, H * 0.62, 1) : '');
+      body += `<text x="${W / 2}" y="${H * 0.8}" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="${Math.min(H * 0.11, (W - 2 * m) / title.length * 1.7)}" fill="${ink}">${e(P.title)}</text>`;
+      body += `<rect x="0" y="${H * 0.88}" width="${W}" height="${H * 0.12}" fill="${band}"/>` + small(author ? 'BY ' + author : tag, m, H * 0.965, H * 0.05, c(col.menuText)) + small(tv.name, W - m, H * 0.965, H * 0.05, c(col.menuText), 'end');
+    }
+    const front = svg(W, H, body);
+    // the end label: the strip along the cartridge's top edge
+    const EH = 12, efs = EH * 0.62;
+    let eb = `<rect width="${W}" height="${EH}" rx="1" fill="${style === 'simple' ? band : black}"/>`;
+    if (style !== 'simple') eb += `<rect x="${m}" y="${EH * 0.2}" width="1.2" height="${EH * 0.6}" fill="${picCol}"/><rect x="${W - m - 1.2}" y="${EH * 0.2}" width="1.2" height="${EH * 0.6}" fill="${picCol}"/>`;
+    eb += fit(title, W / 2, EH / 2 + efs * 0.36, W - 2 * m - 6, efs, style === 'simple' ? c(col.menuText) : cream, 'middle', style === 'simple' ? 0 : -8);
+    return { front, end: svg(W, EH, eb), W, H, EH, style };
+  }
+
+  function manualHtml(project, opts = {}) {
+    const P = normalize(JSON.parse(JSON.stringify(project)));
+    const tv = tvOf(P), pal = !!tv.pal, col = P.maps[0].colors, rgbOf = v => tiaRgb(pal, tvColor(P, v));
+    const L = picLayout(P), W = k => normText(P.system[k] || '').split('\n')[0];
+    const bg = rgbOf(col.bg), ink = rgbOf(col.text), band = rgbOf(col.menuBg), bandInk = rgbOf(col.menuText), picCol = L ? rgbOf(P.picture.color) : ink;
+    const o = Object.assign({}, P.print, opts);
+    const lw = Math.max(40, Math.min(160, +o.labelW || 84)), lh = Math.max(30, Math.min(160, +o.labelH || 64));
+    const title = htmlEsc(P.title), author = htmlEsc(o.author || ''), year = htmlEsc(o.year || ''), notes = String(o.notes || '').trim();
+    const own = String(opts.story != null ? opts.story : P.print.story || '').trim();
+    const story = own ? own.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean) : P.intro.slice(1).map(sentenceCase).filter(Boolean);
+    const verbs = P.verbs.map(v => normText(v.word).split('\n')[0]).filter(Boolean);
+    const acts = [W('go'), W('take'), W('give'), W('use'), W('talk'), W('inventory'), ...verbs, ...(P.settings.passwords ? [W('code')] : [])];
+    const actHelp = { [W('go')]: 'leave the action menu and carry on walking', [W('take')]: 'pick up something you have found', [W('give')]: 'hand over something you carry', [W('use')]: 'use something you carry, here', [W('talk')]: 'speak to whoever is here', [W('inventory')]: 'list what you carry' };
+    verbs.forEach(v => { if (!actHelp[v]) actHelp[v] = 'try it wherever it might help'; });
+    if (P.settings.passwords) actHelp[W('code')] = 'show a code for this point in the game';
+    const deadly = P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly));
+    const esc = htmlEsc, b = s => `<b class="w">${esc(s)}</b>`;
+    const titleArt = (scale) => L ? picSvg(P, scale, picCol) : '';
+    const LB = labelSvg(P, opts);
+    return `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${title}: manual and label</title>
+<style>
+@page { margin: 14mm; }
+:root { --bg: ${bg}; --ink: ${ink}; --band: ${band}; --band-ink: ${bandInk}; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #e9e4d8; color: #1d1a15; font: 11pt/1.55 Georgia, "Times New Roman", serif; }
+.sheet { width: 186mm; max-width: calc(100vw - 32px); margin: 16px auto; background: #fffdf7; padding: 14mm; box-shadow: 0 6px 24px rgba(0,0,0,.18); }
+.cover { background: var(--bg); color: var(--ink); border-radius: 4mm; padding: 12mm 10mm 0; text-align: center; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.cover .pic { width: 100%; max-width: 120mm; height: auto; display: block; margin: 0 auto 6mm; }
+.cover h1 { font: 700 26pt/1.1 Georgia, serif; margin: 0 0 3mm; letter-spacing: .02em; }
+.cover .by { font: 10pt ui-monospace, Menlo, monospace; letter-spacing: .12em; text-transform: uppercase; opacity: .9; margin-bottom: 9mm; }
+.cover .band { background: var(--band); color: var(--band-ink); margin: 0 -10mm; padding: 3mm 10mm; font: 700 9pt ui-monospace, Menlo, monospace; letter-spacing: .14em; display: flex; justify-content: space-between; }
+h2 { font: 700 10pt ui-monospace, Menlo, monospace; letter-spacing: .14em; text-transform: uppercase; margin: 9mm 0 2mm; padding-bottom: 1.5mm; border-bottom: 1.5pt solid #1d1a15; }
+p { margin: 0 0 3mm; }
+.w { font: 700 9.5pt ui-monospace, Menlo, monospace; letter-spacing: .04em; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 1.5mm 6mm; margin: 0; }
+dt { font: 700 9.5pt ui-monospace, Menlo, monospace; } dd { margin: 0; }
+.cols { columns: 2 70mm; column-gap: 8mm; }
+.cut { border: 1px dashed #8a8170; padding: 6mm; display: flex; flex-wrap: wrap; gap: 8mm; align-items: flex-start; justify-content: center; }
+.label { background: var(--bg); color: var(--ink); display: flex; flex-direction: column; border-radius: 2mm; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.lart { flex: 1; display: grid; place-items: center; padding: 3mm 3mm 0; min-height: 0; }
+.lart .pic { width: 100%; height: 100%; max-height: 100%; }
+.ltitle { font: 700 13pt/1.1 Georgia, serif; text-align: center; padding: 2mm 3mm; }
+.lband { background: var(--band); color: var(--band-ink); font: 700 6.5pt ui-monospace, Menlo, monospace; letter-spacing: .12em; padding: 1.6mm 3mm; display: flex; justify-content: space-between; }
+.lbl { display: block; -webkit-print-color-adjust: exact; print-color-adjust: exact; max-width: 100%; height: auto; }
+.end { background: var(--band); color: var(--band-ink); font: 700 8pt ui-monospace, Menlo, monospace; letter-spacing: .14em; display: flex; align-items: center; justify-content: center; border-radius: 1mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.small { font-size: 9pt; color: #5b5446; }
+.break { break-before: page; }
+@media print { body { background: none; } .sheet { box-shadow: none; margin: 0; width: auto; max-width: none; padding: 0; } .noprint { display: none; } }
+</style></head><body>
+<div class="sheet">
+  <div class="cover">${titleArt(2)}<h1>${title}</h1><div class="by">${author ? 'by ' + author : 'A text adventure'}${year ? ' · ' + year : ''}</div>
+    <div class="band"><span>ATARI 2600 CARTRIDGE</span><span>${esc(tv.name)} · ${esc(P.cart)}</span></div></div>
+  ${story.length ? `<h2>The story</h2>${story.map(s => `<p>${esc(s).replace(/\n/g, '<br>')}</p>`).join('')}` : ''}
+  <h2>Getting started</h2>
+  <p>With the console switched off, put the cartridge in and switch on. ${L ? 'The title picture appears' : 'The title appears'}; press fire to read on${P.intro.length > 2 ? ' through the opening pages' : ''}, and fire on ${b(W('start'))} to begin. The console's reset switch starts over from the title at any time.</p>
+  <h2>Playing</h2>
+  <p>Everything is done with the joystick and its button. The bar at the bottom of the screen shows what fire will do.</p>
+  <dl><dt>Walk</dt><dd>Push the stick toward a direction (${b(W('north'))}, ${b(W('east'))}, ${b(W('south'))} or ${b(W('west'))} shows in the bar) and press fire.</dd>
+  <dt>${esc(W('look'))}</dt><dd>Press fire without pushing the stick: you see what is here, and the action menu opens.</dd>
+  <dt>Choose</dt><dd>In the action menu, push left or right to step through the actions, and press fire to pick one.</dd></dl>
+  <h2>Actions</h2>
+  <dl>${acts.map(a => `<dt>${esc(a)}</dt><dd>${esc(actHelp[a] || '')}</dd>`).join('')}</dl>
+  <p class="small" style="margin-top:3mm">${b(W('give'))} and ${b(W('use'))} open a list of what you carry: left and right choose, fire picks. Look carefully: some things only show themselves when you ${esc(W('look').toLowerCase())}.</p>
+  ${P.settings.passwords ? `<h2>Saving your place</h2><p>The 2600 forgets everything when it is switched off, so ${b(W('code'))} in the action menu shows a code for the room you are in, what you carry and what you have done. Write it down. Next time, choose ${b(W('code'))} on the last title page and enter it letter by letter: left and right choose a letter, fire adds it, and ${b(W('delete'))} takes one back.</p>` : ''}
+  ${deadly ? `<h2>Danger</h2><p>Some places are deadly. If the bar shows ${b(W('tryAgain'))}, press fire to start the adventure again from the beginning.</p>` : ''}
+  ${notes ? `<h2>Notes</h2>${notes.split(/\n\s*\n/).map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')}` : ''}
+  <p class="small" style="margin-top:8mm">${title}${author ? ' © ' + (year ? year + ' ' : '') + author : ''}. Made with Adventure Cart Workshop.</p>
+  <div class="break"></div>
+  <h2>Cartridge label</h2>
+  <p class="small noprint">Print at 100% (not "fit to page"), cut along the edges and glue to the cartridge. The front label is ${lw} × ${lh} mm; the end label is ${lw} × 12 mm.</p>
+  <div class="cut">${LB.front}${LB.end}</div>
+</div>
+</body></html>
+`;
+  }
+
   function build(P, engineRom, opts = {}) {
     normalize(P);
     return P.engine === 'tak' ? buildTak(P, opts) : buildRom(P, engineRom, opts);
   }
-  root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX,
-    toScript, fromScript, TIA_CLK, tiaNote, parseTune, TUNES, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, TV, tvOf, tvColor, tiaRgb, NTSC_RGB, PAL_RGB, NTSC_TO_PAL, PW_ALPHA, pwLayout, makeCode, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps };
+  root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, verbEntry, MAX_VERBS, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX,
+    toScript, fromScript, TIA_CLK, tiaNote, parseTune, TUNES, TITLE_TUNES, TITLE_ROOM, titleTuneText, titleOn, titleData, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, TV, tvOf, tvColor, tiaRgb, NTSC_RGB, PAL_RGB, NTSC_TO_PAL, PW_ALPHA, pwLayout, makeCode, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps, webPlayerHtml, manualHtml, labelSvg, LABEL_STYLES };
 })(typeof window !== 'undefined' ? window : globalThis);
 if (typeof module !== 'undefined') module.exports = globalThis.TAK;

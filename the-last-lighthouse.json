@@ -1,0 +1,1173 @@
+{
+ "kit": "tak",
+ "version": 1,
+ "title": "The Last Lighthouse",
+ "engine": "tak",
+ "verbs": [
+  {
+   "word": "OPEN",
+   "none": "THERE IS\nNOTHING TO\nOPEN HERE."
+  },
+  {
+   "word": "SWIM",
+   "none": "THERE'S NO\nWATER HERE."
+  }
+ ],
+ "cart": "16K",
+ "settings": {
+  "endEvent": 2,
+  "tune": "homecoming",
+  "titleTune": "harbor",
+  "passwords": true,
+  "sound": true,
+  "tv": "ntsc",
+  "customTune": "C5:8 E5:8 G5:8 C6:24",
+  "customTitleTune": "C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24"
+ },
+ "portals": [
+  {
+   "map": 0,
+   "idx": 16,
+   "toMap": 1,
+   "toIdx": 15
+  },
+  {
+   "map": 1,
+   "idx": 14,
+   "toMap": 0,
+   "toIdx": 13
+  }
+ ],
+ "start": {
+  "room": 7,
+  "inventory": [
+   0
+  ]
+ },
+ "items": [
+  "A LANTERN",
+  "A SHELL",
+  "A FISH",
+  "SOME ROPE",
+  "A CAN OF OIL",
+  "A COIN",
+  "A KEY",
+  "A MAP",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  ""
+ ],
+ "events": [
+  "Stairs open",
+  "Keeper helps",
+  "Lamp lit",
+  "Event 4",
+  "Event 5",
+  "Event 6",
+  "Event 7",
+  "Event 8",
+  "Event 9",
+  "Event 10",
+  "Event 11",
+  "Event 12",
+  "Event 13",
+  "Event 14",
+  "Event 15",
+  "Event 16"
+ ],
+ "system": {
+  "look": "LOOK",
+  "north": "NORTH",
+  "east": "EAST",
+  "south": "SOUTH",
+  "west": "WEST",
+  "go": "GO",
+  "take": "TAKE",
+  "give": "GIVE",
+  "use": "USE",
+  "talk": "TALK",
+  "inventory": "INVENTORY",
+  "more": "MORE...",
+  "start": "START",
+  "nothingSpecial": "YOU SEE\nNOTHING\nSPECIAL",
+  "nothingToTake": "YOU SEE\nNOTHING\nWORTH\nTAKING",
+  "talkDefault": "NO ONE\nANSWERS.",
+  "selectGive": "SELECT ITEM\nTO GIVE:",
+  "cantGive": "CAN'T GIVE\nTHAT",
+  "selectUse": "SELECT ITEM\nTO USE:",
+  "cantUse": "CAN'T USE\nTHAT",
+  "carrying": "YOU ARE\nCARRYING:",
+  "bootB": "",
+  "theEnd": "THE END",
+  "nothing": "NOTHING",
+  "tryAgain": "TRY AGAIN",
+  "code": "CODE",
+  "delete": "DELETE"
+ },
+ "intro": [
+  "  THE LAST\n LIGHTHOUSE\n\n   A 2600\n ADVENTURE",
+  "THE LAMP ON\nGULL ROCK\nHAS GONE\nDARK.",
+  "SHIPS ARE\nLOST IN THE\nQUIET FOG.\n\nONLY YOU\nCAN LIGHT\nIT AGAIN."
+ ],
+ "maps": [
+  {
+   "name": "Map A",
+   "width": 6,
+   "rows": 5,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "room",
+     "name": "Harbor",
+     "desc": "YOU ARE ON\nTHE HARBOR\nWALL.",
+     "look": "A HARBOR-\nMASTER IS\nMENDING A\nTORN NET.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": true,
+      "item": 3,
+      "text": "YOU HELP HIM\nPATCH THE\nNET WITH\nYOUR ROPE.",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": true,
+      "needUsed": 3,
+      "ok": "'THANKS!\nI'VE OPENED\nTHE GATE TO\nTHE CLIFF\nSTAIRS.'",
+      "no": "'NETS DON'T\nMEND THEM-\nSELVES. GOT\nANY ROPE?'"
+     },
+     "sets": 0,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "room",
+     "name": "Fish market",
+     "desc": "YOU ARE IN\nTHE FISH\nMARKET.",
+     "look": "A FISHWIFE\nGUTS HER\nCATCH.",
+     "lookReveals": false,
+     "item": 2,
+     "take": {
+      "on": true,
+      "text": "YOU WRAP UP\nTHE FISH."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": true,
+      "item": 1,
+      "text": "'A PRETTY\nSHELL! HERE,\nHAVE A FISH\nFOR IT.'"
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "'FRESH FISH!\nI TRADE FOR\nSHELLS.'"
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "room",
+     "name": "Tavern",
+     "desc": "YOU ARE IN\nTHE SALTY\nDOG TAVERN.",
+     "look": "AN OLD\nSAILOR\nSTARES AT\nHIS EMPTY\nPLATE.",
+     "lookReveals": false,
+     "item": 3,
+     "take": {
+      "on": true,
+      "text": "YOU COIL\nTHE ROPE\nOVER YOUR\nSHOULDER."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": true,
+      "item": 2,
+      "text": "HE WOLFS\nDOWN THE\nFISH.\n\n'TAKE MY\nROPE, LAD.'"
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "'SO HUNGRY\nI COULD EAT\nA WHALE...'"
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "room",
+     "name": "Beach",
+     "desc": "YOU ARE ON\nA PEBBLE\nBEACH.",
+     "look": "SOMETHING\nGLINTS AT\nTHE WATER'S\nEDGE.",
+     "lookReveals": true,
+     "item": 1,
+     "take": {
+      "on": true,
+      "text": "YOU PICK UP\nA PINK\nSHELL."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "room",
+     "name": "Cliff stairs",
+     "desc": "YOU ARE AT\nTHE CLIFF\nSTAIRS.",
+     "look": "THE STAIRS\nCLIMB EAST\nTO A GATE.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": true,
+      "event": 0,
+      "desc": "",
+      "look": "THE GATE AT\nTHE TOP NOW\nSTANDS OPEN."
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "room",
+     "name": "Cliff path",
+     "desc": "YOU ARE ON\nTHE CLIFF\nPATH.",
+     "look": "A ROPE\nBRIDGE LEADS\nEAST TO THE\nLIGHTHOUSE.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": true,
+      "needEvent": 0,
+      "text": "A LOCKED\nGATE BARS\nTHE CLIFF\nPATH."
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "room",
+     "name": "Dunes",
+     "desc": "YOU ARE IN\nWINDY\nDUNES.",
+     "look": "A HUT\nSTANDS TO\nTHE EAST.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "room",
+     "name": "Old hut",
+     "desc": "YOU ARE IN\nAN OLD HUT.",
+     "look": "A DUSTY SEA\nCHEST SITS\nIN THE\nCORNER.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 0,
+       "needItem": null,
+       "needEvent": null,
+       "gives": 4,
+       "sets": null,
+       "text": "YOU OPEN THE\nCHEST.\n\nINSIDE IS A\nCAN OF LAMP\nOIL!",
+       "fail": "",
+       "done": "THE CHEST\nIS EMPTY."
+      }
+     ]
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "SAND DUNES\nROLL ON\nFOREVER.\n\nYOU TURN\nBACK."
+    },
+    {
+     "type": "room",
+     "name": "Sinking sand",
+     "desc": "THE SAND\nGIVES WAY\nUNDER YOUR\nFEET...\n\nYOU SINK\nOUT OF\nSIGHT.",
+     "look": "SAND.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": true,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": true,
+     "verbs": []
+    },
+    {
+     "type": "wall",
+     "text": "SAND DUNES\nROLL ON\nFOREVER.\n\nYOU TURN\nBACK."
+    },
+    {
+     "type": "wall",
+     "text": "SAND DUNES\nROLL ON\nFOREVER.\n\nYOU TURN\nBACK."
+    },
+    {
+     "type": "wall",
+     "text": "SAND DUNES\nROLL ON\nFOREVER.\n\nYOU TURN\nBACK."
+    },
+    {
+     "type": "wall",
+     "text": "SAND DUNES\nROLL ON\nFOREVER.\n\nYOU TURN\nBACK."
+    }
+   ],
+   "colors": {
+    "bg": 66,
+    "text": 26,
+    "menuBg": 86,
+    "menuText": 29
+   }
+  },
+  {
+   "name": "Map B",
+   "width": 6,
+   "rows": 4,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "room",
+     "name": "Lamp room",
+     "desc": "YOU ARE IN\nTHE LAMP\nROOM.",
+     "look": "A GREAT\nDARK LAMP.\n\nIT NEEDS\nOIL.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": true,
+      "item": 4,
+      "setsEvent": true,
+      "text": "YOU FILL THE\nLAMP. LIGHT\nSWEEPS THE\nSEA ONCE\nMORE.\n\nSHIPS SAIL\nHOME SAFE."
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": 2,
+     "door": {
+      "on": true,
+      "needEvent": 1,
+      "text": "A VOICE:\n'NOT UP\nTHERE,\nSTRANGER!'"
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "ICY WAVES\nCRASH ON\nTHE ROCKS."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "room",
+     "name": "Lighthouse base",
+     "desc": "YOU ARE AT\nTHE FOOT OF\nTHE LIGHT-\nHOUSE.",
+     "look": "STAIRS WIND\nUPWARD.\nA DOOR\nLEADS EAST.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 1,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "text": "BRRR! THE\nSEA IS FAR\nTOO COLD.",
+       "fail": "",
+       "done": ""
+      }
+     ]
+    },
+    {
+     "type": "room",
+     "name": "Keeper's room",
+     "desc": "YOU ARE IN\nTHE KEEPER'S\nROOM.",
+     "look": "IT IS TOO\nDARK TO SEE\nMUCH.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": true,
+      "item": 0,
+      "text": "YOUR LANTERN\nREVEALS AN\nOLD KEEPER\nIN A CHAIR.",
+      "setsEvent": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": true,
+      "needUsed": 0,
+      "ok": "'THE LAMP\nIS DRY. FILL\nIT AND THE\nSHIPS WILL\nFIND THEIR\nWAY HOME.'",
+      "no": "ONLY QUIET\nBREATHING\nIN THE DARK."
+     },
+     "sets": 1,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": true,
+      "event": 1,
+      "desc": "THE OLD\nKEEPER NODS\nAS YOU COME\nIN.",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": []
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    },
+    {
+     "type": "wall",
+     "text": "A SHEER\nCLIFF DROPS\nTO THE SEA."
+    }
+   ],
+   "colors": {
+    "bg": 146,
+    "text": 14,
+    "menuBg": 132,
+    "menuText": 30
+   }
+  },
+  {
+   "name": "Map C",
+   "width": 6,
+   "rows": 5,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 66,
+    "text": 26,
+    "menuBg": 86,
+    "menuText": 29
+   }
+  },
+  {
+   "name": "Map D",
+   "width": 6,
+   "rows": 5,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 66,
+    "text": 26,
+    "menuBg": 86,
+    "menuText": 29
+   }
+  }
+ ],
+ "picture": {
+  "on": true,
+  "rowH": 2,
+  "color": 30,
+  "height": 28,
+  "rows": [
+   "000000000001800000000000",
+   "000000000007e00000000000",
+   "00000000001ff80000000000",
+   "000000000033cc0000000000",
+   "000000036db3cdb6c0000000",
+   "000036d80033cc001b6c0000",
+   "036d80000033cc000001b6c0",
+   "000000000033cc0000000000",
+   "00000000003ffc0000000000",
+   "0000000003ffffc000000000",
+   "00000000001ff80000000000",
+   "00000000001ff80000000000",
+   "00000000001ff80000000000",
+   "000000000000000000000000",
+   "000000000000000000000000",
+   "00000000003ffc0000000000",
+   "00000000007ffe0000000000",
+   "00000000007ffe0000000000",
+   "00000000007ffe0000000000",
+   "000000000000000000000000",
+   "000000000000000000000000",
+   "0000000000ffff0000000000",
+   "0000000001fc3f8000000000",
+   "0000000001fc3f8000000000",
+   "0000000001fc3f8000000000",
+   "00000003ffffffffc0000000",
+   "c1f07c3fffffffffff07c1f0",
+   "3e0f83e0f83e0f83e0f83e0f"
+  ]
+ },
+ "print": {
+  "author": "",
+  "year": "",
+  "story": "",
+  "notes": "",
+  "labelW": 84,
+  "labelH": 64
+ }
+}

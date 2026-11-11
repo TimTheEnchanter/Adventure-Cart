@@ -1,0 +1,591 @@
+# Adventure Cart Workshop script
+# Lines starting with # are comments. Text lines start with |, and everything after the | is kept exactly.
+# Rows and columns count from 1. Items and events are numbered 1 to 16. A name in brackets after a number is only a reminder.
+
+title: The Last Lighthouse
+engine: workshop
+cart: 16K
+start: A 2,2
+carrying: 1
+game ends on event: 3 (Lamp lit)
+sound: on
+tune: homecoming
+custom tune: C5:8 E5:8 G5:8 C6:24
+title music: harbor
+custom title music: C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24
+passwords: on
+tv: NTSC
+author: 
+year: 
+label size: 84 x 64 mm
+
+items:
+  1: A LANTERN
+  2: A SHELL
+  3: A FISH
+  4: SOME ROPE
+  5: A CAN OF OIL
+  6: A COIN
+  7: A KEY
+  8: A MAP
+  9: 
+  10: 
+  11: 
+  12: 
+  13: 
+  14: 
+  15: 
+  16: 
+
+events:
+  1: Stairs open
+  2: Keeper helps
+  3: Lamp lit
+  4: Event 4
+  5: Event 5
+  6: Event 6
+  7: Event 7
+  8: Event 8
+  9: Event 9
+  10: Event 10
+  11: Event 11
+  12: Event 12
+  13: Event 13
+  14: Event 14
+  15: Event 15
+  16: Event 16
+
+# your own verbs: the menu word, then what it says in a room with no reply of its own
+verbs:
+  1: OPEN
+    |THERE IS
+    |NOTHING TO
+    |OPEN HERE.
+  2: SWIM
+    |THERE'S NO
+    |WATER HERE.
+
+words:
+  look: LOOK
+  north: NORTH
+  east: EAST
+  south: SOUTH
+  west: WEST
+  go: GO
+  take: TAKE
+  give: GIVE
+  use: USE
+  talk: TALK
+  inventory: INVENTORY
+  more: MORE...
+  start: START
+  the end: THE END
+  nothing: NOTHING
+  try again: TRY AGAIN
+  code: CODE
+  delete: DELETE
+
+messages:
+  nothing special:
+    |YOU SEE
+    |NOTHING
+    |SPECIAL
+  nothing to take:
+    |YOU SEE
+    |NOTHING
+    |WORTH
+    |TAKING
+  nobody answers:
+    |NO ONE
+    |ANSWERS.
+  give prompt:
+    |SELECT ITEM
+    |TO GIVE:
+  can't give:
+    |CAN'T GIVE
+    |THAT
+  use prompt:
+    |SELECT ITEM
+    |TO USE:
+  can't use:
+    |CAN'T USE
+    |THAT
+  carrying:
+    |YOU ARE
+    |CARRYING:
+  power-on screen:
+
+intro page:
+  |  THE LAST
+  | LIGHTHOUSE
+  |
+  |   A 2600
+  | ADVENTURE
+
+intro page:
+  |THE LAMP ON
+  |GULL ROCK
+  |HAS GONE
+  |DARK.
+
+intro page:
+  |SHIPS ARE
+  |LOST IN THE
+  |QUIET FOG.
+  |
+  |ONLY YOU
+  |CAN LIGHT
+  |IT AGAIN.
+
+picture: on
+  rows: 28
+  row height: 2
+  colour: $1E
+  |...............................................##
+  |.............................................######
+  |...........................................##########
+  |..........................................##..####..##
+  |..............................##.##.##.##.##..####..##.##.##.##.##
+  |..................##.##.##.##.............##..####..##.............##.##.##.##
+  |......##.##.##.##.........................##..####..##.........................##.##.##.##
+  |..........................................##..####..##
+  |..........................................############
+  |......................................####################
+  |...........................................##########
+  |...........................................##########
+  |...........................................##########
+  |
+  |
+  |..........................................############
+  |.........................................##############
+  |.........................................##############
+  |.........................................##############
+  |
+  |
+  |........................................################
+  |.......................................#######....#######
+  |.......................................#######....#######
+  |.......................................#######....#######
+  |..............................####################################
+  |##.....#####.....#####....##############################################.....#####.....#####
+  |..#####.....#####.....#####.....#####.....#####.....#####.....#####.....#####.....#####.....####
+
+map A: 6 x 5
+  colours: background $42, text $1A, menu $56, menu text $1D
+  default wall:
+    |ICY WAVES
+    |CRASH ON
+    |THE ROCKS.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . * R R . .
+  #   3 . R R R > .
+  #   4 . R R . . .
+  #   5 . R . . . .
+
+  room 2,2: Harbor
+    arrive:
+      |YOU ARE ON
+      |THE HARBOR
+      |WALL.
+    look:
+      |A HARBOR-
+      |MASTER IS
+      |MENDING A
+      |TORN NET.
+    use item 4 (SOME ROPE):
+      |YOU HELP HIM
+      |PATCH THE
+      |NET WITH
+      |YOUR ROPE.
+    talk:
+      |'NETS DON'T
+      |MEND THEM-
+      |SELVES. GOT
+      |ANY ROPE?'
+    talk after using item 4 (SOME ROPE):
+      |'THANKS!
+      |I'VE OPENED
+      |THE GATE TO
+      |THE CLIFF
+      |STAIRS.'
+    sets event: 1 (Stairs open)
+
+  room 2,3: Fish market
+    arrive:
+      |YOU ARE IN
+      |THE FISH
+      |MARKET.
+    look:
+      |A FISHWIFE
+      |GUTS HER
+      |CATCH.
+    item: 3 (A FISH)
+    take:
+      |YOU WRAP UP
+      |THE FISH.
+    give item 2 (A SHELL):
+      |'A PRETTY
+      |SHELL! HERE,
+      |HAVE A FISH
+      |FOR IT.'
+    talk:
+      |'FRESH FISH!
+      |I TRADE FOR
+      |SHELLS.'
+
+  room 2,4: Tavern
+    arrive:
+      |YOU ARE IN
+      |THE SALTY
+      |DOG TAVERN.
+    look:
+      |AN OLD
+      |SAILOR
+      |STARES AT
+      |HIS EMPTY
+      |PLATE.
+    item: 4 (SOME ROPE)
+    take:
+      |YOU COIL
+      |THE ROPE
+      |OVER YOUR
+      |SHOULDER.
+    give item 3 (A FISH):
+      |HE WOLFS
+      |DOWN THE
+      |FISH.
+      |
+      |'TAKE MY
+      |ROPE, LAD.'
+    talk:
+      |'SO HUNGRY
+      |I COULD EAT
+      |A WHALE...'
+
+  wall 3,1:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  room 3,2: Beach
+    arrive:
+      |YOU ARE ON
+      |A PEBBLE
+      |BEACH.
+    look:
+      |SOMETHING
+      |GLINTS AT
+      |THE WATER'S
+      |EDGE.
+    item: 2 (A SHELL)
+    look reveals the item: yes
+    take:
+      |YOU PICK UP
+      |A PINK
+      |SHELL.
+
+  room 3,3: Cliff stairs
+    arrive:
+      |YOU ARE AT
+      |THE CLIFF
+      |STAIRS.
+    look:
+      |THE STAIRS
+      |CLIMB EAST
+      |TO A GATE.
+    after event 1 (Stairs open), arrive:
+    after event 1 (Stairs open), look:
+      |THE GATE AT
+      |THE TOP NOW
+      |STANDS OPEN.
+
+  room 3,4: Cliff path
+    arrive:
+      |YOU ARE ON
+      |THE CLIFF
+      |PATH.
+    look:
+      |A ROPE
+      |BRIDGE LEADS
+      |EAST TO THE
+      |LIGHTHOUSE.
+    locked until event 1 (Stairs open):
+      |A LOCKED
+      |GATE BARS
+      |THE CLIFF
+      |PATH.
+
+  portal 3,5: to B 3,4
+
+  wall 3,6:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,1:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  room 4,2: Dunes
+    arrive:
+      |YOU ARE IN
+      |WINDY
+      |DUNES.
+    look:
+      |A HUT
+      |STANDS TO
+      |THE EAST.
+
+  room 4,3: Old hut
+    arrive:
+      |YOU ARE IN
+      |AN OLD HUT.
+    look:
+      |A DUSTY SEA
+      |CHEST SITS
+      |IN THE
+      |CORNER.
+    verb 1 (OPEN), gives item 5 (A CAN OF OIL):
+      |YOU OPEN THE
+      |CHEST.
+      |
+      |INSIDE IS A
+      |CAN OF LAMP
+      |OIL!
+    verb 1 (OPEN) already done:
+      |THE CHEST
+      |IS EMPTY.
+
+  wall 4,4:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,5:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,6:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 5,1:
+    |SAND DUNES
+    |ROLL ON
+    |FOREVER.
+    |
+    |YOU TURN
+    |BACK.
+
+  room 5,2: Sinking sand
+    arrive:
+      |THE SAND
+      |GIVES WAY
+      |UNDER YOUR
+      |FEET...
+      |
+      |YOU SINK
+      |OUT OF
+      |SIGHT.
+    look:
+      |SAND.
+    ending: game over
+
+  wall 5,3:
+    |SAND DUNES
+    |ROLL ON
+    |FOREVER.
+    |
+    |YOU TURN
+    |BACK.
+
+  wall 5,4:
+    |SAND DUNES
+    |ROLL ON
+    |FOREVER.
+    |
+    |YOU TURN
+    |BACK.
+
+  wall 5,5:
+    |SAND DUNES
+    |ROLL ON
+    |FOREVER.
+    |
+    |YOU TURN
+    |BACK.
+
+  wall 5,6:
+    |SAND DUNES
+    |ROLL ON
+    |FOREVER.
+    |
+    |YOU TURN
+    |BACK.
+
+map B: 6 x 4
+  colours: background $92, text $0E, menu $84, menu text $1E
+  default wall:
+    |ICY WAVES
+    |CRASH ON
+    |THE ROCKS.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . R . .
+  #   3 . . > R R .
+  #   4 . . . . . .
+
+  room 2,4: Lamp room
+    arrive:
+      |YOU ARE IN
+      |THE LAMP
+      |ROOM.
+    look:
+      |A GREAT
+      |DARK LAMP.
+      |
+      |IT NEEDS
+      |OIL.
+    use item 5 (A CAN OF OIL), sets the event:
+      |YOU FILL THE
+      |LAMP. LIGHT
+      |SWEEPS THE
+      |SEA ONCE
+      |MORE.
+      |
+      |SHIPS SAIL
+      |HOME SAFE.
+    sets event: 3 (Lamp lit)
+    locked until event 2 (Keeper helps):
+      |A VOICE:
+      |'NOT UP
+      |THERE,
+      |STRANGER!'
+
+  wall 3,1:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 3,2:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  portal 3,3: to A 3,2
+
+  room 3,4: Lighthouse base
+    arrive:
+      |YOU ARE AT
+      |THE FOOT OF
+      |THE LIGHT-
+      |HOUSE.
+    look:
+      |STAIRS WIND
+      |UPWARD.
+      |A DOOR
+      |LEADS EAST.
+    verb 2 (SWIM):
+      |BRRR! THE
+      |SEA IS FAR
+      |TOO COLD.
+
+  room 3,5: Keeper's room
+    arrive:
+      |YOU ARE IN
+      |THE KEEPER'S
+      |ROOM.
+    look:
+      |IT IS TOO
+      |DARK TO SEE
+      |MUCH.
+    use item 1 (A LANTERN):
+      |YOUR LANTERN
+      |REVEALS AN
+      |OLD KEEPER
+      |IN A CHAIR.
+    talk:
+      |ONLY QUIET
+      |BREATHING
+      |IN THE DARK.
+    talk after using item 1 (A LANTERN):
+      |'THE LAMP
+      |IS DRY. FILL
+      |IT AND THE
+      |SHIPS WILL
+      |FIND THEIR
+      |WAY HOME.'
+    sets event: 2 (Keeper helps)
+    after event 2 (Keeper helps), arrive:
+      |THE OLD
+      |KEEPER NODS
+      |AS YOU COME
+      |IN.
+    after event 2 (Keeper helps), look:
+
+  wall 3,6:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,1:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,2:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,3:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,4:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,5:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+  wall 4,6:
+    |A SHEER
+    |CLIFF DROPS
+    |TO THE SEA.
+
+map C: 6 x 5
+  colours: background $42, text $1A, menu $56, menu text $1D
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map D: 6 x 5
+  colours: background $42, text $1A, menu $56, menu text $1D
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
