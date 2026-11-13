@@ -1,0 +1,80 @@
+Return to Tzalan: the shortest way through (78 steps)
+
+1. Throne room: go south
+2. Great plaza: go south
+3. Docks: go west
+4. Cacao garden: dig
+5. Cacao garden: go north
+6. Pell's house: take
+7. Pell's house: go east
+8. Great plaza: go east
+9. Market: give some cacao
+10. Market: take
+11. Market: go south
+12. Ball court: play
+13. Ball court: go west
+14. Docks: use a paddle
+15. Docks: go south
+16. River bend: go east
+17. Fishing village: take
+18. Fishing village: go east
+19. Sandbar: swim
+20. Sandbar: go west
+21. Fishing village: go west
+22. River bend: go south
+23. Rapids: go south
+24. Crocodile bank: give a fish
+25. Crocodile bank: go south
+26. Upper landing: take
+27. Upper landing: go south
+28. Foothill trail: go south
+29. Cloud forest: go east
+30. Waterfall pool: swim
+31. Waterfall pool: go east
+32. Fern hollow: go north
+33. Hermit's hut: give a jade frog
+34. Hermit's hut: take
+35. Hermit's hut: go south
+36. Fern hollow: go west
+37. Waterfall pool: go west
+38. Cloud forest: go west
+39. Orchid glade: go west
+40. Jaguar den: play
+41. Jaguar den: go south
+42. Old mine: take
+43. Old mine: go north
+44. Jaguar den: go east
+45. Orchid glade: go east
+46. Cloud forest: go south
+47. Hanging bridge: use some rope
+48. Hanging bridge: go south
+49. Ash fields: go west
+50. Rourke's camp: take
+51. Rourke's camp: go east
+52. Ash fields: go south
+53. Snow line: use a wool cloak
+54. Snow line: go south
+55. Obsidian ridge: go east
+56. Condor nest: play
+57. Condor nest: go west
+58. Obsidian ridge: go south
+59. Smoke vents: dig
+60. Smoke vents: go south
+61. Lava tubes: go south
+62. Crystal geode: dig
+63. Crystal geode: go north
+64. Lava tubes: go east
+65. Fire bridge: go east
+66. Hall of echoes: go north
+67. Collapsed tunnel: dig
+68. Collapsed tunnel: go north
+69. Rourke's ledge: give a water jar
+70. Rourke's ledge: take
+71. Rourke's ledge: go east
+72. Lava chimney: go north
+73. Crater rim: go east
+74. Sky stairs: go north
+75. Sky gate: use a feather
+76. Sky gate: go north
+77. Sky temple: go north
+78. Sky altar: use a star stone

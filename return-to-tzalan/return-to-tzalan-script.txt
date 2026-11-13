@@ -1,0 +1,1761 @@
+# Adventure Cart Workshop script
+# Lines starting with # are comments. Text lines start with |, and everything after the | is kept exactly.
+# Rows and columns count from 1. Items and events are numbered 1 to 16. A name in brackets after a number is only a reminder.
+
+title: Return to Tzalan
+engine: workshop
+cart: 64K
+start: A 2,3
+carrying: nothing
+game ends on event: 14 (Mountain calmed)
+sound: on
+tune: homecoming
+custom tune: C5:8 E5:8 G5:8 C6:24
+title music: custom
+custom title music: E5:10 G5:10 A5:20 G5:10 E5:10 D5:20 C5:10 D5:10 E5:30 -:20 A4:10 C5:10 D5:10 E5:20 D5:10 C5:10 A4:40 -:30
+passwords: on
+tv: NTSC
+author: 
+year: 
+label size: 84 x 64 mm
+label style: picture
+manual map: blank
+box: on
+label tagline: JUNGLE ADVENTURE II
+label code: ACW-05
+
+items:
+  1: AN OIL LAMP
+  2: A CLAY FLUTE
+  3: AN OLD NET
+  4: SOME ROPE
+  5: A WOOL CLOAK
+  6: A PICKAXE
+  7: A WATER JAR
+  8: A STAR STONE
+  9: SOME CACAO
+  10: A PADDLE
+  11: A FISH
+  12: A JADE FROG
+  13: A FEATHER
+  14: A CRYSTAL
+  15: 
+  16: 
+
+events:
+  1: Found cacao
+  2: Traded cacao
+  3: Canoe launched
+  4: Fish caught
+  5: Crocs fed
+  6: Hermit helped
+  7: Dived the pool
+  8: Jaguar asleep
+  9: Bridge tied
+  10: Cloak worn
+  11: Condor called
+  12: Rocks cleared
+  13: Sky gate open
+  14: Mountain calmed
+  15: Rourke freed
+  16: Rourke repented
+
+score: on
+# points for each event (event: points)
+points:
+  1: 2
+  2: 3
+  3: 5
+  4: 3
+  5: 6
+  6: 5
+  7: 4
+  8: 6
+  9: 6
+  10: 4
+  11: 5
+  12: 6
+  13: 8
+  14: 20
+  15: 8
+  16: 8
+# rank titles for the manual (lowest score: title)
+ranks:
+  0: Gold Hunter
+  30: Explorer
+  60: Mountaineer
+  90: Friend of Tzalan
+  99: Keeper of the Star
+
+# your own verbs: the menu word, then what it says in a room with no reply of its own
+verbs:
+  1: DIG
+    |YOU CAN'T
+    |DIG HERE.
+  2: PLAY
+    |YOU CAN'T
+    |PLAY HERE.
+  3: SWIM
+    |YOU CAN'T
+    |SWIM HERE.
+  4 (hints): HINT
+    |NOTHING TO
+    |DO HERE.
+    |KEEP
+    |EXPLORING.
+
+words:
+  look: LOOK
+  north: NORTH
+  east: EAST
+  south: SOUTH
+  west: WEST
+  go: GO
+  take: TAKE
+  give: GIVE
+  use: USE
+  talk: TALK
+  inventory: INVENTORY
+  more: MORE...
+  start: START
+  the end: THE END
+  nothing: NOTHING
+  try again: TRY AGAIN
+  code: CODE
+  delete: DELETE
+  score: SCORE
+
+messages:
+  nothing special:
+    |YOU SEE
+    |NOTHING
+    |SPECIAL
+  nothing to take:
+    |YOU SEE
+    |NOTHING
+    |WORTH
+    |TAKING
+  nobody answers:
+    |NO ONE
+    |ANSWERS.
+  give prompt:
+    |SELECT ITEM
+    |TO GIVE:
+  can't give:
+    |CAN'T GIVE
+    |THAT
+  use prompt:
+    |SELECT ITEM
+    |TO USE:
+  can't use:
+    |CAN'T USE
+    |THAT
+  carrying:
+    |YOU ARE
+    |CARRYING:
+  power-on screen:
+  too dark:
+    |IT IS TOO
+    |DARK TO SEE.
+
+intro page:
+  |  RETURN TO
+  |   TZALAN
+
+intro page:
+  |A YEAR HAS
+  |PASSED SINCE
+  |YOU WOKE THE
+  |CITY OF
+  |TZALAN.
+
+intro page:
+  |NOW ROURKE,
+  |A GREEDY
+  |RIVAL, HAS
+  |STOLEN THE
+  |STAR STONE.
+
+intro page:
+  |THE CITY
+  |GROWS DIM.
+  |THE FIRE
+  |MOUNTAIN
+  |RUMBLES.
+
+intro page:
+  |QUEEN IXA
+  |HAS SENT
+  |FOR YOU.
+  |
+  |GOOD LUCK,
+  |EXPLORER.
+
+manual story:
+  |A year ago you found the lost city of Tzalan and woke its kings. Now the star stone is gone, stolen by Rourke, a greedy treasure hunter, and the fire mountain to the south has begun to rumble.
+  |
+  |Queen Ixa has sent for you. Follow Rourke up the river, through the cloud forest and into the mountain itself. Set the star in the Sky Temple before it is too late.
+
+manual notes:
+  |Talk to everyone: the people of Tzalan want to help. You can SWIM, DIG and PLAY music; try them wherever they make sense. If you get stuck, try HINT.
+  |
+  |There is more than one way for this story to end. Only one of them is the best.
+  |
+  |The game is long. Use CODE to save your place.
+
+picture: on
+  rows: 30
+  row height: 2
+  colour: $36
+  |..........................................................#.........................#..#
+  |.....................................................#..#####......................#.##
+  |..................................................#######.#.....................#...#
+  |.................................................#########......................#
+  |..................................................#######.....................#####
+  |..................................................#..#..........................#
+  |................................................#####...........................#
+  |..................................................#
+  |
+  |
+  |..............................................#####
+  |............................................#########
+  |...........................................###.###.###
+  |.........................................#####.####.####
+  |............#..........................######.#####.######
+  |.........#######.....................########.######.#######
+  |........#########..................#########.#######.#########..........................#
+  |......#..#######..................##########.########.#########......................#######
+  |...#######..#...................###########.#########.###########...................#########
+  |..#########.#.................#############.##########.############..................#######
+  |...#######..#...............##############.###########.##############...................#
+  |......#.....#.............################.############.###############.................#
+  |......#.....#............################.##############################................#
+  |......#.....#..........###################################################..............#
+  |......#.....#........#######################################################............#
+  |......#.....#......###########################################################..........#
+  |......#.....#....###############################################################........#
+  |......#.....#...#################################################################.......#
+  |......#.....#.#####################################################################.....#
+  |################################################################################################
+
+map A: 7 x 4
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6 7
+  #   1 . . . . . . .
+  #   2 . R * . . . .
+  #   3 . R R R R R .
+  #   4 . > > > . . .
+
+  room 2,2: Royal garden
+    arrive:
+      |YOU ARE IN
+      |THE ROYAL
+      |GARDEN.
+    look:
+      |AN OLD RED
+      |PARROT SITS
+      |ON A PERCH.
+      |YOU KNOW
+      |THAT PARROT!
+    talk:
+      |THE PARROT
+      |SQUAWKS:
+      |"CONDOR
+      |LIKES MUSIC!
+      |FEATHER
+      |OPENS THE
+      |SKY!"
+    room colours: background $C2, text $CE
+
+  room 2,3: Throne room
+    arrive:
+      |YOU ARE IN
+      |THE THRONE
+      |ROOM OF
+      |TZALAN.
+    look:
+      |QUEEN IXA
+      |SITS ON THE
+      |THRONE.
+      |ABOVE HER,
+      |THE STAR
+      |HOLLOW IS
+      |EMPTY.
+    talk:
+      |"ROURKE
+      |STOLE THE
+      |STAR! SET IT
+      |IN THE SKY
+      |TEMPLE, ON
+      |THE FIRE
+      |MOUNTAIN,
+      |AND THE
+      |MOUNTAIN
+      |WILL SLEEP."
+    room colours: background $00, text $1E
+
+  room 3,2: Pell's house
+    arrive:
+      |YOU ARE IN
+      |PROFESSOR
+      |PELL'S
+      |HOUSE.
+    look:
+      |YOUR OLD
+      |FRIEND PELL
+      |WAVES. AN
+      |OIL LAMP
+      |HANGS BY THE
+      |DOOR.
+    item: 1 (AN OIL LAMP)
+    look reveals the item: yes
+    take:
+      |"TAKE MY
+      |LAMP," SAYS
+      |PELL. "YOU
+      |WILL NEED
+      |IT."
+    talk:
+      |"ROURKE WENT
+      |UPRIVER BY
+      |BOAT. THE
+      |FISHERFOLK
+      |WILL HAVE
+      |SEEN HIM."
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE AN
+      |OIL LAMP.
+    room colours: background $F2, text $FE
+
+  room 3,3: Great plaza
+    arrive:
+      |YOU ARE IN
+      |THE GREAT
+      |PLAZA. IT IS
+      |BUSY!
+    look:
+      |PEOPLE HURRY
+      |BY. FAR TO
+      |THE SOUTH,
+      |SMOKE RISES
+      |FROM THE
+      |FIRE
+      |MOUNTAIN.
+    room colours: background $F2, text $FE
+
+  room 3,4: Market
+    arrive:
+      |YOU ARE IN
+      |THE BUSY
+      |MARKET.
+    look:
+      |A TRADER
+      |SITS AMONG
+      |POTS AND
+      |FLUTES.
+      |"CACAO! I
+      |TRADE FOR
+      |CACAO!"
+    item: 2 (A CLAY FLUTE)
+    take:
+      |YOU TAKE THE
+      |CLAY FLUTE.
+    give item 9 (SOME CACAO):
+      |THE TRADER
+      |GRINS AND
+      |HANDS YOU A
+      |CLAY FLUTE.
+    talk:
+      |"CACAO IS
+      |MONEY HERE,
+      |FRIEND.
+      |BRING ME
+      |SOME AND
+      |PICK ANY
+      |FLUTE YOU
+      |LIKE."
+    sets event: 2 (Traded cacao)
+    verb 4 (HINT):
+      |SOMEONE HERE
+      |WANTS SOME
+      |CACAO.
+      |THEN TAKE A
+      |CLAY FLUTE.
+    room colours: background $F2, text $FE
+
+  room 3,5: Healing temple
+    arrive:
+      |YOU ARE IN
+      |THE TEMPLE
+      |OF HEALING.
+    look:
+      |A PRIEST
+      |BURNS SWEET
+      |HERBS.
+    talk:
+      |"THE FIRE
+      |MOUNTAIN IS
+      |ANGRY. UP
+      |THERE, THE
+      |CONDORS
+      |ANSWER THE
+      |OLD SONGS."
+    room colours: background $F2, text $FE
+
+  room 3,6: Weavers' street
+    arrive:
+      |YOU WALK
+      |DOWN THE
+      |WEAVERS'
+      |STREET.
+    look:
+      |LOOMS CLACK.
+      |A WEAVER
+      |SAYS THE
+      |WARMEST
+      |CLOAKS ARE
+      |MADE BY A
+      |HERMIT ON
+      |THE
+      |MOUNTAIN.
+    room colours: background $F2, text $FE
+
+  portal 4,2: to B 2,3
+
+  portal 4,3: to B 2,4
+
+  portal 4,4: to B 2,5
+
+map B: 6 x 3
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . > > > .
+  #   2 . R R R R .
+  #   3 . . . > . .
+
+  portal 1,3: to A 3,2
+
+  portal 1,4: to A 3,3
+
+  portal 1,5: to A 3,4
+
+  room 2,2: City gate
+    arrive:
+      |YOU STAND AT
+      |THE GREAT
+      |GATE OF
+      |TZALAN.
+    look:
+      |THE GATE YOU
+      |OPENED A
+      |YEAR AGO.
+      |JUNGLE
+      |STRETCHES
+      |AWAY TO THE
+      |WEST.
+    room colours: background $F2, text $FE
+
+  room 2,3: Cacao garden
+    arrive:
+      |YOU ARE IN A
+      |CACAO
+      |GARDEN.
+    look:
+      |THE TREES
+      |HAVE BEEN
+      |PICKED BARE.
+      |THE EARTH
+      |UNDER ONE
+      |TREE LOOKS
+      |FRESHLY
+      |TURNED.
+    verb 1 (DIG), gives item 9 (SOME CACAO), sets event 1 (Found cacao):
+      |YOU DIG IN
+      |THE SOFT
+      |EARTH AND
+      |FIND A SACK
+      |OF CACAO
+      |BEANS!
+    verb 1 (DIG) already done:
+      |JUST WORMS
+      |NOW.
+    verb 4 (HINT):
+      |TRY TO DIG.
+    room colours: background $C2, text $CE
+
+  room 2,4: Docks
+    arrive:
+      |YOU ARE AT
+      |THE RIVER
+      |DOCKS.
+    look:
+      |A CANOE
+      |WAITS FOR
+      |YOU, BUT IT
+      |HAS NO
+      |PADDLE.
+    use item 10 (A PADDLE), sets the event:
+      |YOU PUSH OFF
+      |INTO THE
+      |BROWN RIVER.
+    sets event: 3 (Canoe launched)
+    verb 4 (HINT):
+      |USE A PADDLE
+      |HERE.
+    room colours: background $90, text $9E
+    after event 3 (Canoe launched), arrive:
+    after event 3 (Canoe launched), look:
+      |YOUR CANOE
+      |IS TIED UP,
+      |READY TO GO.
+
+  room 2,5: Ball court
+    arrive:
+      |YOU ARE AT
+      |THE BALL
+      |COURT.
+    look:
+      |CHILDREN
+      |PLAY BALL,
+      |USING AN OLD
+      |CANOE PADDLE
+      |AS A BAT.
+    talk:
+      |"WE'LL SWAP
+      |OUR BAT FOR
+      |A SONG!"
+      |THEY SHOUT.
+    verb 2 (PLAY), needs item 2 (A CLAY FLUTE), gives item 10 (A PADDLE):
+      |YOU PLAY A
+      |MERRY TUNE.
+      |THE CHILDREN
+      |DANCE AND
+      |GIVE YOU THE
+      |PADDLE!
+    verb 2 (PLAY) refused:
+      |YOU HAVE
+      |NOTHING TO
+      |PLAY.
+    verb 2 (PLAY) already done:
+      |THE CHILDREN
+      |CLAP ALONG.
+    verb 4 (HINT):
+      |TRY TO PLAY.
+    room colours: background $F2, text $FE
+
+  portal 3,4: to C 2,3
+
+map C: 6 x 6
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . > . . .
+  #   2 . . R R R .
+  #   3 . R R . R .
+  #   4 . . R . . .
+  #   5 . . R R R .
+  #   6 . . > . . .
+
+  portal 1,3: to B 2,4
+
+  room 2,3: River bend
+    arrive:
+      |YOU PADDLE
+      |ROUND A WIDE
+      |BEND IN THE
+      |RIVER.
+    look:
+      |TZALAN'S
+      |TOWERS ARE
+      |BEHIND YOU.
+      |THE RIVER
+      |RUNS SOUTH
+      |AND EAST.
+    locked until event 3 (Canoe launched):
+      |YOU CAN'T GO
+      |ANYWHERE
+      |WITHOUT A
+      |PADDLE.
+    room colours: background $90, text $9E
+
+  room 2,4: Fishing village
+    arrive:
+      |YOU ARE IN A
+      |FISHING
+      |VILLAGE ON
+      |STILTS.
+    look:
+      |NETS DRY IN
+      |THE SUN. ONE
+      |OLD NET
+      |LOOKS SPARE.
+    item: 3 (AN OLD NET)
+    look reveals the item: yes
+    take:
+      |"TAKE IT,"
+      |SAYS A
+      |FISHERWOMAN.
+    talk:
+      |"A MAN IN A
+      |MOTORBOAT
+      |WENT BY. THE
+      |CROCODILES
+      |UPRIVER ATE
+      |HIS SUPPER!
+      |THEY LOVE
+      |FISH."
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE AN
+      |OLD NET.
+    room colours: background $90, text $9E
+
+  room 2,5: Sandbar
+    arrive:
+      |YOU BEACH
+      |THE CANOE ON
+      |A SANDBAR.
+    look:
+      |SILVER FISH
+      |LEAP IN THE
+      |SHALLOWS.
+    verb 3 (SWIM), needs item 3 (AN OLD NET), gives item 11 (A FISH), sets event 4 (Fish caught):
+      |YOU WADE IN
+      |WITH THE NET
+      |AND SCOOP UP
+      |A FAT FISH!
+    verb 3 (SWIM) refused:
+      |YOU SPLASH
+      |ABOUT, BUT
+      |THE FISH ARE
+      |TOO QUICK.
+    verb 3 (SWIM) already done:
+      |YOU HAVE ALL
+      |THE FISH YOU
+      |NEED.
+    verb 4 (HINT):
+      |TRY TO SWIM.
+    room colours: background $90, text $9E
+
+  room 3,2: Whirlpool
+    arrive:
+      |THE
+      |WHIRLPOOL
+      |GRABS YOUR
+      |CANOE AND
+      |SPINS YOU
+      |DOWN, DOWN,
+      |DOWN...
+    look:
+    ending: game over
+
+  room 3,3: Rapids
+    arrive:
+      |YOU FIGHT
+      |YOUR WAY UP
+      |THE RAPIDS.
+    look:
+      |WHITE WATER
+      |EVERYWHERE.
+      |TO THE WEST
+      |THE RIVER
+      |SPINS IN A
+      |DEADLY
+      |WHIRLPOOL!
+    room colours: background $90, text $9E
+
+  room 3,5: Turtle beach
+    arrive:
+      |YOU ARE ON A
+      |QUIET BEACH.
+    look:
+      |TURTLES DOZE
+      |IN THE SUN.
+      |ONE OPENS AN
+      |EYE, THEN
+      |CLOSES IT
+      |AGAIN.
+    room colours: background $90, text $9E
+
+  room 4,3: Crocodile bank
+    arrive:
+      |YOU REACH A
+      |MUDDY BANK.
+    look:
+      |HUGE
+      |CROCODILES
+      |LIE ACROSS
+      |THE CHANNEL
+      |SOUTH, JAWS
+      |OPEN.
+    give item 11 (A FISH):
+      |YOU TOSS THE
+      |FISH. THE
+      |CROCODILES
+      |FIGHT OVER
+      |IT AND SLIDE
+      |AWAY!
+    sets event: 5 (Crocs fed)
+    verb 4 (HINT):
+      |SOMEONE HERE
+      |WANTS A
+      |FISH.
+    room colours: background $90, text $9E
+    after event 5 (Crocs fed), arrive:
+    after event 5 (Crocs fed), look:
+      |THE
+      |CROCODILES
+      |ARE BUSY
+      |WITH THE
+      |FISH. THE
+      |CHANNEL IS
+      |CLEAR.
+
+  room 5,3: Upper landing
+    arrive:
+      |YOU REACH A
+      |LANDING FAR
+      |UPRIVER.
+    look:
+      |ROURKE'S
+      |MOTORBOAT
+      |SITS HERE,
+      |OUT OF FUEL.
+      |A COIL OF
+      |ROPE LIES IN
+      |IT.
+    item: 4 (SOME ROPE)
+    look reveals the item: yes
+    take:
+      |YOU BORROW
+      |ROURKE'S
+      |ROPE.
+    locked until event 5 (Crocs fed):
+      |THE
+      |CROCODILES
+      |SNAP AT YOUR
+      |CANOE.
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE
+      |SOME ROPE.
+    room colours: background $D2, text $1E
+
+  room 5,4: Mangroves
+    arrive:
+      |YOU ARE IN
+      |THE
+      |MANGROVES.
+    look:
+      |TWISTED
+      |ROOTS AND
+      |EMPTY FUEL
+      |CANS. ROURKE
+      |WAS IN A
+      |HURRY.
+    room colours: background $D2, text $1E
+
+  room 5,5: Heron marsh
+    arrive:
+      |YOU ARE IN A
+      |QUIET MARSH.
+    look:
+      |WHITE HERONS
+      |STALK THE
+      |REEDS. THE
+      |FIRE
+      |MOUNTAIN
+      |SMOKES TO
+      |THE SOUTH.
+    room colours: background $D2, text $1E
+
+  portal 6,3: to D 2,4
+
+map D: 7 x 6
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6 7
+  #   1 . . . > . . .
+  #   2 . . . R . R .
+  #   3 . R R R R R .
+  #   4 . R . R . . .
+  #   5 . R . > . . .
+  #   6 . . . . . . .
+
+  portal 1,4: to C 5,3
+
+  room 2,4: Foothill trail
+    arrive:
+      |A TRAIL
+      |CLIMBS INTO
+      |THE
+      |FOOTHILLS.
+    look:
+      |THE AIR IS
+      |COOLER.
+      |CLOUDS HANG
+      |IN THE TREES
+      |AHEAD.
+    room colours: background $D2, text $1E
+
+  room 2,6: Hermit's hut
+    arrive:
+      |YOU FIND A
+      |HERMIT'S
+      |HUT.
+    look:
+      |AN OLD
+      |HERMIT SITS
+      |WEAVING A
+      |THICK WOOL
+      |CLOAK.
+    item: 5 (A WOOL CLOAK)
+    take:
+      |YOU TAKE THE
+      |WARM CLOAK.
+    give item 12 (A JADE FROG):
+      |"MY LUCKY
+      |FROG! HERE,
+      |TAKE THE
+      |CLOAK. STAY
+      |WARM!"
+    talk:
+      |"BRR, IT'S
+      |COLD ON THE
+      |MOUNTAIN!
+      |I'D SWAP MY
+      |CLOAK FOR A
+      |LUCKY JADE
+      |FROG."
+    sets event: 6 (Hermit helped)
+    verb 4 (HINT):
+      |SOMEONE HERE
+      |WANTS A JADE
+      |FROG.
+      |THEN TAKE A
+      |WOOL CLOAK.
+    room colours: background $D2, text $1E
+
+  room 3,2: Jaguar den
+    arrive:
+      |YOU ARE AT A
+      |JAGUAR'S
+      |DEN!
+    look:
+      |A HUGE
+      |JAGUAR LIES
+      |ACROSS THE
+      |OLD MINE
+      |PATH SOUTH.
+      |IT GROWLS.
+    verb 2 (PLAY), needs item 2 (A CLAY FLUTE), sets event 8 (Jaguar asleep):
+      |YOU PLAY A
+      |SOFT
+      |LULLABY. THE
+      |JAGUAR YAWNS
+      |AND PADS OFF
+      |INTO THE
+      |TREES.
+    verb 2 (PLAY) refused:
+      |THE JAGUAR
+      |GROWLS. YOU
+      |BACK AWAY.
+    verb 2 (PLAY) already done:
+      |THE JAGUAR
+      |SNORES
+      |SOMEWHERE
+      |NEARBY.
+    verb 4 (HINT):
+      |TRY TO PLAY.
+    room colours: background $C2, text $CE
+
+  room 3,3: Orchid glade
+    arrive:
+      |YOU ARE IN A
+      |GLADE OF
+      |ORCHIDS.
+    look:
+      |PURPLE
+      |FLOWERS. PAW
+      |PRINTS LEAD
+      |WEST.
+    room colours: background $C2, text $CE
+
+  room 3,4: Cloud forest
+    arrive:
+      |YOU ARE IN A
+      |MISTY CLOUD
+      |FOREST.
+    look:
+      |MOSS DRIPS
+      |FROM EVERY
+      |BRANCH. YOU
+      |HEAR WATER
+      |TO THE EAST.
+    room colours: background $C2, text $CE
+
+  room 3,5: Waterfall pool
+    arrive:
+      |YOU ARE
+      |BESIDE A
+      |DEEP POOL.
+    look:
+      |A WATERFALL
+      |POURS INTO
+      |THE POOL.
+      |SOMETHING
+      |GREEN GLINTS
+      |AT THE
+      |BOTTOM.
+    verb 3 (SWIM), gives item 12 (A JADE FROG), sets event 7 (Dived the pool):
+      |YOU DIVE TO
+      |THE BOTTOM
+      |AND COME UP
+      |WITH A JADE
+      |FROG!
+    verb 3 (SWIM) already done:
+      |THE WATER IS
+      |COLD AND
+      |CLEAR.
+    verb 4 (HINT):
+      |TRY TO SWIM.
+    room colours: background $C2, text $CE
+
+  room 3,6: Fern hollow
+    arrive:
+      |YOU ARE IN A
+      |HOLLOW FULL
+      |OF GIANT
+      |FERNS.
+    look:
+      |A CARVED
+      |STONE SHOWS
+      |A CONDOR
+      |CARRYING A
+      |STAR. SMOKE
+      |RISES FROM A
+      |HUT NORTH.
+    room colours: background $C2, text $CE
+
+  room 4,2: Old mine
+    arrive:
+      |YOU ARE IN
+      |AN OLD
+      |SILVER MINE.
+    look:
+      |RUSTY TOOLS
+      |LIE ABOUT.
+      |ONE PICKAXE
+      |IS STILL
+      |GOOD.
+    item: 6 (A PICKAXE)
+    look reveals the item: yes
+    take:
+      |YOU HEFT THE
+      |PICKAXE.
+    locked until event 8 (Jaguar asleep):
+      |THE JAGUAR
+      |WON'T LET
+      |YOU PASS.
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |PICKAXE.
+    dark unless carrying item 1 (AN OIL LAMP):
+      |IT IS PITCH
+      |DARK IN THE
+      |MINE.
+
+  room 4,4: Hanging bridge
+    arrive:
+      |YOU ARE AT A
+      |HANGING
+      |BRIDGE.
+    look:
+      |THE BRIDGE
+      |OVER THE
+      |GORGE IS
+      |CUT! SOMEONE
+      |CUT IT ON
+      |PURPOSE.
+    use item 4 (SOME ROPE), sets the event, uses it up:
+      |YOU LASH THE
+      |BRIDGE BACK
+      |TOGETHER. IT
+      |WILL HOLD.
+    sets event: 9 (Bridge tied)
+    verb 4 (HINT):
+      |USE SOME
+      |ROPE HERE.
+    room colours: background $C2, text $CE
+    after event 9 (Bridge tied), arrive:
+    after event 9 (Bridge tied), look:
+      |YOUR KNOTS
+      |HOLD THE
+      |BRIDGE FIRM.
+
+  room 5,2: Mine shaft
+    arrive:
+      |YOU ARE AT
+      |THE BOTTOM
+      |OF A SHAFT.
+    look:
+      |OLD CARTS
+      |AND BROKEN
+      |LADDERS. THE
+      |SILVER RAN
+      |OUT LONG
+      |AGO.
+    dark unless carrying item 1 (AN OIL LAMP):
+      |YOU CAN'T
+      |SEE A THING.
+
+  portal 5,4: to E 2,3
+
+map E: 6 x 6
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . > . . .
+  #   2 . R R R R .
+  #   3 . . R . . .
+  #   4 . > R R . .
+  #   5 . . R . . .
+  #   6 . . > . . .
+
+  portal 1,3: to D 4,4
+
+  room 2,2: Rourke's camp
+    arrive:
+      |YOU FIND
+      |ROURKE'S
+      |CAMP.
+    look:
+      |A TORN TENT
+      |AND A NOTE:
+      |"GONE INSIDE
+      |THE
+      |MOUNTAIN.
+      |THE STAR
+      |WILL MAKE ME
+      |KING!" A
+      |WATER JAR
+      |LIES NEARBY.
+    item: 7 (A WATER JAR)
+    look reveals the item: yes
+    take:
+      |YOU TAKE THE
+      |JAR. IT IS
+      |FULL OF
+      |WATER.
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |WATER JAR.
+    room colours: background $06, text $0E
+
+  room 2,3: Ash fields
+    arrive:
+      |YOU ARE IN
+      |FIELDS OF
+      |GREY ASH.
+    look:
+      |NOTHING
+      |GROWS. THE
+      |MOUNTAIN
+      |RUMBLES
+      |UNDER YOUR
+      |FEET.
+    locked until event 9 (Bridge tied):
+      |THE BRIDGE
+      |HANGS IN
+      |PIECES.
+    room colours: background $06, text $0E
+
+  room 2,4: Hot springs
+    arrive:
+      |YOU FIND
+      |STEAMING HOT
+      |SPRINGS.
+    look:
+      |BUBBLING
+      |POOLS OF
+      |WARM WATER.
+    verb 3 (SWIM):
+      |AHH! YOU
+      |SOAK IN THE
+      |WARM WATER.
+      |LOVELY, BUT
+      |THE MOUNTAIN
+      |WON'T WAIT.
+    room colours: background $06, text $0E
+
+  room 2,5: Lava field
+    arrive:
+      |YOU ARE ON
+      |AN OLD LAVA
+      |FIELD.
+    look:
+      |BLACK ROCK,
+      |CRACKED AND
+      |TWISTED. IT
+      |IS STILL
+      |WARM.
+    room colours: background $06, text $0E
+
+  room 3,3: Snow line
+    arrive:
+      |YOU REACH
+      |THE SNOW
+      |LINE.
+    look:
+      |AN ICY WIND
+      |HOWLS DOWN
+      |FROM THE
+      |RIDGE ABOVE.
+      |YOU WOULD
+      |FREEZE UP
+      |THERE.
+    use item 5 (A WOOL CLOAK), sets the event:
+      |YOU WRAP
+      |YOURSELF IN
+      |THE WARM
+      |CLOAK. NOW
+      |YOU CAN FACE
+      |THE WIND.
+    sets event: 10 (Cloak worn)
+    verb 4 (HINT):
+      |USE A WOOL
+      |CLOAK HERE.
+    room colours: background $0C, text $00
+    after event 10 (Cloak worn), arrive:
+    after event 10 (Cloak worn), look:
+      |SNUG IN YOUR
+      |CLOAK, YOU
+      |CAN CLIMB
+      |THE RIDGE.
+
+  portal 4,2: to F 5,3
+
+  room 4,3: Obsidian ridge
+    arrive:
+      |YOU ARE ON A
+      |RIDGE OF
+      |BLACK GLASS.
+    look:
+      |WIND AND
+      |SNOW. STAIRS
+      |CLIMB WEST.
+      |SMOKE POURS
+      |FROM CRACKS
+      |TO THE
+      |SOUTH.
+    locked until event 10 (Cloak worn):
+      |THE ICY WIND
+      |DRIVES YOU
+      |BACK.
+    room colours: background $0C, text $00
+
+  room 4,4: Condor nest
+    arrive:
+      |YOU ARE NEAR
+      |A CONDOR'S
+      |NEST.
+    look:
+      |A GREAT
+      |CONDOR
+      |WATCHES YOU
+      |FROM ITS
+      |ROCKY NEST.
+    verb 2 (PLAY), needs item 2 (A CLAY FLUTE), gives item 13 (A FEATHER), sets event 11 (Condor called):
+      |YOU PLAY THE
+      |OLD SONG.
+      |THE CONDOR
+      |CIRCLES DOWN
+      |AND DROPS A
+      |LONG FEATHER
+      |AT YOUR
+      |FEET!
+    verb 2 (PLAY) refused:
+      |THE CONDOR
+      |STARES AT
+      |YOU.
+    verb 2 (PLAY) already done:
+      |THE CONDOR
+      |NODS ITS
+      |GREAT HEAD.
+    verb 4 (HINT):
+      |TRY TO PLAY.
+    room colours: background $0C, text $00
+
+  room 5,3: Smoke vents
+    arrive:
+      |YOU ARE
+      |AMONG
+      |SMOKING
+      |VENTS.
+    look:
+      |HOT GAS
+      |HISSES FROM
+      |CRACKS.
+      |FALLEN ROCKS
+      |BLOCK A
+      |TUNNEL INTO
+      |THE
+      |MOUNTAIN.
+    verb 1 (DIG), needs item 6 (A PICKAXE), sets event 12 (Rocks cleared):
+      |YOU DIG
+      |THROUGH THE
+      |FALLEN
+      |ROCKS. A
+      |TUNNEL LEADS
+      |DOWN INTO
+      |THE
+      |MOUNTAIN!
+    verb 1 (DIG) refused:
+      |THE ROCKS
+      |ARE TOO BIG
+      |TO MOVE BY
+      |HAND.
+    verb 1 (DIG) already done:
+      |THE TUNNEL
+      |IS OPEN.
+    verb 4 (HINT):
+      |TRY TO DIG.
+    room colours: background $06, text $0E
+    after event 12 (Rocks cleared), arrive:
+    after event 12 (Rocks cleared), look:
+      |A GLOWING
+      |TUNNEL LEADS
+      |DOWN INTO
+      |THE
+      |MOUNTAIN.
+
+  portal 6,3: to G 3,3
+
+map F: 4 x 6
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4
+  #   1 . . . .
+  #   2 . . R .
+  #   3 . . R .
+  #   4 . . R .
+  #   5 . R R >
+  #   6 . > . .
+
+  room 2,3: Sky altar
+    arrive:
+      |YOU STAND AT
+      |THE SKY
+      |ALTAR.
+    look:
+      |A
+      |STAR-SHAPED
+      |HOLLOW IS
+      |CARVED INTO
+      |THE ALTAR,
+      |OPEN TO THE
+      |SKY.
+    use item 8 (A STAR STONE), sets the event:
+      |YOU SET THE
+      |STAR ON THE
+      |ALTAR.
+      |STARLIGHT
+      |POURS DOWN.
+      |THE MOUNTAIN
+      |SLEEPS. FAR
+      |AWAY, TZALAN
+      |CHEERS!
+    sets event: 14 (Mountain calmed)
+    verb 4 (HINT):
+      |USE A STAR
+      |STONE HERE.
+    room colours: background $00, text $1E
+
+  room 3,3: Sky temple
+    arrive:
+      |YOU ARE IN
+      |THE SKY
+      |TEMPLE.
+    look:
+      |CLOUDS DRIFT
+      |THROUGH THE
+      |OPEN ROOF.
+      |AN ALTAR
+      |WAITS TO THE
+      |NORTH.
+    locked until event 13 (Sky gate open):
+      |THE SKY GATE
+      |IS SHUT.
+    room colours: background $84, text $0E
+
+  room 4,3: Sky gate
+    arrive:
+      |YOU STAND
+      |BEFORE THE
+      |SKY GATE.
+    look:
+      |A GATE OF
+      |WHITE STONE.
+      |A CARVED
+      |CONDOR HOLDS
+      |AN EMPTY
+      |SLOT FOR A
+      |FEATHER.
+    use item 13 (A FEATHER), sets the event, uses it up:
+      |YOU SET THE
+      |FEATHER IN
+      |THE SLOT.
+      |THE SKY GATE
+      |SWINGS OPEN!
+    sets event: 13 (Sky gate open)
+    verb 4 (HINT):
+      |USE A
+      |FEATHER
+      |HERE.
+    room colours: background $84, text $0E
+    after event 13 (Sky gate open), arrive:
+    after event 13 (Sky gate open), look:
+      |THE SKY GATE
+      |STANDS OPEN.
+
+  room 5,2: Crater rim
+    arrive:
+      |YOU ARE ON
+      |THE RIM OF
+      |THE CRATER.
+    look:
+      |FAR BELOW,
+      |THE LAVA
+      |GLOWS AND
+      |BUBBLES. A
+      |CHIMNEY
+      |LEADS DOWN.
+    room colours: background $40, text $1E
+
+  room 5,3: Sky stairs
+    arrive:
+      |YOU CLIMB
+      |STAIRS CUT
+      |INTO THE
+      |MOUNTAIN.
+    look:
+      |THE STAIRS
+      |CLIMB NORTH
+      |INTO THE
+      |CLOUDS. A
+      |PATH LEADS
+      |WEST TO THE
+      |CRATER.
+    room colours: background $84, text $0E
+
+  portal 5,4: to E 4,3
+
+  portal 6,2: to H 2,4
+
+map G: 7 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6 7
+  #   1 . . . . > . .
+  #   2 . . > . R . .
+  #   3 . R R R R R .
+  #   4 . . R . . . .
+  #   5 . . . . . . .
+
+  portal 1,5: to H 2,3
+
+  portal 2,3: to E 5,3
+
+  room 2,5: Collapsed tunnel
+    arrive:
+      |YOU ARE IN A
+      |COLLAPSED
+      |TUNNEL.
+    look:
+      |ROCKS FILL
+      |THE TUNNEL.
+      |A VOICE
+      |CALLS:
+      |"HELP! I'M
+      |TRAPPED!"
+    talk:
+      |"IT'S
+      |ROURKE! DIG
+      |ME OUT,
+      |PLEASE! I'LL
+      |GIVE BACK
+      |THE STAR, I
+      |SWEAR!"
+    verb 1 (DIG), needs item 6 (A PICKAXE), sets event 15 (Rourke freed):
+      |YOU DIG AWAY
+      |THE ROCKS.
+      |ROURKE
+      |CRAWLS OUT,
+      |COUGHING.
+    verb 1 (DIG) refused:
+      |THE ROCKS
+      |ARE TOO
+      |HEAVY FOR
+      |YOUR HANDS.
+    verb 1 (DIG) already done:
+      |THE WAY
+      |NORTH IS
+      |CLEAR.
+    verb 4 (HINT):
+      |TRY TO DIG.
+    dark unless carrying item 14 (A CRYSTAL):
+      |IT IS PITCH
+      |DARK.
+      |SOMEONE
+      |COUGHS
+      |NEARBY.
+
+  room 3,2: Magma lake
+    arrive:
+      |THE FLOOR
+      |CRUMBLES.
+      |YOU FALL
+      |INTO A LAKE
+      |OF MOLTEN
+      |ROCK!
+    look:
+    ending: game over
+
+  room 3,3: Lava tubes
+    arrive:
+      |YOU ARE IN
+      |GLOWING LAVA
+      |TUBES.
+    look:
+      |RED LIGHT
+      |EVERYWHERE.
+      |THE TUNNEL
+      |WEST GLOWS
+      |WHITE HOT.
+      |DON'T GO
+      |THAT WAY!
+    locked until event 12 (Rocks cleared):
+      |FALLEN ROCKS
+      |BLOCK THE
+      |WAY.
+    room colours: background $40, text $1E
+
+  room 3,4: Fire bridge
+    arrive:
+      |YOU CROSS A
+      |NARROW
+      |BRIDGE OF
+      |STONE.
+    look:
+      |LAVA FLOWS
+      |FAR BELOW.
+      |THE BRIDGE
+      |LEADS EAST
+      |INTO
+      |DARKNESS.
+    room colours: background $40, text $1E
+
+  room 3,5: Hall of echoes
+    arrive:
+      |YOU ARE IN
+      |THE HALL OF
+      |ECHOES.
+    look:
+      |YOUR VOICE
+      |ECHOES BACK.
+      |SOMEONE IS
+      |CALLING FOR
+      |HELP TO THE
+      |NORTH!
+    dark unless carrying item 14 (A CRYSTAL):
+      |HOT WIND
+      |BLOWS OUT
+      |YOUR LAMP.
+      |IT IS DARK!
+
+  room 3,6: Ancient forge
+    arrive:
+      |YOU FIND AN
+      |ANCIENT
+      |FORGE.
+    look:
+      |ANVILS AND
+      |MOULDS,
+      |STILL WARM
+      |FROM THE
+      |LAVA. STAR
+      |SHAPES ARE
+      |CARVED ON
+      |EVERYTHING.
+    room colours: background $40, text $1E
+
+  room 4,3: Crystal geode
+    arrive:
+      |YOU ARE
+      |INSIDE A
+      |GIANT GEODE.
+    look:
+      |CRYSTALS
+      |GLOW SOFTLY
+      |IN THE
+      |WALLS. ONE
+      |LOOKS LOOSE.
+    verb 1 (DIG), needs item 6 (A PICKAXE), gives item 14 (A CRYSTAL):
+      |YOU DIG OUT
+      |A GLOWING
+      |CRYSTAL. IT
+      |SHINES WITH
+      |ITS OWN
+      |LIGHT!
+    verb 1 (DIG) refused:
+      |YOU CAN'T
+      |PRY IT OUT
+      |WITH YOUR
+      |FINGERS.
+    verb 1 (DIG) already done:
+      |THE WALL
+      |SPARKLES
+      |WHERE THE
+      |CRYSTAL WAS.
+    verb 4 (HINT):
+      |TRY TO DIG.
+    room colours: background $40, text $1E
+
+map H: 5 x 3
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5
+  #   1 . . . > .
+  #   2 . R R R .
+  #   3 . . > . .
+
+  portal 1,4: to F 5,2
+
+  room 2,2: Golden hoard
+    arrive:
+      |GOLD! YOU
+      |FILL YOUR
+      |PACK AND
+      |RUN. THE
+      |MOUNTAIN
+      |ROARS. YOU
+      |ARE RICH,
+      |BUT TZALAN
+      |SLEEPS
+      |FOREVER.
+    look:
+    ending: win
+    ending tune: lament
+
+  room 2,3: Rourke's ledge
+    arrive:
+      |YOU ARE ON A
+      |LEDGE ABOVE
+      |THE LAVA.
+    look:
+      |ROURKE
+      |SLUMPS HERE,
+      |HUGGING THE
+      |STAR STONE.
+      |GOLD
+      |GLITTERS IN
+      |A TUNNEL
+      |WEST.
+    item: 8 (A STAR STONE)
+    take:
+      |THE STAR
+      |STONE GLOWS
+      |WARM IN YOUR
+      |HAND.
+    give item 7 (A WATER JAR):
+      |ROURKE
+      |DRINKS. "YOU
+      |SAVED MY
+      |LIFE. HERE,
+      |TAKE THE
+      |STAR. I'M
+      |SORRY."
+    talk:
+      |"WATER... I
+      |NEED
+      |WATER..."
+      |THEN HE
+      |WHISPERS:
+      |"FORGET THE
+      |STAR. TAKE
+      |THE GOLD
+      |WEST AND
+      |RUN!"
+    sets event: 16 (Rourke repented)
+    locked until event 15 (Rourke freed):
+      |ROCKS FILL
+      |THE TUNNEL.
+    verb 4 (HINT):
+      |SOMEONE HERE
+      |WANTS A
+      |WATER JAR.
+      |THEN TAKE A
+      |STAR STONE.
+    room colours: background $40, text $1E
+    after event 16 (Rourke repented), arrive:
+    after event 16 (Rourke repented), look:
+      |ROURKE
+      |RESTS. GOLD
+      |GLITTERS TO
+      |THE WEST,
+      |BUT THE STAR
+      |IS WHAT
+      |MATTERS.
+
+  room 2,4: Lava chimney
+    arrive:
+      |YOU ARE IN A
+      |LAVA
+      |CHIMNEY.
+    look:
+      |OLD
+      |HANDHOLDS
+      |CLIMB UP
+      |TOWARD THE
+      |CRATER RIM.
+    room colours: background $40, text $1E
+
+  portal 3,3: to G 2,5
+
+map I: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map J: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map K: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map L: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map M: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map N: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map O: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map P: 6 x 5
+  colours: background $D2, text $1E, menu $C4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .

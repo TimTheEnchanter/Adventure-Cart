@@ -1,0 +1,387 @@
+# Return to Tzalan: the sequel to The Lost City of Tzalan (64K)
+Title: Return to Tzalan
+Cart: 64K
+Maps: 8
+Start: Throne room
+Ends when: Mountain calmed
+
+# ---------------- Tzalan, awake ----------------
+Throne room
+  You are in the throne room of Tzalan.
+  Colours: $00 $1E
+  Look: Queen Ixa sits on the throne. Above her, the star hollow is empty.
+  Talk: "Rourke stole the star! Set it in the Sky Temple, on the fire mountain, and the mountain will sleep."
+  South: Great plaza
+  West: Royal garden
+
+Royal garden
+  You are in the royal garden.
+  Colours: $C2 $CE
+  Look: An old red parrot sits on a perch. You know that parrot!
+  Talk: The parrot squawks: "CONDOR LIKES MUSIC! FEATHER OPENS THE SKY!"
+  South: Pell's house
+
+Great plaza
+  You are in the great plaza. It is busy!
+  Colours: $F2 $FE
+  Look: People hurry by. Far to the south, smoke rises from the fire mountain.
+  East: Market
+  West: Pell's house
+  South: Docks
+
+Pell's house
+  You are in Professor Pell's house.
+  Colours: $F2 $FE
+  Look: Your old friend Pell waves. An oil lamp hangs by the door.
+  Item: an oil lamp (look)
+  Take: "Take my lamp," says Pell. "You will need it."
+  Talk: "Rourke went upriver by boat. The fisherfolk will have seen him."
+  South: Cacao garden
+
+Cacao garden
+  You are in a cacao garden.
+  Colours: $C2 $CE
+  Look: The trees have been picked bare. The earth under one tree looks freshly turned.
+  Dig: You dig in the soft earth and find a sack of cacao beans! [gives some cacao] [sets Found cacao] [done: Just worms now.]
+  East: Docks
+  West: City gate
+
+City gate
+  You stand at the great gate of Tzalan.
+  Colours: $F2 $FE
+  Look: The gate you opened a year ago. Jungle stretches away to the west.
+
+Market
+  You are in the busy market.
+  Colours: $F2 $FE
+  Look: A trader sits among pots and flutes. "Cacao! I trade for cacao!"
+  Talk: "Cacao is money here, friend. Bring me some and pick any flute you like."
+  Give some cacao: The trader grins and hands you a clay flute. [sets Traded cacao]
+  Item: a clay flute
+  Take: You take the clay flute.
+  East: Healing temple
+  South: Ball court
+
+Healing temple
+  You are in the temple of healing.
+  Colours: $F2 $FE
+  Look: A priest burns sweet herbs.
+  Talk: "The fire mountain is angry. Up there, the condors answer the old songs."
+  East: Weavers' street
+
+Weavers' street
+  You walk down the weavers' street.
+  Colours: $F2 $FE
+  Look: Looms clack. A weaver says the warmest cloaks are made by a hermit on the mountain.
+
+Ball court
+  You are at the ball court.
+  Colours: $F2 $FE
+  Look: Children play ball, using an old canoe paddle as a bat.
+  Talk: "We'll swap our bat for a song!" they shout.
+  Play: You play a merry tune. The children dance and give you the paddle! [needs a clay flute] [gives a paddle] [refused: You have nothing to play.] [done: The children clap along.]
+  West: Docks
+
+Docks
+  You are at the river docks.
+  Colours: $90 $9E
+  Look: A canoe waits for you, but it has no paddle.
+  Use a paddle: You push off into the brown river. [sets Canoe launched]
+  South: River bend (passage; locked until Canoe launched: You can't go anywhere without a paddle.)
+  After Canoe launched, look: Your canoe is tied up, ready to go.
+
+# ---------------- the river ----------------
+River bend
+  You paddle round a wide bend in the river.
+  Colours: $90 $9E
+  Look: Tzalan's towers are behind you. The river runs south and east.
+  East: Fishing village
+  South: Rapids
+
+Fishing village
+  You are in a fishing village on stilts.
+  Colours: $90 $9E
+  Look: Nets dry in the sun. One old net looks spare.
+  Item: an old net (look)
+  Take: "Take it," says a fisherwoman.
+  Talk: "A man in a motorboat went by. The crocodiles upriver ate his supper! They love fish."
+  East: Sandbar
+
+Sandbar
+  You beach the canoe on a sandbar.
+  Colours: $90 $9E
+  Look: Silver fish leap in the shallows.
+  Swim: You wade in with the net and scoop up a fat fish! [needs an old net] [gives a fish] [sets Fish caught] [refused: You splash about, but the fish are too quick.] [done: You have all the fish you need.]
+  South: Turtle beach
+
+Turtle beach
+  You are on a quiet beach.
+  Colours: $90 $9E
+  Look: Turtles doze in the sun. One opens an eye, then closes it again.
+
+Rapids
+  You fight your way up the rapids.
+  Colours: $90 $9E
+  Look: White water everywhere. To the west the river spins in a deadly whirlpool!
+  West: Whirlpool
+  South: Crocodile bank
+
+Whirlpool
+  The whirlpool grabs your canoe and spins you down, down, down...
+  Ending: game over
+
+Crocodile bank
+  You reach a muddy bank.
+  Colours: $90 $9E
+  Look: Huge crocodiles lie across the channel south, jaws open.
+  Give a fish: You toss the fish. The crocodiles fight over it and slide away! [sets Crocs fed]
+  South: Upper landing (locked until Crocs fed: The crocodiles snap at your canoe.)
+  After Crocs fed, look: The crocodiles are busy with the fish. The channel is clear.
+
+Upper landing
+  You reach a landing far upriver.
+  Colours: $D2 $1E
+  Look: Rourke's motorboat sits here, out of fuel. A coil of rope lies in it.
+  Item: some rope (look)
+  Take: You borrow Rourke's rope.
+  East: Mangroves
+  South: Foothill trail (passage)
+
+Mangroves
+  You are in the mangroves.
+  Colours: $D2 $1E
+  Look: Twisted roots and empty fuel cans. Rourke was in a hurry.
+  East: Heron marsh
+
+Heron marsh
+  You are in a quiet marsh.
+  Colours: $D2 $1E
+  Look: White herons stalk the reeds. The fire mountain smokes to the south.
+
+# ---------------- the cloud forest ----------------
+Foothill trail
+  A trail climbs into the foothills.
+  Colours: $D2 $1E
+  Look: The air is cooler. Clouds hang in the trees ahead.
+  South: Cloud forest
+
+Hermit's hut
+  You find a hermit's hut.
+  Colours: $D2 $1E
+  Look: An old hermit sits weaving a thick wool cloak.
+  Talk: "Brr, it's cold on the mountain! I'd swap my cloak for a lucky jade frog."
+  Give a jade frog: "My lucky frog! Here, take the cloak. Stay warm!" [sets Hermit helped]
+  Item: a wool cloak
+  Take: You take the warm cloak.
+
+Cloud forest
+  You are in a misty cloud forest.
+  Colours: $C2 $CE
+  Look: Moss drips from every branch. You hear water to the east.
+  East: Waterfall pool
+  West: Orchid glade
+  South: Hanging bridge
+
+Waterfall pool
+  You are beside a deep pool.
+  Colours: $C2 $CE
+  Look: A waterfall pours into the pool. Something green glints at the bottom.
+  Swim: You dive to the bottom and come up with a jade frog! [gives a jade frog] [sets Dived the pool] [done: The water is cold and clear.]
+  East: Fern hollow
+
+Fern hollow
+  You are in a hollow full of giant ferns.
+  Colours: $C2 $CE
+  Look: A carved stone shows a condor carrying a star. Smoke rises from a hut north.
+  North: Hermit's hut
+
+Orchid glade
+  You are in a glade of orchids.
+  Colours: $C2 $CE
+  Look: Purple flowers. Paw prints lead west.
+  West: Jaguar den
+
+Jaguar den
+  You are at a jaguar's den!
+  Colours: $C2 $CE
+  Look: A huge jaguar lies across the old mine path south. It growls.
+  Play: You play a soft lullaby. The jaguar yawns and pads off into the trees. [needs a clay flute] [sets Jaguar asleep] [refused: The jaguar growls. You back away.] [done: The jaguar snores somewhere nearby.]
+  South: Old mine (locked until Jaguar asleep: The jaguar won't let you pass.)
+
+Old mine
+  You are in an old silver mine.
+  Dark unless an oil lamp: It is pitch dark in the mine.
+  Look: Rusty tools lie about. One pickaxe is still good.
+  Item: a pickaxe (look)
+  Take: You heft the pickaxe.
+  South: Mine shaft
+
+Mine shaft
+  You are at the bottom of a shaft.
+  Dark unless an oil lamp: You can't see a thing.
+  Look: Old carts and broken ladders. The silver ran out long ago.
+
+Hanging bridge
+  You are at a hanging bridge.
+  Colours: $C2 $CE
+  Look: The bridge over the gorge is cut! Someone cut it on purpose.
+  Use some rope: You lash the bridge back together. It will hold. [sets Bridge tied] [uses it up]
+  South: Ash fields (passage; locked until Bridge tied: The bridge hangs in pieces.)
+  After Bridge tied, look: Your knots hold the bridge firm.
+
+# ---------------- the fire mountain ----------------
+Ash fields
+  You are in fields of grey ash.
+  Colours: $06 $0E
+  Look: Nothing grows. The mountain rumbles under your feet.
+  East: Hot springs
+  West: Rourke's camp
+  South: Snow line
+
+Hot springs
+  You find steaming hot springs.
+  Colours: $06 $0E
+  Look: Bubbling pools of warm water.
+  Swim: Ahh! You soak in the warm water. Lovely, but the mountain won't wait.
+  East: Lava field
+
+Lava field
+  You are on an old lava field.
+  Colours: $06 $0E
+  Look: Black rock, cracked and twisted. It is still warm.
+
+Rourke's camp
+  You find Rourke's camp.
+  Colours: $06 $0E
+  Look: A torn tent and a note: "GONE INSIDE THE MOUNTAIN. THE STAR WILL MAKE ME KING!" A water jar lies nearby.
+  Item: a water jar (look)
+  Take: You take the jar. It is full of water.
+
+Snow line
+  You reach the snow line.
+  Colours: $0C $00
+  Look: An icy wind howls down from the ridge above. You would freeze up there.
+  Use a wool cloak: You wrap yourself in the warm cloak. Now you can face the wind. [sets Cloak worn]
+  South: Obsidian ridge (locked until Cloak worn: The icy wind drives you back.)
+  After Cloak worn, look: Snug in your cloak, you can climb the ridge.
+
+Obsidian ridge
+  You are on a ridge of black glass.
+  Colours: $0C $00
+  Look: Wind and snow. Stairs climb west. Smoke pours from cracks to the south.
+  East: Condor nest
+  West: Sky stairs (stairs)
+  South: Smoke vents
+
+Condor nest
+  You are near a condor's nest.
+  Colours: $0C $00
+  Look: A great condor watches you from its rocky nest.
+  Play: You play the old song. The condor circles down and drops a long feather at your feet! [needs a clay flute] [gives a feather] [sets Condor called] [refused: The condor stares at you.] [done: The condor nods its great head.]
+
+Smoke vents
+  You are among smoking vents.
+  Colours: $06 $0E
+  Look: Hot gas hisses from cracks. Fallen rocks block a tunnel into the mountain.
+  Dig: You dig through the fallen rocks. A tunnel leads down into the mountain! [needs a pickaxe] [sets Rocks cleared] [refused: The rocks are too big to move by hand.] [done: The tunnel is open.]
+  South: Lava tubes (passage; locked until Rocks cleared: Fallen rocks block the way.)
+  After Rocks cleared, look: A glowing tunnel leads down into the mountain.
+
+Sky stairs
+  You climb stairs cut into the mountain.
+  Colours: $84 $0E
+  Look: The stairs climb north into the clouds. A path leads west to the crater.
+  North: Sky gate
+  West: Crater rim
+
+Crater rim
+  You are on the rim of the crater.
+  Colours: $40 $1E
+  Look: Far below, the lava glows and bubbles. A chimney leads down.
+  South: Lava chimney (passage)
+
+Sky gate
+  You stand before the Sky Gate.
+  Colours: $84 $0E
+  Look: A gate of white stone. A carved condor holds an empty slot for a feather.
+  Use a feather: You set the feather in the slot. The Sky Gate swings open! [sets Sky gate open] [uses it up]
+  North: Sky temple (locked until Sky gate open: The Sky Gate is shut.)
+  After Sky gate open, look: The Sky Gate stands open.
+
+Sky temple
+  You are in the Sky Temple.
+  Colours: $84 $0E
+  Look: Clouds drift through the open roof. An altar waits to the north.
+  North: Sky altar
+
+Sky altar
+  You stand at the Sky Altar.
+  Colours: $00 $1E
+  Look: A star-shaped hollow is carved into the altar, open to the sky.
+  Use a star stone: You set the star on the altar. Starlight pours down. The mountain sleeps. Far away, Tzalan cheers! [sets Mountain calmed]
+
+# ---------------- inside the mountain ----------------
+Lava tubes
+  You are in glowing lava tubes.
+  Colours: $40 $1E
+  Look: Red light everywhere. The tunnel west glows white hot. Don't go that way!
+  East: Fire bridge
+  West: Magma lake
+  South: Crystal geode
+
+Magma lake
+  The floor crumbles. You fall into a lake of molten rock!
+  Ending: game over
+
+Crystal geode
+  You are inside a giant geode.
+  Colours: $40 $1E
+  Look: Crystals glow softly in the walls. One looks loose.
+  Dig: You dig out a glowing crystal. It shines with its own light! [needs a pickaxe] [gives a crystal] [refused: You can't pry it out with your fingers.] [done: The wall sparkles where the crystal was.]
+
+Fire bridge
+  You cross a narrow bridge of stone.
+  Colours: $40 $1E
+  Look: Lava flows far below. The bridge leads east into darkness.
+  East: Hall of echoes
+
+Hall of echoes
+  You are in the Hall of Echoes.
+  Dark unless a crystal: Hot wind blows out your lamp. It is dark!
+  Look: Your voice echoes back. Someone is calling for help to the north!
+  North: Collapsed tunnel
+  East: Ancient forge
+
+Ancient forge
+  You find an ancient forge.
+  Colours: $40 $1E
+  Look: Anvils and moulds, still warm from the lava. Star shapes are carved on everything.
+
+Collapsed tunnel
+  You are in a collapsed tunnel.
+  Dark unless a crystal: It is pitch dark. Someone coughs nearby.
+  Look: Rocks fill the tunnel. A voice calls: "Help! I'm trapped!"
+  Talk: "It's Rourke! Dig me out, please! I'll give back the star, I swear!"
+  Dig: You dig away the rocks. Rourke crawls out, coughing. [needs a pickaxe] [sets Rourke freed] [refused: The rocks are too heavy for your hands.] [done: The way north is clear.]
+  North: Rourke's ledge (locked until Rourke freed: Rocks fill the tunnel.)
+
+Rourke's ledge
+  You are on a ledge above the lava.
+  Colours: $40 $1E
+  Look: Rourke slumps here, hugging the star stone. Gold glitters in a tunnel west.
+  Talk: "Water... I need water..." Then he whispers: "Forget the star. Take the gold west and run!"
+  Give a water jar: Rourke drinks. "You saved my life. Here, take the star. I'm sorry." [sets Rourke repented]
+  Item: a star stone
+  Take: The star stone glows warm in your hand.
+  West: Golden hoard
+  East: Lava chimney
+  After Rourke repented, look: Rourke rests. Gold glitters to the west, but the star is what matters.
+
+Golden hoard
+  Gold! You fill your pack and run. The mountain roars. You are rich, but Tzalan sleeps forever.
+  Ending: win
+
+Lava chimney
+  You are in a lava chimney.
+  Colours: $40 $1E
+  Look: Old handholds climb up toward the crater rim.

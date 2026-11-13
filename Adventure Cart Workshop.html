@@ -1943,6 +1943,8 @@ textarea.script { width: 100%; min-height: 560px; font: 12.5px/17px var(--font-m
     for (const m of P.maps) for (const c of m.cells) if (c.type === 'room') {
       it(c.item); if (c.use.on) it(c.use.item); if (c.give.on) it(c.give.item); if (c.talk.on) it(c.talk.needUsed);
       evn(c.sets); if (c.door.on) evn(c.door.needEvent); if (c.alt && c.alt.on) evn(c.alt.event);
+      if (c.dark && c.dark.on) it(c.dark.item);
+      for (const x of c.verbs || []) { it(x.gives); it(x.needItem); evn(x.sets); evn(x.needEvent); }
     }
     ni = Math.max(1, ni); ne = Math.max(1, ne);
     const nb = Math.max(1, Math.ceil(Math.log2(CARTS[P.cart].banks)));
@@ -2977,7 +2979,9 @@ textarea.script { width: 100%; min-height: 560px; font: 12.5px/17px var(--font-m
     };
     const pathTo = id => { const out = []; while (parent[id] >= 0) { out.push(stepOf(parent[id], pact[id])); id = parent[id]; } return out.reverse(); };
     let best = -1;
-    for (let i = 0; i < n; i++) if (WIN[i] && (best < 0 || depth[i] < depth[best])) best = i;
+    // the walkthrough aims for the story's own ending when there is one; other ending rooms are extras
+    for (let i = 0; i < n; i++) if (WIN[i] && endMask && (SE[i] & endMask) && (best < 0 || depth[i] < depth[best])) best = i;
+    if (best < 0) for (let i = 0; i < n; i++) if (WIN[i] && (best < 0 || depth[i] < depth[best])) best = i;
     // reachability summaries
     const seenRooms = P.maps.map(m => new Uint8Array(m.cells.length));
     let itemsHeld = 0, eventsSet = 0;
