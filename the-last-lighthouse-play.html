@@ -16,7 +16,14 @@ canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 228; ima
 .tap { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font: 600 16px ui-sans-serif, system-ui, sans-serif; border: 0; width: 100%; cursor: pointer; }
 .tap[hidden] { display: none; }
 .bar { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-.bar .grp { display: flex; gap: 8px; }
+.bar .grp { display: flex; gap: 8px; flex-wrap: wrap; }
+button.sm:disabled { opacity: .4; cursor: default; }
+.note { min-height: 18px; font: 12px ui-monospace, Menlo, monospace; color: var(--muted); margin-top: 6px; }
+.keys { margin-top: 2px; }
+body.big header, body.big .set, body.big .help { max-width: 1040px; }
+.screen:fullscreen { display: grid; place-items: center; border-radius: 0; background: #000; }
+.screen:fullscreen canvas { width: auto; height: 100vh; max-width: 100vw; }
+.screen:fullscreen::after { border-radius: 0; }
 button.sm { font: 600 12px ui-monospace, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--fg); background: #2f2a21; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
 button.sm[aria-pressed="false"] { color: var(--muted); }
 .keys { font: 12px ui-monospace, Menlo, monospace; color: var(--muted); }
@@ -40,14 +47,16 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
 <div class="set">
   <div class="screen"><canvas id="tv" width="320" height="228" aria-label="Game screen"></canvas><button class="tap" id="tap" type="button">Press to play</button></div>
   <div class="bar"><div class="grp"><button class="sm" id="snd" type="button" aria-pressed="true">Sound on</button><button class="sm" id="rst" type="button" title="The console's reset switch">Reset</button></div>
-    <span class="keys">arrows or WASD · space to fire · R resets</span></div>
+    <div class="grp"><button class="sm" id="sav" type="button" title="Keep this exact moment in this browser">Save</button><button class="sm" id="lod" type="button" title="Go back to the saved moment" disabled>Load</button><button class="sm" id="big" type="button" title="Screen size">Bigger</button><button class="sm" id="fs" type="button" title="Full screen">Full screen</button></div></div>
+  <div class="note" id="note" aria-live="polite"></div>
+  <div class="keys">arrows or WASD · space to fire · R resets · a gamepad works too</div>
   <div class="pad">
     <div class="dpad" aria-label="Joystick"><button class="u" data-k="N" aria-label="Up">▲</button><button class="l" data-k="W" aria-label="Left">◀</button><span class="c"></span><button class="r" data-k="E" aria-label="Right">▶</button><button class="d" data-k="S" aria-label="Down">▼</button></div>
     <div class="mid"></div>
     <button class="fire" data-k="fire" aria-label="Fire">FIRE</button>
   </div>
 </div>
-<section class="help"><h2>How to play</h2><p>Push the stick toward a direction and press fire to walk that way. Fire on its own is <b>LOOK</b>: it shows what is here and opens the action menu.</p><p>In the action menu, left and right choose <b>GO</b>, <b>TAKE</b>, <b>GIVE</b>, <b>USE</b>, <b>TALK</b>, <b>INVENTORY</b>, <b>OPEN</b>, <b>SWIM</b>, <b>CODE</b>; fire picks one. <b>GIVE</b> and <b>USE</b> then list what you carry.</p><p><b>CODE</b> shows a code for where you are. Type it back in from <b>CODE</b> on the last title page to carry on another time.</p></section>
+<section class="help"><h2>How to play</h2><p>Push the stick toward a direction and press fire to walk that way. Fire on its own is <b>LOOK</b>: it shows what is here and opens the action menu.</p><p>In the action menu, left and right choose <b>GO</b>, <b>TAKE</b>, <b>GIVE</b>, <b>USE</b>, <b>TALK</b>, <b>INVENTORY</b>, <b>OPEN</b>, <b>SWIM</b>, <b>HINT</b>, <b>CODE</b>; fire picks one. <b>GIVE</b> and <b>USE</b> then list what you carry.</p><p><b>CODE</b> shows a code for where you are. Type it back in from <b>CODE</b> on the last title page to carry on another time.</p></section>
 <footer>Made with Adventure Cart Workshop. The cartridge file runs on a real 2600 or in any emulator such as Stella.</footer>
 <script>
 // TAK — Atari 2600 Text Adventure Kit
@@ -405,10 +414,17 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     if (P.system.tryAgain == null) P.system.tryAgain = 'TRY AGAIN';
     if (P.system.code == null) P.system.code = 'CODE';
     if (P.system.delete == null) P.system.delete = 'DELETE';
+    if (P.system.dark == null) P.system.dark = 'IT IS TOO\nDARK TO SEE.';
     if (P.settings.passwords == null) P.settings.passwords = false;
     if (!Array.isArray(P.verbs)) P.verbs = [];
+    if (!P.score || typeof P.score !== 'object') P.score = {};
+    if (P.score.on == null) P.score.on = false;
+    if (!Array.isArray(P.score.points)) P.score.points = [];
+    while (P.score.points.length < 16) P.score.points.push(0);
+    if (!Array.isArray(P.score.ranks)) P.score.ranks = [];
+    if (P.system.score == null) P.system.score = 'SCORE';
     if (!P.print || typeof P.print !== 'object') P.print = {};
-    for (const [k, v] of Object.entries({ author: '', year: '', story: '', notes: '', labelW: 84, labelH: 64 })) if (P.print[k] == null) P.print[k] = v;
+    for (const [k, v] of Object.entries({ author: '', year: '', story: '', notes: '', labelW: 84, labelH: 64, labelStyle: 'picture', tagline: 'TEXT ADVENTURE', code: '', map: 'none', box: false })) if (P.print[k] == null) P.print[k] = v;
     if (P.verbs.length > MAX_VERBS) P.verbs.length = MAX_VERBS;
     P.verbs.forEach((v, i) => { if (!v || typeof v !== 'object') P.verbs[i] = v = {}; if (v.word == null) v.word = 'VERB'; if (v.none == null) v.none = ''; });
     if (!P.events) P.events = [];
@@ -421,7 +437,11 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         if (!c.alt) c.alt = { on: false, event: null, desc: '', look: '' };
         if (c.deadly == null) c.deadly = false;
         if (!Array.isArray(c.verbs)) c.verbs = [];
-        for (const e of c.verbs) for (const k of ['text', 'fail', 'done']) if (e[k] == null) e[k] = '';
+        for (const e of c.verbs) { for (const k of ['text', 'fail', 'done']) if (e[k] == null) e[k] = ''; if (e.consumes == null) e.consumes = false; }
+        if (c.use.consumes == null) c.use.consumes = false;
+        if (!c.dark) c.dark = { on: false, item: null, text: '' };
+        if (!c.colors) c.colors = { on: false, bg: 0x00, text: 0x0E };
+        if (c.endTune == null) c.endTune = '';
       }
     }
     return P;
@@ -494,6 +514,17 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       if (t.bad.length) warns.push(`Title music: couldn't read ${t.bad.slice(0, 4).join(' ')} (write notes like C5:8, or - for a rest)`);
       if (tuneSteps(P.settings.customTitleTune).length > 64) warns.push('Title music: only the first 64 notes are played');
     }
+    if (P.engine === 'tak' && P.settings.sound !== false) {
+      const n = Object.values(soundData(P)).reduce((t, b) => t + b.length, 0);
+      if (n > 256) errs.push(`Sound: the effects and ending tunes take ${n} bytes, but they share one page of 256. Use fewer or shorter ending tunes.`);
+    }
+    if (P.score && P.score.on && P.engine === 'tak') {
+      const mx = scoreMax(P);
+      if (mx > 255) errs.push(`Score: the points add up to ${mx}; at most 255`);
+      else if (!mx) warns.push('Score is on, but no event gives any points');
+      else { const w = scoreLine(P, mx); if (w.length > 12) errs.push(`Score: "${w}" is ${w.length} characters, but the menu bar shows 12. Shorten the "score" word.`); }
+      checkPage(P.system.score, 'Menu word "score"', errs, warns, { menuWord: true });
+    }
     if (P.settings.passwords && P.engine === 'tak') {
       checkPage(P.system.code, 'Menu word "code"', errs, warns, { menuWord: true });
       checkPage(P.system.delete, 'Menu word "delete"', errs, warns, { menuWord: true });
@@ -539,6 +570,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     for (const k of SYS_MSGS) checkPage(P.system[k], `System message "${k}"`, errs, warns);
     checkPage(P.system.theEnd, 'Menu word "the end"', errs, warns, { menuWord: true });
     checkPage(P.system.nothing, 'Menu word "nothing"', errs, warns, { menuWord: true });
+    if (P.engine === 'tak' && P.maps.some(m => m.cells.some(c => c.type === 'room' && c.dark && c.dark.on))) checkPage(P.system.dark, 'System message "too dark"', errs, warns);
     if (P.engine === 'tak' && P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly))) checkPage(P.system.tryAgain, 'Menu word "try again"', errs, warns, { menuWord: true });
     if (P.verbs.length && P.engine !== 'tak') warns.push('Your own verbs need the Workshop engine; the Dark Mage engine leaves them out');
     P.verbs.forEach((v, i) => { checkPage(v.word, `Verb ${i + 1} word`, errs, warns, { menuWord: true }); checkPage(v.none, `Verb ${i + 1} (${normText(v.word)}) default reply`, errs, warns); });
@@ -576,6 +608,13 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         if (normText(x.fail).trim()) checkPage(x.fail, `${L} ${nm} refused text`, errs, warns);
         if (normText(x.done).trim()) checkPage(x.done, `${L} ${nm} already-done text`, errs, warns);
       });
+      if (c.dark && c.dark.on) {
+        if (P.engine !== 'tak') warns.push(L + ': dark rooms need the Workshop engine; the Dark Mage engine ignores it');
+        if (c.dark.item == null) errs.push(L + ': choose the item that lights this dark room');
+        if (normText(c.dark.text).trim()) checkPage(c.dark.text, L + ' text in the dark', errs, warns);
+      }
+      if (c.colors && c.colors.on && P.engine !== 'tak') warns.push(L + ': room colours need the Workshop engine; the Dark Mage engine ignores them');
+      if (c.use.on && c.use.consumes && P.engine !== 'tak') warns.push(L + ': items that get used up need the Workshop engine; the Dark Mage engine keeps them');
       if (c.ending && c.deadly && P.engine !== 'tak') warns.push(L + ': game-over rooms need the Workshop engine; the Dark Mage engine treats this as a normal ending');
       // an ending stops the controls, so its edges never matter
       const nb = c.ending ? {} : neighbors(P, mi, i);
@@ -596,6 +635,8 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       this.searchFrom = start;
     }
     put(bytes) { const a = this.pc; if (a + bytes.length > this.limit) throw new Error('OUT_OF_SPACE'); for (const b of bytes) this.bk[this.pc++ - BASE] = b; return a; }
+    // a block that can go anywhere: the first gap it fits, else the main area
+    place(bytes) { const h = this.holes.find(h => h.pc + bytes.length <= h.end); if (!h) return this.put(bytes); const a = h.pc; for (const b of bytes) this.bk[h.pc++ - BASE] = b; return a; }
     find(bytes, from, to) {
       outer: for (let i = from - BASE; i + bytes.length <= to - BASE; i++) {
         for (let j = 0; j < bytes.length; j++) if (this.bk[i + j] !== bytes[j]) continue outer;
@@ -945,10 +986,11 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
   function room(name, desc, look) {
     return { type: 'room', name, desc, look, lookReveals: false, item: null, take: { on: false, text: '' }, use: { on: false, item: null, text: '', setsEvent: false },
       give: { on: false, item: null, text: '' }, talk: { on: false, needUsed: null, ok: '', no: '' }, sets: null, door: { on: false, needEvent: null, text: '' }, ending: false,
-      alt: { on: false, event: null, desc: '', look: '' }, deadly: false, verbs: [] };
+      alt: { on: false, event: null, desc: '', look: '' }, deadly: false, verbs: [],
+      dark: { on: false, item: null, text: '' }, colors: { on: false, bg: 0x00, text: 0x0E } };
   }
   // a room's reply to one of the game's own verbs
-  function verbEntry(v) { return { verb: v || 0, needItem: null, needEvent: null, gives: null, sets: null, text: '', fail: '', done: '' }; }
+  function verbEntry(v) { return { verb: v || 0, needItem: null, needEvent: null, gives: null, sets: null, consumes: false, text: '', fail: '', done: '' }; }
   const MAX_VERBS = 4;
   function wall(text) { return { type: 'wall', text }; }
   function blankMap(i, W, rows) {
@@ -1031,6 +1073,9 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       else if (t === 0x00) { const on = v & 2; if (on && !this.vsync) this.frames++; this.vsync = on; }
     }
     r16(a) { return this.read(a) | (this.read(a + 1) << 8); }
+    // everything that makes up the running machine, for save states (taken between frames)
+    snapshot() { return { ram: Array.from(this.ram), bank: this.bank, a: this.a, x: this.x, y: this.y, sp: this.sp, p: this.p, pc: this.pc, cyc: this.cyc, tStart: this.tStart, tVal: this.tVal, tShift: this.tShift, vsync: this.vsync, frames: this.frames, aud: this.aud ? this.aud.slice() : null }; }
+    restore(s) { this.ram.set(s.ram); for (const k of ['bank', 'a', 'x', 'y', 'sp', 'p', 'pc', 'cyc', 'tStart', 'tVal', 'tShift', 'vsync', 'frames']) this[k] = s[k]; this.aud = s.aud ? s.aud.slice() : null; }
     push(v) { this.write(0x100 | this.sp, v); this.sp = (this.sp - 1) & 0xFF; }
     pull() { this.sp = (this.sp + 1) & 0xFF; return this.read(0x100 | this.sp); }
     nz(v) { this.p = (this.p & 0x7D) | (v & 0x80) | (v ? 0 : 2); return v; }
@@ -1085,7 +1130,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       return { lines, menu };
     }
     glyph(code, row) { return this.rom[this.bank * 4096 + (this.fontPage() - 0xF0) * 256 + code + row]; }
-    colors() { const b = this.bank * 4096; if (this.layout === 'tak') return { bg: this.rom[b + 0xFD0], text: this.rom[b + 0xFD1], menuBg: this.rom[b + 0xFD2], menuText: this.rom[b + 0xFD3] };
+    colors() { const b = this.bank * 4096; if (this.layout === 'tak') { const own = this.ram[0x76]; return { bg: own ? own & 0xFE : this.rom[b + 0xFD0], text: own ? this.ram[0x77] : this.rom[b + 0xFD1], menuBg: this.rom[b + 0xFD2], menuText: this.rom[b + 0xFD3] }; }
       return { bg: this.rom[b + 0x15F], text: this.rom[b + 0x159], menuBg: this.rom[b + 0x1B7], menuText: this.rom[b + 0x1BB] }; }
     // set .wide = true for cartridges built with 16 items / 16 events
     state() { const r = this.ram, h = a => this.wide ? r[a] << 8 : 0; return { room: r[0x22] >> 1, bank: this.bank, inv: r[0x27] | h(0x45), taken: r[0x26] | h(0x44), seen: r[0x28] | h(0x46), used: r[0x29] | h(0x47), events: r[0x2C] | h(0x4A) }; }
@@ -1258,7 +1303,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     LINE: 0x90, TP: 0x91, PAR: 0x93, TXT: 0x9C, MENUW: 0x9E, SELI: 0xA0, PMSGHI: 0xA1, ROOM: 0xA2, REC: 0xA3,
     PREV: 0xA5, TK: 0xA6, INV: 0xA7, SEEN: 0xA8, USED: 0xA9, PHOT: 0xAA, PMSGLO: 0xAB, EV: 0xAC, MMODE: 0xAD,
     DEB: 0xAE, LIST: 0xAF, MCOUNT: 0xBF, MWORDS: 0xC0, MHAND: 0xC2, SEL: 0xC8, MODE: 0xC9, PAGE: 0xCB, STATE: 0xCC,
-    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD, SPTR: 0xEE, SDUR: 0xF0, CTX: 0xF1, TMPA: 0xF2, TPTR: 0xF3, TDUR: 0xF5, AUDC1: 0x16, AUDF1: 0x18, AUDV1: 0x1A,
+    NAMES: 0xCE, HDR: 0xFFD0, TOKP: 0x94, TT: 0x96, SY: 0x98, MHOT: 0x99, CBG: 0x9A, CMB: 0x9B, CMT: 0xCD, SPTR: 0xEE, SDUR: 0xF0, CTX: 0xF1, TMPA: 0xF2, TPTR: 0xF3, TDUR: 0xF5, RBG: 0xF6, RTX: 0xF7, AUDC1: 0x16, AUDF1: 0x18, AUDV1: 0x1A,
     // passwords use the item-menu areas, free while a code is made or typed
     V0: 0xAF, V1: 0xB0, ACC: 0xB1, KB: 0xB2, SUM: 0xB3, DI: 0xB4, CI: 0xB5, NCH: 0xB6, SCR: 0xB7, TROOM: 0xB8, TBANK: 0xB9, NB: 0xBA, MB: 0xBB, PWS: 0xBD, BUDG: 0xBE, BUF: 0xCE, AUDC0: 0x15, AUDF0: 0x17, AUDV0: 0x19,
     VSYNC: 0x00, VBLANK: 0x01, WSYNC: 0x02, NUSIZ0: 0x04, NUSIZ1: 0x05, COLUP0: 0x06, COLUP1: 0x07, COLUBK: 0x09,
@@ -1300,10 +1345,14 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     add('FRAME: LDA #2', 'STA VBLANK', 'STA WSYNC', 'STA VSYNC', 'STA WSYNC', 'STA WSYNC', 'STA WSYNC', 'LDA #0', 'STA VSYNC',
       'LDA #VBT', 'STA TIM64T', 'INC FRAMEC', 'LDA FRAMEC', 'AND #1', 'STA PAR',
       'LDA SWCHB', 'LSR A', 'BCS NORES', 'JMP RESET',
-      'NORES: JSR INPUT', ...(o.sound ? ['JSR SOUND'] : []), ...(o.title ? ['JSR TSOUND'] : []),
+      'NORES: JSR INPUT', 'LDA PTBL', 'STA MHOT',
+      // the sound effects live in one bank (SNDHOT): play a step there, then come back
+      ...(o.sound ? ['LDA SNDHOT', 'JSR SOUND', 'LDY MHOT', 'LDA $FF00,Y'] : []), ...(o.title ? ['JSR TSOUND'] : []),
       // text can live in any bank: the high nibble of the message address names it ($F = this map's bank)
-      'LDA PTBL', 'STA MHOT', 'LDA HDR', 'STA CBG', 'LDA HDR+2', 'STA CMB', 'LDA HDR+3', 'STA CMT',
+      'LDA HDR', 'STA CBG', 'LDA HDR+2', 'STA CMB', 'LDA HDR+3', 'STA CMT',
       'LDA HDR+1', 'STA COLUP0', 'STA COLUP1', ...(o.pic ? ['STA CTX'] : []),
+      // a room with its own colours: RBG holds its background with bit 0 set (the TIA ignores that bit), 0 = none
+      ...(o.rcol ? ['LDA RBG', 'BEQ NRC', 'STA CBG', 'LDA RTX', 'STA COLUP0', 'STA COLUP1', 'NRC:'] : []),
       'LDA TXT+1', 'CMP #$F0', 'BCS NOSW', ...(o.pw ? ['CMP #2', 'BCC NOSW'] : []), 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'TAY', 'LDA HOTS,Y', 'NOSW: JSR PREP',
       'VBW: LDA INTIM', 'BNE VBW', 'STA WSYNC', 'LDA #0', 'STA VBLANK');
     // ---------- visible picture: 192 scanlines ----------
@@ -1331,16 +1380,21 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       // overscan
       'LDA #2', 'STA VBLANK', 'LDA #OST', 'STA TIM64T', 'LDY MHOT', 'LDA $FF00,Y',
       // a code being made or checked: a slice of the work in the start bank each overscan
-      ...(o.pw ? ['LDA PWS', 'BEQ OSW', 'JSR PWSTP'] : []),
+      ...(o.pw ? ['LDA PWS', 'BEQ OSW', 'LDA PWHOT', 'JSR PWSTEP', 'LDY MHOT', 'LDA $FF00,Y'] : []),
       'OSW: LDA INTIM', 'BNE OSW', 'JMP FRAME');
     // ---------- passwords: the code routines sit in one bank (PWHOT), which may hold only text and display code,
     // so every way in and out goes through these, which every bank has at the same address ----------
-    if (o.pw) add('PWSAVE: LDA PWHOT', 'JSR XSAVE', 'JMP PWBACK', 'PWSTP: LDA PWHOT', 'JSR PWSTEP', 'JMP PWBACK',
+    if (o.pw) add('PWSAVE: LDA PWHOT', 'JSR XSAVE', 'JMP PWBACK',
       'PWCODE: LDA PWHOT', 'JSR HCODE', 'JMP PWBACK', 'PWCF: LDA PWHOT', 'JSR HCODEF', 'JMP PWBACK',
       'PWSEL: LDA PWHOT', 'JSR SELC', 'JMP PWBACK', 'PWBAD: LDA PWHOT', 'JSR BAD',
       'PWBACK: LDY MHOT', 'LDA $FF00,Y', 'RTS',
       // out of the code bank: resume in a map's bank, or back to the start menu in the start bank
       'BSW: LDA $FF00,Y', 'JMP XRESUME', 'BSM: LDA STARTHOT', 'JMP SETSTARTM');
+    // ---------- sound player: one step a frame, run in the sound bank (so it sits with the display code, in every bank) ----------
+    if (o.sound) add('SOUND: LDA SDUR', 'BEQ SN1', 'DEC SDUR', 'RTS',
+      'SN1: LDY #0', 'LDA (SPTR),Y', 'STA AUDV0', 'BEQ SNR', 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'STA AUDC0',
+      'INY', 'LDA (SPTR),Y', 'STA AUDF0', 'INY', 'LDA (SPTR),Y', 'STA SDUR',
+      'LDA SPTR', 'CLC', 'ADC #3', 'STA SPTR', 'SNR: RTS');
     // ---------- read one text line from TP into the six glyph pointers (this frame's half) ----------
     // Every character is stored at P1+X with X = its column (odd frames start at -1), so this frame's
     // half land on the pointers' low bytes; the others land on high bytes, which are reset afterwards.
@@ -1369,7 +1423,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       // horizontal positioning: coarse with RESPx after a divide-by-15 delay, fine with HMPx
       'POS: STA WSYNC', 'SEC', 'PD: SBC #15', 'BCS PD', 'EOR #7', 'ASL A', 'ASL A', 'ASL A', 'ASL A', 'STA HMP0,X', 'STA RESP0,X', 'RTS');
     // ---------- controls ----------
-    add('INPUT: LDA STATE', 'BEQ IN1');
+    add('INPUT: LDA STATE', 'BNE IN0', 'JMP IN1', 'IN0:');
     if (o.endEvent != null) add(`LDX #${o.endEvent}`, 'LDY #EV', 'JSR BTST', 'BNE ENDED');
     add('JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'LSR A', 'BCC IN1');
     // a game-over room: TRY AGAIN, and fire (pressed after letting go) restarts at the start room
@@ -1382,8 +1436,11 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       'DE3: LDA #0', 'STA DEB', 'DE4: RTS');
     add(
       // the first frame of the ending plays the tune
-      'ENDED: LDA MENUW', 'CMP #<W_END', 'BNE EN1', 'LDA MENUW+1', 'CMP #>W_END', 'BEQ EN2', 'EN1:', ...snd('S_END'),
-      'LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1', 'EN2: RTS',
+      'ENDED: LDA MENUW', 'CMP #<W_END', 'BNE EN1', 'LDA MENUW+1', 'CMP #>W_END', 'BEQ EN2', ...(o.score ? ['EN1: LDA MENUW+1', 'CMP #1', 'BEQ EN2'] : ['EN1:']),
+      // an ending room may name its own tune (extras flag 8, its low byte at offset 11)
+      ...(o.etune ? ['JSR ETP'] : snd('S_END')),
+      'LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1',
+      ...(o.score ? ['JMP SCOREC', 'EN2: JMP SCALT'] : ['EN2: RTS']),
       ...(o.pw ? ['IN1: LDA PWS', 'BNE IRTS', 'LDA INPT4'] : ['IN1: LDA INPT4']), 'BMI NOTPR', 'LDA DEB', 'BNE IRTS', 'INC DEB', ...snd('S_FIRE'), 'LDA ROOM', 'STA PREV',
       'LDA MMODE', ...(o.pw ? ['CMP #3', 'BNE IN3', 'JMP PWCF', 'IN3:'] : []), 'CMP #2', 'BNE IN2', 'JMP HPICK', 'IN2: LDA SELI', 'ASL A', 'TAY', 'LDA (MHAND),Y', 'STA T1', 'INY', 'LDA (MHAND),Y', 'STA T2', 'JMP (T1)',
       'NOTPR: LDA #0', 'STA DEB', 'LDA FRAMEC', 'AND #7', 'BNE IRTS', 'LDA MMODE', 'BNE CYC',
@@ -1404,22 +1461,32 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     add('HMORE: INC PAGE', 'LDA PAGE', 'ASL A', 'TAY', 'LDA INTRO,Y', 'STA TXT', 'LDA INTRO+1,Y', 'STA TXT+1',
       'LDA PAGE', 'CMP #NPAGES-1', 'BCC HM1', 'JMP SETSTARTM', 'HM1: RTS',
       'HSTART: LDA #1', 'STA STATE', 'LDA #START2', 'STA ROOM', 'LDA #<STARTINV', 'STA INV', 'LDA #>STARTINV', 'STA INV+$1E',
-      'JSR GETREC', 'LDX #6', 'JMP SAY');
+      'JSR GETREC', ...(o.rcol ? ['JSR RCOL'] : []), 'LDX #6', 'JMP SAY');
     // ---------- rooms ----------
     add('GETREC: LDA HDR+5', 'STA T1', 'LDA HDR+6', 'STA T2', 'LDY ROOM', 'LDA (T1),Y', 'STA REC', 'INY', 'LDA (T1),Y', 'STA REC+1', 'RTS',
       'REC0: JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'RTS',
       // A room record is [flags, field mask lo, hi] and then only the fields it has, in order:
       // six one-byte fields (0-5) and eight message pointers (6-13). FLD: X = field -> Y = its offset, C = present.
-      'FLD: STX SY', 'LDY #1', 'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'INY', 'LDX #0',
+      'FLD: STX SY', 'LDY #1', 'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'INY', ...(o.xt || o.alt ? ['AND #$40', 'BEQ FL0', 'INY', 'INY', 'FL0:'] : []), 'LDX #0',
       'FL1: CPX SY', 'BEQ FL3', 'LSR T2', 'ROR T1', 'BCC FL2', 'INY', 'CPX #6', 'BCC FL2', 'INY', 'FL2: INX', 'BNE FL1',
       'FL3: LSR T2', 'ROR T1', 'RTS',
       'GETF: JSR FLD', 'LDA #$FF', 'BCC GF1', 'LDA (REC),Y', 'GF1: TAX', 'CMP #$FF', 'RTS',
+      // field 14 points at the room's extras: [alt event, alt arrival lo/hi, alt LOOK lo/hi, flags (1 USE uses the item up,
+      // 2 dark, 4 own colours), light item, dark text lo/hi, background, text colour, verb count, verb replies...]
+      // XT: C set and T1/T2 -> the extras when the room has them (its pointer comes straight after the mask); A = their flags
+      ...(o.xt || o.alt ? ['XT: LDY #2', 'LDA (REC),Y', 'AND #$40', 'CLC', 'BEQ XT9', 'INY', 'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'LDY #5', 'LDA (T1),Y', 'SEC', 'XT9: RTS'] : []),
+      ...(o.dark ? [
+        // ISDARK: C set when this room is dark and the light item isn't carried
+        'ISDARK: JSR XT', 'BCC IDN', 'AND #2', 'BEQ IDN', 'INY', 'LDA (T1),Y', 'TAX', 'LDA INV', 'AND ML,X', 'BNE IDN', 'LDA INV+$1E', 'AND MH,X', 'BNE IDN', 'SEC', 'RTS', 'IDN: CLC', 'RTS',
+        'SETTXT: CPX #6', 'BEQ SD1', 'CPX #7', 'BNE SDN', 'SD1: STX TMPA', 'JSR ISDARK', 'BCC SDR',
+        'LDY #8', 'LDA (T1),Y', 'BEQ SDD', 'STA TXT+1', 'DEY', 'LDA (T1),Y', 'STA TXT', 'RTS',
+        'SDD: LDA #<M_DARK', 'STA TXT', 'LDA #>M_DARK', 'STA TXT+1', 'RTS',
+        'SDR: LDX TMPA', 'SDN:'] : []),
       ...(o.alt ? [
         // arrival (6) and LOOK (7) text: a room may point (field 14) at [event, arrival lo/hi, LOOK lo/hi] for after that event
-        'SETTXT: CPX #6', 'BEQ SA1', 'CPX #7', 'BNE SAN', 'SA1: STX TMPA', 'LDX #14', 'JSR FLD', 'BCC SAR',
-        'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'LDY #0', 'LDA (T1),Y', 'TAX', 'LDY #EV', 'JSR BTST', 'BEQ SAR',
+        `${o.dark ? 'SETTX0' : 'SETTXT'}: CPX #6`, 'BEQ SA1', 'CPX #7', 'BNE SAN', 'SA1: STX TMPA', 'JSR XT', 'BCC SAR', 'LDY #0', 'LDA (T1),Y', 'TAX', 'LDY #EV', 'JSR BTST', 'BEQ SAR',
         'LDA TMPA', 'ASL A', 'SEC', 'SBC #10', 'TAY', 'LDA (T1),Y', 'BEQ SAR', 'STA TXT+1', 'DEY', 'LDA (T1),Y', 'STA TXT', 'RTS',
-        'SAR: LDX TMPA', 'SAN: JSR FLD'] : ['SETTXT: JSR FLD']), 'SETTY: LDA (REC),Y', 'STA TXT', 'INY', 'LDA (REC),Y', 'STA TXT+1', 'RTS',
+        'SAR: LDX TMPA', 'SAN: JSR FLD'] : [`${o.dark ? 'SETTX0' : 'SETTXT'}: JSR FLD`]), 'SETTY: LDA (REC),Y', 'STA TXT', 'INY', 'LDA (REC),Y', 'STA TXT+1', 'RTS',
       'SAY: JSR SETTXT', 'JMP SETMOVE',
       'SAYW: STA TXT', 'STY TXT+1', 'JMP SETMOVE');
     // ---------- walking ----------
@@ -1431,7 +1498,8 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       'LDA PREV', 'STA ROOM', ...snd('S_LOCK'), 'LDY PHOT', 'BEQ MLK1', 'LDA #0', 'STA PHOT', 'LDA PMSGLO', 'STA TXT', 'LDA PMSGHI', 'STA TXT+1',
       'LDA $FF00,Y', 'JMP SETMOVE', 'MLK1: LDX #12', 'JMP SAY',
       'MWALL: LDA PREV', 'STA ROOM', ...snd('S_BUMP'), 'LDY #1', 'JSR SETTY', 'JMP SETMOVE',
-      'MOK: LDA #0', 'STA PHOT', ...snd('S_STEP'), 'LDX #6', 'JMP SAY',
+      'MOK: LDA #0', 'STA PHOT', ...snd('S_STEP'), ...(o.rcol ? ['JSR RCOL'] : []), 'LDX #6', 'JMP SAY',
+      ...(o.rcol ? ['RCOL: LDA #0', 'STA RBG', 'JSR XT', 'BCC RC9', 'AND #4', 'BEQ RC9', 'LDY #9', 'LDA (T1),Y', 'ORA #1', 'STA RBG', 'INY', 'LDA (T1),Y', 'STA RTX', 'RC9: RTS'] : []),
       // portal table (same address in every bank, this bank's own contents):
       // [own hotspot] then [from*2, hotspot, dest*2, locked message lo, hi], $FF ends
       'PORTAL: LDX #0', 'PO1: LDY PTBL+1,X', 'CPY #$FF', 'BEQ PON', 'CMP PTBL+1,X', 'BEQ POH', 'INX', 'INX', 'INX', 'INX', 'INX', 'BNE PO1',
@@ -1442,11 +1510,11 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       'BSET: LDA $0000,Y', 'ORA ML,X', 'STA $0000,Y', 'LDA $001E,Y', 'ORA MH,X', 'STA $001E,Y', 'RTS',
       'BCLR: LDA ML,X', 'EOR #$FF', 'AND $0000,Y', 'STA $0000,Y', 'LDA MH,X', 'EOR #$FF', 'AND $001E,Y', 'STA $001E,Y', 'RTS');
     // ---------- verbs ----------
-    add('HLOOK: JSR GETREC', 'LDX #7', 'JSR SETTXT', 'LDY #0', 'LDA (REC),Y', 'BEQ LK9', 'BMI LK9',
+    add('HLOOK: JSR GETREC', 'LDX #7', 'JSR SETTXT', ...(o.dark ? ['JSR ISDARK', 'BCS LK9'] : []), 'LDY #0', 'LDA (REC),Y', 'BEQ LK9', 'BMI LK9',
       'LDX #0', 'JSR GETF', 'BEQ LK9', 'LDY #TK', 'JSR BTST', 'BNE LKN', 'LDY #SEEN', 'JSR BSET', 'LK9: JMP SETACT',
       'LKN: LDA #<M_NSPEC', 'STA TXT', 'LDA #>M_NSPEC', 'STA TXT+1', 'JMP SETACT',
       'HGO: JSR GETREC', 'LDX #6', 'JMP SAY',
-      'HTAKE: JSR REC0', 'AND #$40', 'BEQ TKN', 'LDX #0', 'JSR GETF', 'BEQ TKN', 'LDY #TK', 'JSR BTST', 'BNE TKN',
+      ...(o.dark ? ['HTAKE: JSR GETREC', 'JSR ISDARK', 'BCC HT0', 'DKSAY:', ...snd('S_NOPE'), 'LDX #7', 'JMP SAY', 'HT0: JSR REC0'] : ['HTAKE: JSR REC0']), 'AND #$40', 'BEQ TKN', 'LDX #0', 'JSR GETF', 'BEQ TKN', 'LDY #TK', 'JSR BTST', 'BNE TKN',
       'LDY #INV', 'JSR BTST', 'BNE TKN', 'LDY #SEEN', 'JSR BTST', 'BEQ TKN', 'LDY #INV', 'JSR BSET', 'LDY #TK', 'JSR BSET', ...snd('S_GOOD'),
       'LDX #8', 'JMP SAY', 'TKN:', ...snd('S_NOPE'), 'LDA #<M_NTAKE', 'LDY #>M_NTAKE', 'JMP SAYW',
       'HTALK: JSR REC0', 'AND #$08', 'BEQ THELLO', 'LDX #3', 'JSR GETF', 'BEQ TDEF', 'LDY #USED', 'JSR BTST', 'BEQ TDEF',
@@ -1463,20 +1531,36 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       'OB5: LDA #NAMES', 'STA MWORDS', 'LDA #0', 'STA MWORDS+1', 'STA SELI', 'LDA T2', 'STA MCOUNT', 'LDA #2', 'STA MMODE', 'JMP SELWORD',
       'HPICK: LDX SELI', 'LDA LIST,X', 'STA SEL', 'LDA MODE', 'BNE PK1', 'JMP HGO', 'PK1: LSR A', 'BCS GIVEDO',
       'USEDO: JSR REC0', 'AND #$10', 'BEQ UNO', 'LDX #1', 'JSR GETF', 'CMP SEL', 'BNE UNO', ...snd('S_GOOD'), 'LDY #USED', 'JSR BSET',
+      ...(o.consume ? ['JSR XT', 'BCC UC9', 'LSR A', 'BCC UC9', 'LDX SEL', 'LDY #INV', 'JSR BCLR', 'UC9:'] : []),
       'JSR REC0', 'AND #$04', 'BEQ UOK', 'LDX #4', 'JSR GETF', 'BEQ UOK', 'JSR EVSET', 'UOK: LDX #9', 'JMP SAY',
       'UNO:', ...snd('S_NOPE'), 'LDA #<M_CUSE', 'LDY #>M_CUSE', 'JMP SAYW',
       'GIVEDO: JSR REC0', 'AND #$20', 'BEQ GNO', 'LDX #2', 'JSR GETF', 'CMP SEL', 'BNE GNO', ...snd('S_GOOD'), 'LDY #INV', 'JSR BCLR',
       'LDX #4', 'JSR GETF', 'BEQ GV2', 'JSR EVSET', 'GV2: LDX #0', 'JSR GETF', 'BEQ GV3', 'LDY #SEEN', 'JSR BSET',
       'GV3: LDX #10', 'JMP SAY', 'GNO:', ...snd('S_NOPE'), 'LDA #<M_CGIVE', 'LDY #>M_CGIVE', 'JMP SAYW',
       'EVSET: LDY #EV', 'JSR BSET', ...snd('S_EVENT'), 'RTS');
+    // an ending room may name its own tune (extras flag 8, its low byte at offset 11)
+    if (o.etune) add('ETP: JSR GETREC', 'JSR XT', 'BCC ET0', 'AND #8', 'BEQ ET0', 'LDY #11', 'LDA (T1),Y', 'JMP PLAY', 'ET0:', ...snd('S_END'), 'RTS');
+    // ---------- score: worked out on the first frame of a win ----------
+    if (o.score) add(
+        // add up the points of the events that happened, then write "SCORE 35/50" into RAM ($1AF: LIST, free now) for the menu bar
+        'SCOREC: LDA #0', 'STA T1', 'LDX #15', 'SU1: LDY #EV', 'JSR BTST', 'BEQ SU2', 'LDA T1', 'CLC', 'ADC EVPTS,X', 'STA T1', 'SU2: DEX', 'BPL SU1',
+        'LDX #0', 'LDY #0', 'SP1: LDA SCPRE,Y', 'STA LIST,X', 'INX', 'INY', `CPY #${o.score.pre.length}`, 'BNE SP1',
+        'LDA T1', 'LDY #0', 'SH1: CMP #100', 'BCC SH2', 'SBC #100', 'INY', 'BNE SH1', 'SH2: STA T2', 'STY T1', 'TYA', 'BEQ ST0', 'LDA DIGT,Y', 'STA LIST,X', 'INX',
+        'ST0: LDA T2', 'LDY #0', 'ST1: CMP #10', 'BCC ST2', 'SBC #10', 'INY', 'BNE ST1', 'ST2: STA T2', 'TYA', 'ORA T1', 'BEQ ST3', 'LDA DIGT,Y', 'STA LIST,X', 'INX',
+        'ST3: LDY T2', 'LDA DIGT,Y', 'STA LIST,X', 'INX', 'LDY #0', 'SS1: LDA SCSUF,Y', 'STA LIST,X', 'INX', 'INY', `CPY #${o.score.suf.length}`, 'BNE SS1',
+        'RTS',
+        // afterwards the menu bar shows "the end" and the score by turns, about two seconds each
+        'SCALT: LDA FRAMEC', 'AND #127', 'BNE EN3', 'LDA MENUW+1', 'CMP #1', 'BEQ EN4', 'LDA #<LIST', 'STA MENUW', 'LDA #1', 'STA MENUW+1', 'RTS',
+        'EN4: LDA #<W_END', 'STA MENUW', 'LDA #>W_END', 'STA MENUW+1', 'EN3: RTS',
+        `EVPTS: .byte ${o.score.pts.join(',')}`, `DIGT: .byte ${o.score.digits.join(',')}`, `SCPRE: .byte ${o.score.pre.join(',')}`, `SCSUF: .byte ${o.score.suf.join(',')}`);
     // ---------- the game's own verbs ----------
     // field 14 points at [alt event, alt arrival lo/hi, alt LOOK lo/hi, n, n entries of
     // verb, needs item, needs event, sets event, gives item ($FF = none), text lo/hi, refused lo/hi, already-done lo/hi]
     if (o.verbs) add(
       ...Array.from({ length: o.verbs }, (_, i) => [`HV${i}: LDX #${i}`, ...(i < o.verbs - 1 ? ['.byte $2C'] : [])]).flat(),
-      'HVERB: STX TMPA', 'JSR GETREC', 'LDX #14', 'JSR FLD', 'BCC VNONE',
-      'LDA (REC),Y', 'STA T1', 'INY', 'LDA (REC),Y', 'STA T2', 'LDY #5', 'LDA (T1),Y', 'BEQ VNONE', 'STA SY', 'INY',
-      'VL: LDA (T1),Y', 'CMP TMPA', 'BEQ VHIT', 'TYA', 'CLC', 'ADC #11', 'TAY', 'DEC SY', 'BNE VL',
+      'HVERB: STX TMPA', 'JSR GETREC', ...(o.dark ? ['JSR ISDARK', 'BCC HV9', 'JMP DKSAY', 'HV9:'] : []), 'JSR XT', 'BCC VNONE',
+      'LDY #12', 'LDA (T1),Y', 'BEQ VNONE', 'STA SY', 'INY',
+      'VL: LDA (T1),Y', 'AND #$7F', 'CMP TMPA', 'BEQ VHIT', 'TYA', 'CLC', 'ADC #11', 'TAY', 'DEC SY', 'BNE VL',
       'VNONE:', ...snd('S_NOPE'), 'LDA TMPA', 'ASL A', 'TAX', 'LDA VDEF,X', 'LDY VDEF+1,X', 'JMP SAYW',
       'VFAIL: LDA #7', 'JSR VT', 'BEQ VNONE', ...snd('S_NOPE'), 'JMP SETMOVE',
       // done already (its event set, or its item handed over before)?  then do the needs hold?
@@ -1484,7 +1568,10 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       'VH1: LDA #4', 'JSR VF', 'BEQ VH2', 'LDY #TK', 'JSR BTST', 'BNE VDONE',
       'VH2: LDA #1', 'JSR VF', 'BEQ VH3', 'LDY #INV', 'JSR BTST', 'BEQ VFAIL',
       'VH3: LDA #2', 'JSR VF', 'BEQ VH4', 'LDY #EV', 'JSR BTST', 'BEQ VFAIL',
-      'VH4:', ...snd('S_GOOD'), 'LDA #4', 'JSR VF', 'BEQ VH5', 'LDY #INV', 'JSR BSET', 'LDY #TK', 'JSR BSET',
+      'VH4:', ...snd('S_GOOD'),
+      // bit 7 of the verb byte: the needed item is used up
+      ...(o.consume ? ['LDY SY', 'LDA (T1),Y', 'BPL VH7', 'LDA #1', 'JSR VF', 'BEQ VH7', 'LDY #INV', 'JSR BCLR', 'VH7:'] : []),
+      'LDA #4', 'JSR VF', 'BEQ VH5', 'LDY #INV', 'JSR BSET', 'LDY #TK', 'JSR BSET',
       'VH5: LDA #3', 'JSR VF', 'BEQ VH6', 'JSR EVSET',
       'VH6: LDA #5', 'JSR VT', 'JMP SETMOVE',
       'VDONE: LDA #9', 'JSR VT', 'BEQ VH6', 'JMP SETMOVE',
@@ -1497,7 +1584,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     if (o.pw) add(
       'HSAVE: JSR PWSAVE', 'JMP SETMOVE',
       'XRESUME: LDA $FF00,Y', 'LDA TROOM', 'ASL A', 'STA ROOM', 'CMP HDR+14', 'BEQ XR1', 'BCS XRB',
-      'XR1: JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'BEQ XRB',
+      'XR1: JSR GETREC', 'LDY #0', 'LDA (REC),Y', 'BEQ XRB', ...(o.rcol ? ['JSR RCOL'] : []),
       // from now on the frame returns to this map's bank
       'LDA PTBL', 'STA MHOT', 'LDA #1', 'STA STATE', 'STA DEB', 'LDA #0', 'STA PHOT', ...snd('S_GOOD'), 'LDX #6', 'JMP SAY',
       'XRB: JMP PWBAD');
@@ -1507,11 +1594,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     if (o.sound) {
       const names = ['S_TICK', 'S_FIRE', 'S_STEP', 'S_BUMP', 'S_LOCK', 'S_NOPE', 'S_GOOD', 'S_EVENT', 'S_DIE', 'S_END'];
       names.forEach((n, i) => add(`P${n}: LDA #<${n}`, ...(i < names.length - 1 ? ['.byte $2C'] : [])));
-      add('PLAY: STA SPTR', 'LDA #0', 'STA SDUR', 'RTS',
-        'SOUND: LDA SDUR', 'BEQ SN1', 'DEC SDUR', 'RTS',
-        'SN1: LDY #0', 'LDA (SPTR),Y', 'STA AUDV0', 'BEQ SNR', 'LSR A', 'LSR A', 'LSR A', 'LSR A', 'STA AUDC0',
-        'INY', 'LDA (SPTR),Y', 'STA AUDF0', 'INY', 'LDA (SPTR),Y', 'STA SDUR',
-        'LDA SPTR', 'CLC', 'ADC #3', 'STA SPTR', 'SNR: RTS');
+      add('PLAY: STA SPTR', 'LDA #0', 'STA SDUR', 'RTS');
     }
     // ---------- title music: the second channel, looping while the title and intro pages show ----------
     // its notes sit in the start bank only (the bank that is switched in until START); 16-bit pointer, 0 loops
@@ -1664,6 +1747,12 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     S_DIE: [[12, 12, 8, 10], [12, 15, 8, 10], [12, 19, 8, 10], [12, 24, 8, 24], [12, 24, 3, 12]],
   };
   const SFX_NAMES = { S_TICK: 'Menu tick', S_FIRE: 'Button', S_STEP: 'Footstep', S_BUMP: 'Wall', S_LOCK: 'Locked', S_NOPE: "Can't do that", S_GOOD: 'Success', S_EVENT: 'Event', S_DIE: 'Game over' };
+  // the most points a game can give, and the line the menu bar shows at the end ("SCORE 35/50")
+  function scoreMax(P) { return P.score.points.reduce((t, v) => t + (Math.max(0, Math.min(255, +v || 0))), 0); }
+  function scoreOn(P) { return P.engine === 'tak' && P.score && P.score.on && scoreMax(P) > 0; }
+  function scoreLine(P, n) { return `${normText(P.system.score).split('\n')[0]} ${n}/${scoreMax(P)}`; }
+  // the tunes a game's sound page holds: the game's ending tune and any ending room's own
+  function endTunesUsed(P) { const ks = new Set(); for (const m of P.maps) for (const c of m.cells) if (c.type === 'room' && c.ending && !c.deadly && c.endTune && c.endTune !== 'default' && TUNES[c.endTune] && c.endTune !== 'none') ks.add(c.endTune); return [...ks]; }
   function endTuneText(P) { const k = P.settings.tune; return k === 'custom' ? P.settings.customTune : (TUNES[k] || TUNES.fanfare).text; }
   const stepBytes = steps => steps.flatMap(([c, f, v, n]) => [((c & 15) << 4) | (v & 15) || 0x40, f & 31, Math.max(0, n - 1)]).concat([0]);
   // bytes left for the ending tune: all sounds share one page
@@ -1674,6 +1763,8 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     const tempo = st => hz === 60 ? st : st.map(([c, f, v, n]) => [c, f, v, Math.max(1, Math.round(n * hz / 60))]);
     for (const [k, st] of Object.entries(SFX)) d[k] = stepBytes(tempo(st));
     d.S_END = stepBytes(tempo(tuneSteps(endTuneText(P))));
+    // ending rooms with a tune of their own
+    for (const k of endTunesUsed(P)) d['S_T_' + k] = stepBytes(tempo(tuneSteps(TUNES[k].text)));
     return d;
   }
   // TIA audio channel model (after Ron Fries' TIASound): AUDC selects the divider/poly chain,
@@ -1806,10 +1897,10 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
   // rows and columns count from 1; items and events are numbered 1-16.
   const SCRIPT_WORDS = [['look', 'look'], ['north', 'north'], ['east', 'east'], ['south', 'south'], ['west', 'west'], ['go', 'go'], ['take', 'take'],
     ['give', 'give'], ['use', 'use'], ['talk', 'talk'], ['inventory', 'inventory'], ['more', 'more'], ['start', 'start'], ['the end', 'theEnd'],
-    ['nothing', 'nothing'], ['try again', 'tryAgain'], ['code', 'code'], ['delete', 'delete']];
+    ['nothing', 'nothing'], ['try again', 'tryAgain'], ['code', 'code'], ['delete', 'delete'], ['score', 'score']];
   const SCRIPT_MSGS = [['nothing special', 'nothingSpecial'], ['nothing to take', 'nothingToTake'], ['nobody answers', 'talkDefault'],
     ['give prompt', 'selectGive'], ["can't give", 'cantGive'], ['use prompt', 'selectUse'], ["can't use", 'cantUse'], ['carrying', 'carrying'],
-    ['power-on screen', 'bootB']];
+    ['power-on screen', 'bootB'], ['too dark', 'dark']];
   function toScript(project) {
     const P = normalize(JSON.parse(JSON.stringify(project)));
     const out = [];
@@ -1830,13 +1921,16 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       `sound: ${P.settings.sound !== false ? 'on' : 'off'}`, `tune: ${P.settings.tune}`, `custom tune: ${P.settings.customTune || ''}`,
       `title music: ${P.settings.titleTune}`, `custom title music: ${P.settings.customTitleTune || ''}`,
       `passwords: ${P.settings.passwords ? 'on' : 'off'}`, `tv: ${tvOf(P).name}`,
-      `author: ${P.print.author}`, `year: ${P.print.year}`, `label size: ${P.print.labelW} x ${P.print.labelH} mm`, '', 'items:');
+      `author: ${P.print.author}`, `year: ${P.print.year}`, `label size: ${P.print.labelW} x ${P.print.labelH} mm`, `label style: ${P.print.labelStyle}`, `manual map: ${P.print.map}`, `box: ${P.print.box ? 'on' : 'off'}`, `label tagline: ${P.print.tagline}`, `label code: ${P.print.code}`, '', 'items:');
     P.items.forEach((t, i) => put(`  ${i + 1}: ${t}`));
     put('', 'events:');
     P.events.forEach((t, i) => put(`  ${i + 1}: ${t}`));
+    put('', `score: ${P.score.on ? 'on' : 'off'}`);
+    if (P.score.points.some(v => +v)) { put('# points for each event (event: points)', 'points:'); P.score.points.forEach((v, i) => { if (+v) put(`  ${i + 1}: ${+v}`); }); }
+    if (P.score.ranks.length) { put('# rank titles for the manual (lowest score: title)', 'ranks:'); P.score.ranks.forEach(r => put(`  ${r.min}: ${r.title}`)); }
     if (P.verbs.length) {
       put('', '# your own verbs: the menu word, then what it says in a room with no reply of its own');
-      put('verbs:'); P.verbs.forEach((v, i) => { put(`  ${i + 1}: ${v.word}`); text('    ', v.none); });
+      put('verbs:'); P.verbs.forEach((v, i) => { put(`  ${i + 1}${v.hint ? ' (hints)' : ''}: ${v.word}`); text('    ', v.none); });
     }
     put('', 'words:');
     for (const [k, key] of SCRIPT_WORDS) put(`  ${k}: ${P.system[key] == null ? '' : P.system[key]}`);
@@ -1874,7 +1968,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         if (c.item != null) put(`    item: ${c.item + 1}${itemName(c.item)}`);
         if (c.lookReveals) put('    look reveals the item: yes');
         if (c.take.on) { put('    take:'); text('      ', c.take.text); }
-        if (c.use.on) { put(`    use item ${num(c.use.item)}${itemName(c.use.item)}${c.use.setsEvent ? ', sets the event' : ''}:`); text('      ', c.use.text); }
+        if (c.use.on) { put(`    use item ${num(c.use.item)}${itemName(c.use.item)}${c.use.setsEvent ? ', sets the event' : ''}${c.use.consumes ? ', uses it up' : ''}:`); text('      ', c.use.text); }
         if (c.give.on) { put(`    give item ${num(c.give.item)}${itemName(c.give.item)}:`); text('      ', c.give.text); }
         if (c.talk.on) {
           put('    talk:'); text('      ', c.talk.no);
@@ -1883,14 +1977,17 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         if (c.sets != null) put(`    sets event: ${c.sets + 1}${evName(c.sets)}`);
         if (c.door.on) { put(`    locked until event ${num(c.door.needEvent)}${evName(c.door.needEvent)}:`); text('      ', c.door.text); }
         if (c.ending) put(`    ending: ${c.deadly ? 'game over' : 'win'}`);
+        if (c.ending && !c.deadly && c.endTune) put(`    ending tune: ${c.endTune}`);
         for (const x of c.verbs || []) {
           const vn = P.verbs[x.verb] ? ` (${safe(P.verbs[x.verb].word)})` : '';
           const cl = [x.needItem != null ? `needs item ${x.needItem + 1}${itemName(x.needItem)}` : '', x.needEvent != null ? `needs event ${x.needEvent + 1}${evName(x.needEvent)}` : '',
-            x.gives != null ? `gives item ${x.gives + 1}${itemName(x.gives)}` : '', x.sets != null ? `sets event ${x.sets + 1}${evName(x.sets)}` : ''].filter(Boolean);
+            x.gives != null ? `gives item ${x.gives + 1}${itemName(x.gives)}` : '', x.sets != null ? `sets event ${x.sets + 1}${evName(x.sets)}` : '', x.consumes ? 'uses it up' : ''].filter(Boolean);
           put(`    verb ${x.verb + 1}${vn}${cl.map(t => ', ' + t).join('')}:`); text('      ', x.text);
           if (normText(x.fail).trim()) { put(`    verb ${x.verb + 1}${vn} refused:`); text('      ', x.fail); }
           if (normText(x.done).trim()) { put(`    verb ${x.verb + 1}${vn} already done:`); text('      ', x.done); }
         }
+        if (c.dark && c.dark.on) { put(`    dark unless carrying item ${num(c.dark.item)}${itemName(c.dark.item)}:`); text('      ', c.dark.text); }
+        if (c.colors && c.colors.on) put(`    room colours: background ${hx(c.colors.bg)}, text ${hx(c.colors.text)}`);
         if (c.alt && c.alt.on) {
           put(`    after event ${num(c.alt.event)}${evName(c.alt.event)}, arrive:`); text('      ', c.alt.desc);
           put(`    after event ${num(c.alt.event)}${evName(c.alt.event)}, look:`); text('      ', c.alt.look);
@@ -1902,7 +1999,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
   function fromScript(src) {
     const errs = [];
     const P = newProject();
-    P.maps = []; P.portals = []; P.intro = []; P.picture = blankTitle(); P.settings.passwords = false; P.print = { author: '', year: '', story: '', notes: '', labelW: 84, labelH: 64 };
+    P.maps = []; P.portals = []; P.intro = []; P.score = { on: false, points: new Array(16).fill(0), ranks: [] }; P.picture = blankTitle(); P.settings.passwords = false; P.print = { author: '', year: '', story: '', notes: '', labelW: 84, labelH: 64, labelStyle: 'picture', tagline: 'TEXT ADVENTURE', code: '', map: 'none', box: false };
     const lines = String(src).replace(/\r/g, '').split('\n');
     let block = null;             // where | lines go: { set(text) , lines: [] }
     let section = 'top', map = null, mi = -1, cell = null, ci = -1, pendingStart = null, picRows = [], cartBad = false;
@@ -1941,7 +2038,8 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       // ---- section headings ----
       if (!indented) {
         cell = null;
-        if (key === 'items' || key === 'events' || key === 'words' || key === 'messages' || key === 'verbs') { section = key; continue; }
+        if (key === 'items' || key === 'events' || key === 'words' || key === 'messages' || key === 'verbs' || key === 'points' || key === 'ranks') { section = key; continue; }
+        if (key === 'score') { section = 'top'; P.score.on = /^on/i.test(val.trim()); continue; }
         if (key === 'manual story' || key === 'manual notes') { section = 'top'; const k = key === 'manual story' ? 'story' : 'notes'; textTo(v => P.print[k] = v); continue; }
         if (key === 'intro page') { section = 'top'; const k = P.intro.length; P.intro.push(''); textTo(v => P.intro[k] = v); continue; }
         if (key === 'picture') { section = 'picture'; P.picture.on = /^on\b/i.test(val.trim()); continue; }
@@ -1967,6 +2065,11 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         else if (key === 'passwords') P.settings.passwords = /^on/i.test(val.trim());
         else if (key === 'author') P.print.author = val.trim();
         else if (key === 'year') P.print.year = val.trim();
+        else if (key === 'label style') { const k = val.trim().toLowerCase(); if (!LABEL_STYLES[k]) errs.push({ line: n, msg: `unknown label style "${val.trim()}" (${Object.keys(LABEL_STYLES).join(', ')})` }); else P.print.labelStyle = k; }
+        else if (key === 'label tagline') P.print.tagline = val.trim();
+        else if (key === 'manual map') { const k = val.trim().toLowerCase(); if (!['none', 'blank', 'full'].includes(k)) errs.push({ line: n, msg: 'manual map is none, blank or full' }); else P.print.map = k; }
+        else if (key === 'box') P.print.box = /^on/i.test(val.trim());
+        else if (key === 'label code') P.print.code = val.trim();
         else if (key === 'label size') { const d = /^(\d+)\s*x\s*(\d+)/i.exec(val.trim()); if (!d) errs.push({ line: n, msg: 'write the label size like "84 x 64 mm"' }); else { P.print.labelW = +d[1]; P.print.labelH = +d[2]; } }
         else if (key === 'tv') { const k = val.trim().toLowerCase(); if (!TV[k]) errs.push({ line: n, msg: `unknown TV system "${val.trim()}" (NTSC, PAL or PAL60)` }); else P.settings.tv = k; }
         else errs.push({ line: n, msg: `unknown setting "${kv[1].trim()}"` });
@@ -1975,10 +2078,12 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       // ---- inside a section ----
       if (section === 'items') { const k = nItem(key, n); if (k != null) P.items[k] = val; continue; }
       if (section === 'events') { const k = nEvent(key, n); if (k != null) P.events[k] = val; continue; }
+      if (section === 'points') { const k = nEvent(key, n), v = parseInt(val, 10); if (k != null) { if (!(v >= 0 && v <= 255)) errs.push({ line: n, msg: `"${val.trim()}" is not a number of points (0-255)` }); else P.score.points[k] = v; } continue; }
+      if (section === 'ranks') { const v = parseInt(key, 10); if (!(v >= 0)) errs.push({ line: n, msg: `"${kv[1].trim()}" is not a score` }); else P.score.ranks.push({ min: v, title: val.trim() }); continue; }
       if (section === 'verbs') {
         const v = parseInt(key, 10);
         if (!(v >= 1 && v <= MAX_VERBS) || v > P.verbs.length + 1) { errs.push({ line: n, msg: `"${kv[1].trim()}": number the verbs 1 to ${MAX_VERBS}, in order` }); continue; }
-        const e = P.verbs[v - 1] = { word: val.trim(), none: '' }; textTo(t => e.none = t); continue;
+        const e = P.verbs[v - 1] = { word: val.trim(), none: '' }; if (/\(hints\)/.test(key)) e.hint = true; textTo(t => e.none = t); continue;
       }
       if (section === 'words') { if (!wordKey[key]) errs.push({ line: n, msg: `unknown menu word "${kv[1].trim()}"` }); else P.system[wordKey[key]] = val; continue; }
       if (section === 'messages') { if (!msgKey[key]) errs.push({ line: n, msg: `unknown message "${kv[1].trim()}"` }); else { const k = msgKey[key]; textTo(v => P.system[k] = v); } continue; }
@@ -2005,7 +2110,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         if (i == null) continue; if (!d) { errs.push({ line: n, msg: 'write a portal like "portal 3,6: to B 3,1"' }); continue; }
         portalsTodo.push({ map: mi, idx: i, to: d[1], at: d[2], n }); cell = null; continue;
       }
-      if ((m = /^room (.+)$/.exec(key))) {
+      if ((m = /^room (.+)$/.exec(key)) && !/^room colou?rs$/.test(key)) {
         const i = where(m[1], n, mi); if (i == null) { cell = room('', '', ''); continue; } // keep reading its lines without placing it
         cell = room(val.trim(), '', ''); map.cells[i] = cell; ci = i; continue;
       }
@@ -2016,12 +2121,18 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       else if (key === 'item') c.item = optNum(strip(val), nItem, n);
       else if (key === 'look reveals the item') c.lookReveals = /^y/i.test(val.trim());
       else if (key === 'take') { c.take.on = true; textTo(v => c.take.text = v); }
-      else if ((m = /^use item (\S+)(?:\s*\(.*?\))?(,\s*sets the event)?$/.exec(key))) { c.use.on = true; c.use.item = optNum(m[1], nItem, n); c.use.setsEvent = !!m[2]; textTo(v => c.use.text = v); }
+      else if ((m = /^use item (\S+)(?:\s*\(.*?\))?(,\s*sets the event)?(,\s*uses it up)?$/.exec(key))) { c.use.on = true; c.use.item = optNum(m[1], nItem, n); c.use.setsEvent = !!m[2]; c.use.consumes = !!m[3]; textTo(v => c.use.text = v); }
+      else if ((m = /^dark unless carrying item (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.dark.on = true; c.dark.item = optNum(m[1], nItem, n); textTo(v => c.dark.text = v); }
+      else if (key === 'room colours' || key === 'room colors') {
+        const b = /background\s+\$?([0-9a-f]{1,2})/i.exec(val), t = /text\s+\$?([0-9a-f]{1,2})/i.exec(val);
+        if (!b || !t) errs.push({ line: n, msg: 'write room colours like "room colours: background $00, text $0E"' }); else c.colors = { on: true, bg: parseInt(b[1], 16), text: parseInt(t[1], 16) };
+      }
       else if ((m = /^give item (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.give.on = true; c.give.item = optNum(m[1], nItem, n); textTo(v => c.give.text = v); }
       else if (key === 'talk') { c.talk.on = true; textTo(v => c.talk.no = v); }
       else if ((m = /^talk after using item (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.talk.on = true; c.talk.needUsed = nItem(m[1], n); textTo(v => c.talk.ok = v); }
       else if (key === 'sets event') c.sets = optNum(strip(val), nEvent, n);
       else if ((m = /^locked until event (\S+)(?:\s*\(.*?\))?$/.exec(key))) { c.door.on = true; c.door.needEvent = optNum(m[1], nEvent, n); textTo(v => c.door.text = v); }
+      else if (key === 'ending tune') { const v = val.trim().toLowerCase(); if (v && v !== 'default' && v !== 'none' && !TUNES[v]) errs.push({ line: n, msg: `unknown tune "${val.trim()}" (${Object.keys(TUNES).join(', ')}, default or none)` }); else c.endTune = v === 'default' ? '' : v; }
       else if (key === 'ending') { const v = val.trim().toLowerCase(); if (v === 'win') { c.ending = true; c.deadly = false; } else if (v === 'game over') { c.ending = true; c.deadly = true; } else if (v === 'no' || v === 'none') c.ending = false; else errs.push({ line: n, msg: 'ending is "win" or "game over"' }); }
       else if ((m = /^verb (\d+)(?:\s*\([^)]*\))?(.*)$/.exec(key))) {
         const v = +m[1] - 1, rest = m[2].trim();
@@ -2033,7 +2144,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         }
         if (e) errs.push({ line: n, msg: `this room already has a reply for verb ${v + 1}` });
         e = verbEntry(v); if (!e) continue; c.verbs.push(e);
-        const left = rest.replace(/,\s*(needs item|needs event|gives item|sets event)\s+(\S+)(?:\s*\([^)]*\))?/g, (_, w, num) => {
+        const left = rest.replace(/,\s*uses it up\b/, () => { e.consumes = true; return ''; }).replace(/,\s*(needs item|needs event|gives item|sets event)\s+(\S+)(?:\s*\([^)]*\))?/g, (_, w, num) => {
           const f = w === 'needs item' ? ['needItem', nItem] : w === 'needs event' ? ['needEvent', nEvent] : w === 'gives item' ? ['gives', nItem] : ['sets', nEvent];
           e[f[0]] = optNum(num, f[1], n); return '';
         }).trim();
@@ -2087,7 +2198,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     W_LOOK: 0xF000, W_NORTH: 0xF000, W_EAST: 0xF000, W_SOUTH: 0xF000, W_WEST: 0xF000, W_GO: 0xF000, W_TAKE: 0xF000, W_GIVE: 0xF000,
     W_USE: 0xF000, W_TALK: 0xF000, W_INV: 0xF000, W_MORE: 0xF000, W_START: 0xF000, W_END: 0xF000, W_NOTHING: 0xF000,
     M_NSPEC: 0xF000, M_NTAKE: 0xF000, M_HELLO: 0xF000, M_SELG: 0xF000, M_CGIVE: 0xF000, M_SELU: 0xF000, M_CUSE: 0xF000, M_CARRY: 0xF000,
-    T_TITLE: 0xF000, PWHOT: 0xFFF9, BSW: 0xF000, BSM: 0xF000, W_V0: 0xF000, W_V1: 0xF000, W_V2: 0xF000, W_V3: 0xF000, M_V0: 0xF000, M_V1: 0xF000, M_V2: 0xF000, M_V3: 0xF000,
+    T_TITLE: 0xF000, M_DARK: 0xF000, SNDHOT: 0xFFF9, PWHOT: 0xFFF9, BSW: 0xF000, BSM: 0xF000, W_V0: 0xF000, W_V1: 0xF000, W_V2: 0xF000, W_V3: 0xF000, M_V0: 0xF000, M_V1: 0xF000, M_V2: 0xF000, M_V3: 0xF000,
   };
   function buildTak(project, opts = {}) {
     const measure = !!opts.measure;
@@ -2107,6 +2218,17 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       const srcOpts = { npages: P.intro.length, endEvent: P.settings.endEvent, sound: P.settings.sound !== false, pic: PL && { k: PL.k, pad: PL.pad, rows: PL.rows.length, rowH: PL.rowH },
         alt: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.alt && c.alt.on && c.alt.event != null)),
         deadly: P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly)), pw: !!pwLayout(P), verbs: P.verbs.length, title: titleOn(P) };
+      const rooms = P.maps.flatMap(m => m.cells.filter(c => c.type === 'room'));
+      srcOpts.dark = rooms.some(c => c.dark && c.dark.on && c.dark.item != null);
+      srcOpts.rcol = rooms.some(c => c.colors && c.colors.on);
+      srcOpts.consume = rooms.some(c => (c.use.on && c.use.consumes) || (P.verbs.length && (c.verbs || []).some(x => x.consumes && x.needItem != null && x.verb < P.verbs.length)));
+      srcOpts.etune = srcOpts.sound && P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && !c.deadly && c.endTune && c.endTune !== 'default' && (c.endTune === 'none' || TUNES[c.endTune])));
+      if (scoreOn(P)) {
+        const g = ch => GIDX[ch] !== undefined ? GIDX[ch] : GIDX[' '];
+        const mx = scoreMax(P), word = normText(P.system.score).split('\n')[0];
+        srcOpts.score = { pts: P.score.points.slice(0, 16).map(v => Math.max(0, Math.min(255, +v || 0))), digits: [...'0123456789'].map(g), pre: [...(word + ' ')].map(g), suf: [...('/' + mx)].map(g).concat([0xFF]) };
+      }
+      srcOpts.xt = srcOpts.verbs || srcOpts.dark || srcOpts.rcol || srcOpts.consume || srcOpts.etune;
       const titleBytes = srcOpts.title ? titleData(P) : null;
       const PWL = pwLayout(P);
       // the start bank's own password routines: assembled once for their size, placed with the data, assembled again in place
@@ -2129,29 +2251,31 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       if (srcOpts.pw) { words.W_CODE = 'code'; words.W_DEL = 'delete'; }
       const msgs = { M_NSPEC: 'nothingSpecial', M_NTAKE: 'nothingToTake', M_HELLO: 'talkDefault', M_SELG: 'selectGive', M_CGIVE: 'cantGive',
         M_SELU: 'selectUse', M_CUSE: 'cantUse', M_CARRY: 'carrying' };
+      let pwTables = [], sndData = null;
+      // messages the engine shows from any room: stored once, in whichever bank has room, and named with their bank
+      const sysTexts = Object.entries(msgs).map(([s, k]) => [s, P.system[k]]);
+      P.verbs.forEach((v, i) => sysTexts.push(['M_V' + i, v.none]));
+      if (srcOpts.dark) sysTexts.push(['M_DARK', P.system.dark]);
       const maxPortals = Math.max(0, ...P.maps.map((_, m) => P.portals.filter(p => p.map === m).length));
       try {
         const pend = [];
         for (const [s, k] of Object.entries(words)) pend.push([s, encodePage(P.system[k], true)]);
-        for (const [s, k] of Object.entries(msgs)) pend.push([s, encodePage(P.system[k])]);
-        P.verbs.forEach((v, i) => { pend.push(['W_V' + i, encodePage(v.word, true)]); pend.push(['M_V' + i, encodePage(v.none)]); });
+        P.verbs.forEach((v, i) => pend.push(['W_V' + i, encodePage(v.word, true)]));
         P.items.slice(0, 16).forEach((t, i) => pend.push(['I' + i, encodePage(t, true)]));
         pend.sort((a, b) => b[1].length - a[1].length);
         for (const [s, bytes] of pend) sym[s] = cw.str(bytes);
         sym.GMAP = cw.put(GMAP);
+        // the code screen's tables go only to the bank with the password routines (below)
         if (PWL) {
-          sym.ALPHA = cw.put([...PW_ALPHA].map(c => GIDX[c]));
           const dash = GIDX['-'], line = n => new Array(n).fill(dash);
           const tpl = [...[...PWL.title].map(c => GIDX[c] !== undefined ? GIDX[c] : GIDX[' ']), 0xFF, ...line(Math.min(10, PWL.n)), 0xFF, ...(PWL.n > 10 ? [...line(PWL.n - 10), 0xFF] : []), 0xFE];
-          sym.CODET = cw.put(tpl); sym.CODETL = tpl.length;
-          sym.DESC = cw.put(PWL.fields.flatMap(([f, nb]) => [TAK_ZP[f], nb]));
-          Object.assign(sym, { NCODE: PWL.n, POS0: PWL.pos0, ND: PWL.fields.length, DASH: dash });
+          pwTables = [['ALPHA', [...PW_ALPHA].map(c => GIDX[c])], ['CODET', tpl], ['DESC', PWL.fields.flatMap(([f, nb]) => [TAK_ZP[f], nb])]];
+          Object.assign(sym, { CODETL: tpl.length, NCODE: PWL.n, POS0: PWL.pos0, ND: PWL.fields.length, DASH: dash });
         }
+        // the sound effects and ending tune go only to one bank (below), which the frame visits to play them
         if (srcOpts.sound) {
-          const sd = Object.entries(soundData(P)), n = sd.reduce((t, [, b]) => t + b.length, 0);
+          sndData = Object.entries(soundData(P)); const n = sndData.reduce((t, [, b]) => t + b.length, 0);
           if (n > 256) return { ok: false, errs: [`Ending tune: ${tuneBytes(endTuneText(P))} bytes, but there is room for ${TUNE_ROOM()}. Use fewer notes.`], warns };
-          if ((cw.pc & 0xFF) + n > 0x100) { const nx = (cw.pc + 0xFF) & ~0xFF; cw.holes.push({ pc: cw.pc, end: nx, start: cw.pc }); cw.pc = nx; }
-          for (const [k, bytes] of sd) sym[k] = cw.put(bytes);
         }
         sym.ITEMS = cw.put(Array.from({ length: 16 }, (_, i) => [lo(sym['I' + i]), hi(sym['I' + i])]).flat());
         sym.PTBL = cw.put(new Array(maxPortals * 5 + 2).fill(0xFF));
@@ -2186,7 +2310,10 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
           }
           const vs = (c.verbs || []).filter(x => x.verb < P.verbs.length);
           if (vs.length) r.verbs = vs.map(x => ({ x, t: want(m, x.text), f: normText(x.fail).trim() ? want(m, x.fail) : null, d: normText(x.done).trim() ? want(m, x.done) : null }));
-          if (r.alt || r.verbs) info.fixed += 2 + 6 + 11 * (r.verbs ? r.verbs.length : 0);
+          const tuneOwn = srcOpts.etune && c.ending && !c.deadly && c.endTune && c.endTune !== 'default' && (c.endTune === 'none' || TUNES[c.endTune]) ? c.endTune : null;
+          const flags = (srcOpts.consume && c.use.on && c.use.consumes ? 1 : 0) | (srcOpts.dark && c.dark && c.dark.on && c.dark.item != null ? 2 : 0) | (srcOpts.rcol && c.colors && c.colors.on ? 4 : 0) | (tuneOwn ? 8 : 0);
+          if (flags) r.xf = { flags, dk: flags & 2 && normText(c.dark.text).trim() ? want(m, c.dark.text) : null, tune: tuneOwn };
+          if (r.alt || r.verbs || r.xf) info.fixed += 2 + 13 + 11 * (r.verbs ? r.verbs.length : 0);
           return r;
         });
         if (!info.recs.some(Boolean)) info.fixed += 3;
@@ -2196,13 +2323,22 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         if (m === 0) info.introKeys = P.intro.map(t => want(m, t));
         return info;
       });
+      const sysKeys = sysTexts.map(([s, t]) => { const bytes = encodePage(t), k = bytes.join(','); if (!T.has(k)) T.set(k, { bytes, refs: new Set() }); T.get(k).sys = true; return [s, k]; });
       const byBank = []; maps.forEach(x => byBank[x.b] = x);
       // the password routines go to the bank with the most room (a bank holding only text has the game-logic area free)
       let pwBank = startBank;
       if (pwLen) {
         const roomIn = b => { const x = byBank[b]; return (x.used ? 0 : codeEnd - logicAt) - x.fixed - [...T.values()].filter(t => t.refs.has(x.m)).reduce((n, t) => n + t.bytes.length, 0) * 0.8; };
         for (let b = 0; b < NB; b++) if (roomIn(b) > roomIn(pwBank) + 16) pwBank = b;
-        byBank[pwBank].fixed += pwLen;
+        byBank[pwBank].fixed += pwLen + pwTables.reduce((t, [, d]) => t + d.length, 0);
+      }
+      // the sound data: one page, in the bank with the most room
+      let sndBank = -1;
+      const sndLen = sndData ? sndData.reduce((t, [, d]) => t + d.length, 0) : 0;
+      if (sndData) {
+        const roomIn = b => { const x = byBank[b]; return (x.used ? 0 : codeEnd - logicAt) - x.fixed - [...T.values()].filter(t => t.refs.has(x.m)).reduce((n, t) => n + t.bytes.length, 0) * 0.8; };
+        sndBank = 0; for (let b = 1; b < NB; b++) if (roomIn(b) > roomIn(sndBank)) sndBank = b;
+        byBank[sndBank].fixed += sndLen + 16; // allow for keeping it inside one page
       }
       // room for text in each bank: everything after the shared block, plus the logic code area in a bank no map uses
       const holeFree0 = commonHoles.reduce((t, [a, e]) => t + (e - a), 0);
@@ -2210,7 +2346,8 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       const cap = byBank.map(x => LIM - commonEnd + holeFree0 + (x.used ? 0 : codeEnd - logicAt) - x.fixed - margin);
       // ---- place every message in a bank: first its own map's, then wherever there is room ----
       const place = new Map();
-      for (const [k, t] of T) place.set(k, Math.min(...[...t.refs].map(m => order[m])));
+      const sysHome = (() => { let best = -1; for (let b = 0; b < Math.min(NB, 15); b++) if (best < 0 || cap[b] > cap[best]) best = b; return best; })();
+      for (const [k, t] of T) place.set(k, t.refs.size ? Math.min(...[...t.refs].map(m => order[m])) : sysHome);
       // the title picture travels with the title page's text: the kernel reads both from the same bank
       const picKey = PB ? maps[0].introKeys[0] : null;
       if (picKey) T.get(picKey).extra = PB.size + picLen;
@@ -2258,6 +2395,9 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       if (overBy.some(v => v > 0)) {
         const short = overBy.reduce((t, v) => t + Math.max(0, v), 0), roomLeft = overBy.reduce((t, v) => t + Math.max(0, -v), 0);
         const u = usageOf();
+        // a bank whose rooms and settings alone don't fit can't be helped by moving text
+        const full = byBank.map((x, b) => ({ x, b, need: -(cap[b] + margin) })).filter(f => f.need > 0 && f.x.used);
+        if (full.length) return { ok: false, errs: full.map(f => `Out of room in ${f.x.map.name}'s bank: its rooms, their settings and the engine need about ${f.need.toLocaleString()} more bytes than a 4K bank has, before any text. Move some rooms to another map (a portal can join them), or switch off a feature you don't need (the Space tab lists what each costs).`), warns, usage: { maps: u, mapA: u[0], mapB: u[1] } };
         return { ok: false, errs: [`Out of room: the text needs about ${Math.max(10, short - roomLeft).toLocaleString()} more bytes than this cartridge has. Shorten some text, reuse identical messages, or choose a bigger cartridge.`], warns, usage: { maps: u, mapA: u[0], mapB: u[1] } };
       }
       // ---- write each bank: dictionary and messages first, then the records that point at them ----
@@ -2272,7 +2412,16 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
           const table = x.used ? w.put(new Array(x.map.cells.length * 2).fill(0)) : 0;
           w.searchFrom = w.pc;
           const keys = keysIn(b);
-          if (pwLen && b === pwBank) { const h = w.holes.find(h => h.pc + pwLen <= h.end); if (h) { sym.PWBLK = h.pc; h.pc += pwLen; } else sym.PWBLK = w.put(new Array(pwLen).fill(0)); }
+          if (pwLen && b === pwBank) { const h = w.holes.find(h => h.pc + pwLen <= h.end); if (h) { sym.PWBLK = h.pc; h.pc += pwLen; } else sym.PWBLK = w.put(new Array(pwLen).fill(0)); for (const [k, d] of pwTables) sym[k] = w.place(d); }
+          if (sndData && b === sndBank) {
+            // all sounds in one page: each is named by its low byte
+            const inPage = p => (p & 0xFF) + sndLen > 0x100 ? (p + 0xFF) & ~0xFF : p;
+            const sh = w.holes.find(h => inPage(h.pc) + sndLen <= h.end);
+            let at;
+            if (sh) { at = inPage(sh.pc); if (at > sh.pc) w.holes.push({ pc: sh.pc, end: at, start: sh.pc }); sh.pc = at + sndLen; }
+            else { at = inPage(w.pc); if (at > w.pc) { w.holes.push({ pc: w.pc, end: at, start: w.pc }); w.pc = at; } w.put(new Array(sndLen).fill(0)); }
+            for (const [k, d] of sndData) { sym[k] = at; for (let i = 0; i < d.length; i++) bk[at + i - BASE] = d[i]; at += d.length; }
+          }
           if (titleBytes && b === startBank) sym.T_TITLE = w.put(titleBytes);
           if (picKey && keys.includes(picKey)) {
             // a column that crossed a page would cost the kernel's loads a cycle and shift those pixels
@@ -2290,24 +2439,41 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
             sym.PICPTR = w.put([0, 2, 4, 6, 8, 10, 1, 3, 5, 7, 9, 11].flatMap(c => [lo(ptr(c)), hi(ptr(c))]));
             sym.PICBLK = w.put(new Array(picLen).fill(0)); picBank = b;
           }
-          const cz = !keys.length || opts.compress === false ? { toks: [], pages: keys.map(k => T.get(k).bytes) } : takCompress(keys.map(k => T.get(k).bytes));
+          const plain = { toks: [], pages: keys.map(k => T.get(k).bytes) };
+          const dictOf = cz => { const dict = [], at = [];
+            [...cz.toks.keys()].sort((a, c) => cz.toks[c].length - cz.toks[a].length).forEach(k => {
+              const t = cz.toks[k].concat([0xFF]);
+              let o = -1;
+              for (let i = 0; i + t.length <= dict.length && o < 0; i++) if (t.every((v, j) => dict[i + j] === v)) o = i;
+              if (o < 0) { o = dict.length; dict.push(...t); }
+              at[k] = o;
+            });
+            return { dict, at }; };
+          let cz = !keys.length || opts.compress === false ? plain : takCompress(keys.map(k => T.get(k).bytes)), D = dictOf(cz);
+          // the word page can't cross a page boundary: when the padding that costs leaves less room than plain text would, store this bank's text plain
+          if (cz !== plain) {
+            const a0 = w.pc + Math.max(1, cz.toks.length), pad = D.dict.length && (a0 & 0xFF) + D.dict.length > 0x100 ? ((a0 + 0xFF) & ~0xFF) - a0 : 0;
+            const packed = Math.max(1, cz.toks.length) + pad + D.dict.length + cz.pages.reduce((t, p) => t + p.length, 0), raw = 1 + plain.pages.reduce((t, p) => t + p.length, 0);
+            if (w.pc + packed > LIM && raw < packed) { cz = plain; D = dictOf(cz); }
+          }
           const toklo = w.put(new Array(Math.max(1, cz.toks.length)).fill(0));
-          const dict = [], at = [];
-          [...cz.toks.keys()].sort((a, c) => cz.toks[c].length - cz.toks[a].length).forEach(k => {
-            const t = cz.toks[k].concat([0xFF]);
-            let o = -1;
-            for (let i = 0; i + t.length <= dict.length && o < 0; i++) if (t.every((v, j) => dict[i + j] === v)) o = i;
-            if (o < 0) { o = dict.length; dict.push(...t); }
-            at[k] = o;
-          });
+          const { dict, at } = D;
+          // the word page must not cross a page boundary: a gap where it fits (the logic area of a text-only bank, say), else the main area
           let dictAt = w.pc;
-          if (dict.length && (dictAt & 0xFF) + dict.length > 0x100) { const nx = (dictAt + 0xFF) & ~0xFF; w.holes.push({ pc: dictAt, end: nx, start: dictAt }); w.pc = nx; dictAt = nx; }
-          if (dict.length) w.put(dict);
+          const inPage = p => (p & 0xFF) + dict.length > 0x100 ? (p + 0xFF) & ~0xFF : p;
+          const dh = dict.length ? w.holes.find(h => inPage(h.pc) + dict.length <= h.end) : null;
+          if (dh) { dictAt = inPage(dh.pc); if (dictAt > dh.pc) w.holes.push({ pc: dh.pc, end: dictAt, start: dh.pc }); for (let i = 0; i < dict.length; i++) bk[dictAt + i - BASE] = dict[i]; dh.pc = dictAt + dict.length; }
+          else {
+            if (dict.length && (dictAt & 0xFF) + dict.length > 0x100) { const nx = (dictAt + 0xFF) & ~0xFF; w.holes.push({ pc: dictAt, end: nx, start: dictAt }); w.pc = nx; dictAt = nx; }
+            if (dict.length) w.put(dict);
+          }
           at.forEach((o, k) => { bk[toklo + k - BASE] = lo(dictAt + o); });
           const z = new Map(keys.map((k, i) => [k, cz.pages[i]]));
           keys.slice().sort((p, q) => z.get(q).length - z.get(p).length).forEach(k => addr.set(k, { a: w.str(z.get(k)), b }));
           meta[b] = { table, toklo, dictAt };
         }
+        // the engine's own messages: always named with their bank
+        for (const [s, k] of sysKeys) { const { a, b } = addr.get(k); sym[s] = (a & 0x0FFF) | (b << 12); }
         // a pointer from map m to message k: the high nibble names the bank unless it is m's own
         const ptr = (m, k) => { const { a, b } = addr.get(k); return b === order[m] ? a : (a & 0x0FFF) | (b << 12); };
         for (let b = 0; b < NB; b++) {
@@ -2334,20 +2500,22 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
                 // [flags, mask lo, mask hi] + present one-byte fields + present message pointers
                 const one = [c.item, c.use.on ? c.use.item : null, c.give.on ? c.give.item : null, c.talk.on ? c.talk.needUsed : null, c.sets, c.door.on ? c.door.needEvent : null];
                 let mask = 0; const body = [];
+                let ext = null;
+                if (r.alt || r.verbs || r.xf) {
+                  const pa = k => k ? ptr(m, k) : 0, A = r.alt || { ev: 0, d: null, l: null }, V = r.verbs || [], ff = v => v == null ? 0xFF : v, X = r.xf || { flags: 0, dk: null };
+                  ext = w.place([A.ev, lo(pa(A.d)), hi(pa(A.d)), lo(pa(A.l)), hi(pa(A.l)),
+                    X.flags, X.flags & 2 ? c.dark.item : 0, lo(pa(X.dk)), hi(pa(X.dk)), X.flags & 4 ? tvColor(P, c.colors.bg) : 0, X.flags & 4 ? tvColor(P, c.colors.text) : 0, X.flags & 8 ? (X.tune === 'none' ? lo(sym.S_QUIET) : lo(sym['S_T_' + X.tune])) : 0, V.length,
+                    ...V.flatMap(({ x, t, f, d }) => [x.verb | (srcOpts.consume && x.consumes && x.needItem != null ? 0x80 : 0), ff(x.needItem), ff(x.needEvent), ff(x.sets), ff(x.gives), lo(pa(t)), hi(pa(t)), lo(pa(f)), hi(pa(f)), lo(pa(d)), hi(pa(d))])]);
+                  mask |= 1 << 14; body.push(lo(ext), hi(ext));
+                }
                 one.forEach((v, i) => { if (v != null) { mask |= 1 << i; body.push(v); } });
                 r.k.forEach((k, i) => { if (k) { mask |= 1 << (6 + i); const a = ptr(m, k); body.push(lo(a), hi(a)); } });
                 // 14: the text to use after an event; 15: a game-over room (no data, just the bit)
-                if (r.alt || r.verbs) {
-                  const pa = k => k ? ptr(m, k) : 0, A = r.alt || { ev: 0, d: null, l: null }, V = r.verbs || [], ff = v => v == null ? 0xFF : v;
-                  const blk = w.put([A.ev, lo(pa(A.d)), hi(pa(A.d)), lo(pa(A.l)), hi(pa(A.l)), V.length,
-                    ...V.flatMap(({ x, t, f, d }) => [x.verb, ff(x.needItem), ff(x.needEvent), ff(x.sets), ff(x.gives), lo(pa(t)), hi(pa(t)), lo(pa(f)), hi(pa(f)), lo(pa(d)), hi(pa(d))])]);
-                  mask |= 1 << 14; body.push(lo(blk), hi(blk));
-                }
                 if (srcOpts.deadly && c.ending && c.deadly) mask |= 1 << 15;
                 bytes = [f, mask & 0xFF, mask >> 8, ...body];
               }
               const key = bytes.join(',');
-              if (!recCache.has(key)) recCache.set(key, w.put(bytes));
+              if (!recCache.has(key)) recCache.set(key, w.place(bytes));
               return recCache.get(key);
             });
             let any = recAddr.find(a => a != null);
@@ -2380,7 +2548,7 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       });
       // ---- the code, assembled with the real addresses, in every bank ----
       Object.assign(sym, {
-        ...geo, FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? tvColor(P, PL.color) : 0, HOTLO: lo(cart.base), NBANKS: NB, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), PWHOT: cart.base + pwBank, NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
+        ...geo, FONT, SPACEI: GIDX[' '], NGLYPH, PICCOL: PL ? tvColor(P, PL.color) : 0, HOTLO: lo(cart.base), NBANKS: NB, STARTHOT: cart.base + startBank, HOTS: 0xFF00 | lo(cart.base), PWHOT: cart.base + pwBank, SNDHOT: cart.base + Math.max(0, sndBank), NPAGES: P.intro.length, START2: (P.start.room * 2) & 0xFF,
         STARTINV: P.start.inventory.reduce((acc, i) => acc | bit(i), 0),
       });
       if (picLen && picBank >= 0) {
@@ -2468,11 +2636,12 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
         }
         add(dm, di, inv, tk, sn, us, ev, arrive(dc), id, K.MOVE + d);
       }
-      // LOOK (every verb is reached through LOOK, so its reveal happens first)
+      // LOOK (every verb is reached through LOOK, so its reveal happens first); a dark room shows nothing
+      const dark = P.engine === 'tak' && c.dark && c.dark.on && c.dark.item != null && !(inv & bit(c.dark.item));
       let sn2 = sn;
-      if (c.lookReveals && c.item != null && !(tk & bit(c.item))) sn2 |= bit(c.item);
+      if (!dark && c.lookReveals && c.item != null && !(tk & bit(c.item))) sn2 |= bit(c.item);
       add(m, r, inv, tk, sn2, us, ev, false, id, K.LOOK);
-      if (c.take.on && c.item != null) {
+      if (c.take.on && c.item != null && !dark) {
         const b = bit(c.item);
         if (!(tk & b) && (sn2 & b) && !(inv & b)) add(m, r, inv | b, tk | b, sn2, us, ev, false, id, K.TAKE);
       }
@@ -2482,18 +2651,20 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       }
       if (c.use.on && c.use.item != null && (inv & bit(c.use.item))) {
         const e2 = c.use.setsEvent ? ev | bit(c.sets) : ev;
-        add(m, r, inv, tk, sn2, us | bit(c.use.item), e2, won(e2), id, K.USE * 16 + c.use.item);
+        const inv2 = P.engine === 'tak' && c.use.consumes ? inv & ~bit(c.use.item) & 0xFFFF : inv;
+        add(m, r, inv2, tk, sn2, us | bit(c.use.item), e2, won(e2), id, K.USE * 16 + c.use.item);
       }
       if (c.talk.on && c.talk.needUsed != null && (us & bit(c.talk.needUsed))) {
         const e2 = ev | bit(c.sets);
         add(m, r, inv, tk, sn2, us, e2, won(e2), id, K.TALK);
       }
-      if (P.engine === 'tak') for (const x of c.verbs || []) {
-        if (x.verb >= P.verbs.length || (x.sets == null && x.gives == null)) continue;
+      if (P.engine === 'tak' && !dark) for (const x of c.verbs || []) {
+        const eats = x.consumes && x.needItem != null;
+        if (x.verb >= P.verbs.length || (x.sets == null && x.gives == null && !eats)) continue;
         if ((x.sets != null && (ev & bit(x.sets))) || (x.gives != null && (tk & bit(x.gives)))) continue;      // already done
         if ((x.needItem != null && !(inv & bit(x.needItem))) || (x.needEvent != null && !(ev & bit(x.needEvent)))) continue;
         const g = x.gives != null ? bit(x.gives) : 0, e2 = x.sets != null ? ev | bit(x.sets) : ev;
-        add(m, r, inv | g, tk | g, sn2, us, e2, won(e2), id, K.VERB * 16 + x.verb);
+        add(m, r, ((eats ? inv & ~bit(x.needItem) : inv) | g) & 0xFFFF, tk | g, sn2, us, e2, won(e2), id, K.VERB * 16 + x.verb);
       }
     }
     // which states can still reach a win (reverse search over the explored graph)
@@ -2550,7 +2721,18 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
       }
       for (const { u, st } of [...seenKey.values()].sort((a, b) => a.d - b.d).slice(0, 8)) noReturn.push(Object.assign(st, { path: pathTo(u) }));
     }
+    // the endings the player can reach, and the best score at any of them
+    const ptsOf = ev => { let t = 0; for (let b = 0; b < 16; b++) if (ev & (1 << b)) t += Math.max(0, +(P.score && P.score.points[b]) || 0); return t; };
+    const endKeys = new Map(); let eventEnd = false, bestScore = 0;
+    for (let i = 0; i < n; i++) if (WIN[i]) {
+      const c = P.maps[SM[i]].cells[SR[i]], k = SM[i] + ':' + SR[i], sc = ptsOf(SE[i]);
+      bestScore = Math.max(bestScore, sc);
+      if (c && c.ending) { const e = endKeys.get(k); if (!e || sc > e.best) endKeys.set(k, { map: SM[i], idx: SR[i], best: sc }); } else eventEnd = true;
+    }
+    const endings = [];
+    P.maps.forEach((m, mi) => m.cells.forEach((c, i) => { if (c.type === 'room' && c.ending && !(c.deadly && P.engine === 'tak') && !portalAt(P, mi, i)) { const e = endKeys.get(mi + ':' + i); endings.push({ map: mi, idx: i, reached: !!e, best: e ? e.best : null }); } }));
     return {
+      endings, eventEnding: P.settings.endEvent != null ? { reached: eventEnd } : null, bestScore, maxScore: P.score ? P.score.points.reduce((t, v) => t + (Math.max(0, +v || 0)), 0) : 0,
       endingDefined: endMask !== 0 || P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && arrive(c) === 1)),
       gameOvers: (() => { let k = 0; for (let i = 0; i < n; i++) if (DEAD[i]) k++; return k; })(),
       winnable: best >= 0, solution: best >= 0 ? pathTo(best) : null,
@@ -2600,6 +2782,414 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
     return { ok: ended, finalText: e.screenText(), menu: e.menuText() };
   }
 
+  // ---------- Hints: a HINT verb whose reply in each room says what the walkthrough does there ----------
+  function wrapText(text, w = LINE_W) {
+    const out = [];
+    for (const para of normText(text).split('\n')) {
+      if (!para.trim()) { out.push(''); continue; }
+      let line = '';
+      for (let word of para.trim().split(/\s+/)) {
+        while (word.length > w) { if (line) { out.push(line); line = ''; } out.push(word.slice(0, w)); word = word.slice(w); }
+        if (!word) continue;
+        if (!line) line = word; else if ((line + ' ' + word).length <= w) line += ' ' + word; else { out.push(line); line = word; }
+      }
+      if (line) out.push(line);
+    }
+    return out.join('\n');
+  }
+  function writeHints(project, opts = {}) {
+    const P = project; normalize(P);
+    if (P.engine !== 'tak') return { ok: false, msg: 'Hints need the Workshop engine.' };
+    const a = analyze(P);
+    if (!a.winnable) return { ok: false, msg: 'The game has no way to win yet, so there is no walkthrough to take hints from.' };
+    const word = normText(opts.word || 'HINT').split('\n')[0];
+    let v = P.verbs.findIndex(x => x.hint || normText(x.word) === word);
+    if (v < 0) { if (P.verbs.length >= MAX_VERBS) return { ok: false, msg: `The game already has ${MAX_VERBS} verbs of its own. Remove one to make room for ${word}.` }; P.verbs.push({ word, none: '' }); v = P.verbs.length - 1; }
+    P.verbs[v].hint = true;
+    P.verbs[v].none = wrapText(opts.none || 'NOTHING TO DO HERE. KEEP EXPLORING.');
+    const item = i => normText(P.items[i] || 'IT').replace(/\n/g, ' ');
+    const say = st => {
+      const c = P.maps[st.map].cells[st.idx];
+      switch (st.action) {
+        case 'TAKE': return c.lookReveals ? `LOOK CLOSELY, THEN TAKE ${item(c.item)}.` : `TAKE ${item(c.item)}.`;
+        case 'USE': return `USE ${item(st.item)} HERE.`;
+        case 'GIVE': return `SOMEONE HERE WANTS ${item(st.item)}.`;
+        case 'TALK': return 'TALK TO WHOEVER IS HERE.';
+        case 'LOOK': return 'LOOK AROUND CAREFULLY.';
+        case 'VERB': return `TRY TO ${normText((P.verbs[st.verb] || {}).word || '')}.`;
+        default: return null;
+      }
+    };
+    // what the walkthrough does in each room, in order (moves don't count)
+    const per = new Map();
+    for (const st of a.solution) { const t = say(st); if (!t) continue; const k = st.map + ':' + st.idx; if (!per.has(k)) per.set(k, { map: st.map, idx: st.idx, says: [] }); const s = per.get(k).says; if (!s.includes(t)) s.push(t); }
+    // replace the hint verb's replies
+    for (const m of P.maps) for (const c of m.cells) if (c.type === 'room' && c.verbs) c.verbs = c.verbs.filter(x => x.verb !== v);
+    let n = 0;
+    for (const { map, idx, says } of per.values()) {
+      const c = P.maps[map].cells[idx];
+      let parts = says.slice(0, 3), text = wrapText(parts.length > 1 ? parts.map((s, k) => (k ? 'THEN ' : '') + s).join('\n') : parts[0]);
+      while (text.split('\n').length > MAX_LINES && parts.length > 1) { parts = parts.slice(0, -1); text = wrapText(parts.length > 1 ? parts.map((s, k) => (k ? 'THEN ' : '') + s).join('\n') : parts[0]); }
+      c.verbs = (c.verbs || []).concat([Object.assign(verbEntry(v), { text })]); n++;
+    }
+    return { ok: true, verb: v, rooms: n, msg: `${word} now has a reply in ${n} room${n === 1 ? '' : 's'}; everywhere else it says "${normText(P.verbs[v].none).replace(/\n/g, ' ')}".` };
+  }
+
+  // ---------- Outline: plain notes in, a laid-out project out ----------
+  // Rooms are named on their own line; their details are indented "Key: value" lines (see OUTLINE_EXAMPLE).
+  const OUTLINE_EXAMPLE = `Title: The Lost Mine
+Start: Camp
+Ends when: Gold found
+
+Camp
+  You are at a quiet camp by the river.
+  Look: A tent flaps in the wind. A lamp hangs from a pole.
+  Item: an old lamp (look)
+  Take: You unhook the lamp.
+  North: Trail
+
+Trail
+  A dusty trail climbs into the hills.
+  Look: An old miner sits on a rock.
+  Talk: "Bring me something to eat, friend."
+  Give an apple: He munches happily. "The mine is open now." [sets Mine open]
+  East: Orchard
+  North: Mine (locked until Mine open: Planks bar the way.)
+
+Orchard
+  Apple trees grow in neat rows.
+  Look: One apple is still on a branch.
+  Item: an apple (look)
+  Take: You pick the apple.
+
+Mine
+  It is pitch dark down here.
+  Dark unless an old lamp: You can't see a thing.
+  Look: Gold glints in the rock!
+  Dig: You dig out a nugget of gold! [needs an old lamp] [sets Gold found]
+`;
+  function fromOutline(src) {
+    const errs = [], warns = [];
+    const lines = String(src).replace(/\r/g, '').split('\n');
+    const strip = s => s.replace(/^\s*(a|an|the|some)\s+/i, '').trim().toLowerCase();
+    const clean = s => String(s).replace(/\s+/g, ' ').trim();
+    const text = s => wrapText(String(s).split(/\s*\|\s*/).map(clean).join('\n'));
+    const DIRS4 = { north: 'N', n: 'N', east: 'E', e: 'E', south: 'S', s: 'S', west: 'W', w: 'W' };
+    const D = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }, OPP = { N: 'S', S: 'N', E: 'W', W: 'E' };
+    const meta = { title: 'My adventure', start: null, carrying: [], endsWhen: null, cart: null };
+    const rooms = []; let cur = null;
+    // ---- pass 1: rooms and their raw lines ----
+    lines.forEach((raw, k) => {
+      const n = k + 1, t = raw.trim();
+      if (!t || t.startsWith('#')) return;
+      const indented = /^\s/.test(raw);
+      const kv = /^([^:]{1,60}):\s*(.*)$/.exec(t);
+      if (!indented) {
+        if (kv) {
+          const key = kv[1].trim().toLowerCase(), val = kv[2].trim();
+          if (key === 'title') { meta.title = val; return; }
+          if (key === 'start') { meta.start = { name: val, n }; return; }
+          if (key === 'carrying') { meta.carrying = val.split(',').map(s => s.trim()).filter(Boolean); return; }
+          if (key === 'ends when' || key === 'game ends when') { meta.endsWhen = val; return; }
+          if (key === 'cart') { meta.cart = val.toUpperCase(); return; }
+        }
+        cur = { name: t.replace(/:$/, ''), n, desc: [], fields: [] }; rooms.push(cur); return;
+      }
+      if (!cur) { errs.push({ line: n, msg: 'indented line before any room: start a room with its name on a line of its own' }); return; }
+      if (kv && cur.fields.length + cur.desc.length >= 0 && /^[a-z]/i.test(kv[1]) && !/[.!?"']$/.test(kv[1].trim())) cur.fields.push({ key: kv[1].trim(), val: kv[2], n });
+      else if (!cur.fields.length) cur.desc.push(t);
+      else errs.push({ line: n, msg: `can't read "${t}" (write details as "Key: value")` });
+    });
+    if (!rooms.length) return { ok: false, errors: [{ line: 1, msg: 'no rooms: write each room\'s name on a line of its own, then its details indented below it' }], warnings: [] };
+    const byName = new Map(); rooms.forEach(r => { const k = r.name.toLowerCase(); if (byName.has(k)) errs.push({ line: r.n, msg: `two rooms called "${r.name}"` }); else byName.set(k, r); });
+    // ---- items and events, numbered in order of first mention ----
+    const items = [], events = [];
+    const itemOf = (s, n, declare) => { const k = strip(s); if (!k) return null; let i = items.findIndex(x => x.key === k); if (i < 0) { if (items.length >= 16) { errs.push({ line: n, msg: 'more than 16 items' }); return null; } items.push({ key: k, name: clean(s).toUpperCase(), declared: false }); i = items.length - 1; } if (declare) items[i].declared = true; return i; };
+    const eventOf = (s, n) => { const k = clean(s).toLowerCase(); if (!k) return null; let i = events.findIndex(x => x.key === k); if (i < 0) { if (events.length >= 16) { errs.push({ line: n, msg: 'more than 16 events' }); return null; } events.push({ key: k, name: clean(s) }); i = events.length - 1; } return i; };
+    // items named by Item: lines first, so [needs X] can tell an item from an event
+    rooms.forEach(r => r.fields.forEach(f => { if (/^item$/i.test(f.key)) itemOf(f.val.replace(/\(.*?\)/g, ''), f.n, true); }));
+    meta.carrying.forEach(s => itemOf(s, 0, true));
+    const verbs = [];
+    const P = newProject({ title: meta.title });
+    P.title = meta.title; P.items = []; P.events = []; P.verbs = []; P.portals = []; P.maps = [];
+    const tags = s => { const out = []; const rest = s.replace(/\[([^\]]*)\]/g, (_, x) => { out.push(clean(x)); return ''; }); return { text: rest.trim(), tags: out }; };
+    // ---- pass 2: each room's settings and exits ----
+    for (const r of rooms) {
+      const c = room(r.name, text(r.desc.join(' ')), ''); r.cell = c; r.exits = {};
+      let sets = null; const setSets = (e, n) => { if (e == null) return; if (sets != null && sets !== e) errs.push({ line: n, msg: `a room can set only one event (it already sets "${events[sets].name}")` }); sets = e; };
+      for (const f of r.fields) {
+        const key = f.key.toLowerCase(), n = f.n; let m;
+        const { text: val, tags: tg } = tags(f.val);
+        const tagEvent = () => { const s = tg.find(x => /^sets\s+/i.test(x)); return s ? eventOf(s.replace(/^sets\s+/i, ''), n) : null; };
+        const usesUp = tg.some(x => /^uses? (it )?up$/i.test(x));
+        if (DIRS4[key]) {
+          const d = DIRS4[key]; let v = val, one = false, lock = null;
+          const pm = /\(([^)]*)\)\s*$/.exec(v); if (pm) { v = v.slice(0, pm.index).trim(); for (const part of pm[1].split(';')) { const p = part.trim(); if (/^one[- ]way$/i.test(p)) one = true; else if ((m = /^locked until ([^:]+):?\s*(.*)$/i.exec(p))) lock = { ev: m[1], text: m[2] }; else if (p) errs.push({ line: n, msg: `can't read "(${p})": use (one way) or (locked until EVENT: message)` }); } }
+          const to = byName.get(v.toLowerCase()); if (!to) { errs.push({ line: n, msg: `no room called "${v}"` }); continue; }
+          r.exits[d] = { to, one, n };
+          if (lock) { if (to.lock && to.lock.ev !== lock.ev) errs.push({ line: n, msg: `"${to.name}" is already locked until another event` }); to.lock = Object.assign({ n }, lock); }
+        }
+        else if (key === 'look') c.look = text(val);
+        else if (key === 'item') { c.item = itemOf(val.replace(/\(.*?\)/g, ''), n, true); if (/\(\s*look\s*\)/i.test(val)) c.lookReveals = true; }
+        else if (key === 'take') { c.take = { on: true, text: text(val) }; }
+        else if ((m = /^use (.+)$/i.exec(key))) { const s = tagEvent(); c.use = { on: true, item: itemOf(m[1], n), text: text(val), setsEvent: s != null, consumes: usesUp }; setSets(s, n); }
+        else if ((m = /^give (.+)$/i.exec(key))) { c.give = { on: true, item: itemOf(m[1], n), text: text(val) }; setSets(tagEvent(), n); }
+        else if (key === 'talk') { c.talk.on = true; c.talk.no = text(val); }
+        else if ((m = /^talk after using (.+)$/i.exec(key))) { c.talk.on = true; c.talk.needUsed = itemOf(m[1], n); c.talk.ok = text(val); setSets(tagEvent(), n); }
+        else if (key === 'sets') setSets(eventOf(val, n), n);
+        else if ((m = /^locked until (.+)$/i.exec(key))) { r.lock = { ev: m[1], text: val, n }; }
+        else if ((m = /^dark unless (.+)$/i.exec(key))) c.dark = { on: true, item: itemOf(m[1], n), text: val ? text(val) : '' };
+        else if (key === 'colours' || key === 'colors') { const h = [...val.matchAll(/\$?([0-9a-f]{2})\b/gi)].map(x => parseInt(x[1], 16)); if (h.length < 2) errs.push({ line: n, msg: 'write colours as two TIA values, background then text: "Colours: $00 $0E"' }); else c.colors = { on: true, bg: h[0] & 0xFE, text: h[1] & 0xFE }; }
+        else if (key === 'ending') { const v = val.toLowerCase(); if (/^win/.test(v)) { c.ending = true; c.deadly = false; } else if (/game ?over|death|dead/.test(v)) { c.ending = true; c.deadly = true; } else errs.push({ line: n, msg: 'Ending is "win" or "game over"' }); }
+        else if ((m = /^after (.+?)(,\s*look)?$/i.exec(key))) { c.alt.on = true; c.alt.event = eventOf(m[1], n); if (m[2]) c.alt.look = text(val); else c.alt.desc = text(val); }
+        else if (/^[a-z]+$/i.test(key)) {
+          // any other single word is a verb of the game's own
+          const w = key.toUpperCase(); let vi = verbs.indexOf(w);
+          if (vi < 0) { if (verbs.length >= MAX_VERBS) { errs.push({ line: n, msg: `"${f.key}" would be a ${MAX_VERBS + 1}th verb of your own (at most ${MAX_VERBS})` }); continue; } verbs.push(w); vi = verbs.length - 1; }
+          const e = verbEntry(vi); e.text = text(val);
+          for (const x of tg) {
+            if ((m = /^needs?\s+(.+)$/i.exec(x))) { const nm = m[1].replace(/^(item|event)\s+/i, ''); if (/^event\s/i.test(m[1]) || items.findIndex(it => it.key === strip(nm)) < 0) e.needEvent = eventOf(nm, n); else e.needItem = itemOf(nm, n); }
+            else if ((m = /^sets\s+(.+)$/i.exec(x))) e.sets = eventOf(m[1], n);
+            else if ((m = /^gives\s+(.+)$/i.exec(x))) e.gives = itemOf(m[1], n);
+            else if (/^uses? (it )?up$/i.test(x)) e.consumes = true;
+            else if ((m = /^(refused|otherwise)\s*:\s*(.+)$/i.exec(x))) e.fail = text(m[2]);
+            else if ((m = /^(done|already done)\s*:\s*(.+)$/i.exec(x))) e.done = text(m[2]);
+            else errs.push({ line: n, msg: `can't read "[${x}]" (try [needs X], [sets X], [gives X], [uses it up], [refused: text], [done: text])` });
+          }
+          if (c.verbs.some(x => x.verb === vi)) errs.push({ line: n, msg: `two ${w} lines in one room` }); else c.verbs.push(e);
+        }
+        else errs.push({ line: n, msg: `can't read "${f.key}:"` });
+      }
+      c.sets = sets;
+      if (c.give.on && sets == null) warns.push({ line: r.n, msg: `"${r.name}": GIVE works best with [sets EVENT]; without one nothing changes` });
+    }
+    for (const r of rooms) if (r.lock) { const e = eventOf(r.lock.ev, r.lock.n); r.cell.door = { on: true, needEvent: e, text: text(r.lock.text || 'THE WAY IS\nBARRED.') }; }
+    // reverse exits: an exit leads both ways unless it says (one way) or the other room says otherwise
+    for (const r of rooms) for (const [d, x] of Object.entries(r.exits)) {
+      if (x.one) continue; const back = x.to.exits[OPP[d]];
+      if (!back) x.to.exits[OPP[d]] = { to: r, one: false, n: x.n, implied: true };
+      else if (back.to !== r) warns.push({ line: x.n, msg: `${r.name} → ${d} → ${x.to.name}, but ${x.to.name}'s ${OPP[d]} goes to ${back.to.name}: going back won't return to ${r.name}` });
+    }
+    if (errs.length) return { ok: false, errors: errs, warnings: warns };
+    const start = meta.start ? byName.get(meta.start.name.toLowerCase()) : rooms[0];
+    if (!start) return { ok: false, errors: [{ line: meta.start.n, msg: `no room called "${meta.start.name}"` }], warnings: warns };
+    // ---- layout, step 1: every room on one big grid. Walking between grid neighbours always works, so only rooms
+    // joined by an exit may touch; where the geometry doesn't allow that, the exit becomes a passage cell (a portal) ----
+    const D2 = Object.entries(D);
+    const key = (x, y) => x + ',' + y;
+    const exitTo = (r, d) => r.exits[d] ? r.exits[d].to : null;
+    let cells, pos, at;
+    const attempt = (forced) => {
+    const errs1 = [], culprits = new Set();
+    cells = new Map(); pos = new Map(); at = (x, y) => cells.get(key(x, y));
+    // the cell beside a placed room in each direction it has an exit is kept for that exit
+    const reserved = new Map();
+    const okFor = (x, y, r) => {
+      if (at(x, y)) return false;
+      const rv = reserved.get(key(x, y)); if (rv && rv !== r) return false;
+      for (const [d, [dx, dy]] of D2) {
+        const q = at(x + dx, y + dy);
+        if (!q) { const res = reserved.get(key(x + dx, y + dy)); if (res && res !== exitTo(r, d)) return false; continue; }
+        const want = exitTo(r, d);
+        if (q.room) { if (q.room !== want || exitTo(q.room, OPP[d]) !== r || (r.exits[d] && r.exits[d].one) || (q.room.exits[OPP[d]] && q.room.exits[OPP[d]].one)) return false; }
+        else if (q.portal) { if (q.portal !== want) return false; }
+      }
+      return true;
+    };
+    // a passage cell to `to`: any room touching it walks into it too, so each one's exit that way must lead to `to`
+    const okPortal = (x, y, from, to) => {
+      if (at(x, y)) return false;
+      for (const [d, [dx, dy]] of D2) { const q = at(x + dx, y + dy); if (q && q.room && q.room !== from && q.room !== to && exitTo(q.room, OPP[d]) !== to) return false; }
+      return true;
+    };
+    const place = (r, x, y) => { cells.set(key(x, y), { room: r }); pos.set(r, { x, y }); for (const [d, [dx, dy]] of D2) { const x2 = r.exits[d]; const k = key(x + dx, y + dy); if (x2 && !cells.has(k) && !reserved.has(k)) reserved.set(k, x2.to); } };
+    const portal = (x, y, to) => cells.set(key(x, y), { portal: to });
+    // a clear spot near (x,y): its neighbours empty and not touching other rooms, so passages can go there
+    const spot = (x, y, r) => {
+      for (let rad = 1; rad < 64; rad++) for (let dy = -rad; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== rad) continue;
+        const px = x + dx, py = y + dy; if (!okFor(px, py, r)) continue;
+        let clear = true;
+        for (const [, [ax, ay]] of D2) { if (at(px + ax, py + ay) || reserved.has(key(px + ax, py + ay))) clear = false; for (const [, [cx, cy]] of D2) if (!(ax + cx === 0 && ay + cy === 0) && (at(px + ax + cx, py + ay + cy) || reserved.has(key(px + ax + cx, py + ay + cy)))) clear = false; }
+        if (clear) return [px, py];
+      }
+      return null;
+    };
+    place(start, 0, 0);
+    const queue = [start], seenR = new Set([start]);
+    while (queue.length) {
+      const r = queue.shift(), p = pos.get(r);
+      for (const d of ['N', 'E', 'S', 'W']) {
+        const x = r.exits[d]; if (!x) continue;
+        const [dx, dy] = D[d], qx = p.x + dx, qy = p.y + dy, q = at(qx, qy);
+        if (!(q && ((q.room && q.room === x.to) || q.portal === x.to))) {
+          if (q) { errs1.push({ line: x.n, msg: `can't lay out ${r.name} → ${d} → ${x.to.name}: that spot already holds ${q.room ? q.room.name : 'a passage'}. Try another direction.` }); continue; }
+          if (!pos.has(x.to) && !forced.has(x.to) && okFor(qx, qy, x.to)) place(x.to, qx, qy);
+          else {
+            if (!okPortal(qx, qy, r, x.to)) { for (const [, [ex, ey]] of D2) { const c = at(qx + ex, qy + ey); if (c && c.room && c.room !== r && c.room !== x.to) culprits.add(c.room); } errs1.push({ line: x.n, msg: `can't lay out ${r.name} → ${d} → ${x.to.name}: other rooms crowd that spot. Try another direction, or fewer exits around ${r.name}.` }); continue; }
+            portal(qx, qy, x.to);
+            if (!pos.has(x.to)) { const s = spot(qx, qy, x.to); if (!s) { errs1.push({ line: x.n, msg: `no room left to lay out ${x.to.name}` }); continue; } place(x.to, s[0], s[1]); }
+          }
+        }
+        if (!seenR.has(x.to)) { seenR.add(x.to); queue.push(x.to); }
+      }
+    }
+    for (const r of rooms) if (!pos.has(r)) { const s = spot(0, 0, r); place(r, s[0], s[1]); unreached.add(r); }
+    return { errs: errs1, culprits };
+    };
+    // try, and where rooms crowd an exit, put the crowding rooms apart (behind a passage) and try again
+    const forced = new Set(); let res; const unreached = new Set();
+    for (let tries = 0; tries < 40; tries++) {
+      unreached.clear(); res = attempt(forced);
+      if (!res.errs.length) break;
+      const add = [...res.culprits].filter(r => r !== start && !forced.has(r));
+      if (!add.length) break;
+      add.forEach(r => forced.add(r));
+    }
+    for (const r of unreached) warns.push({ line: r.n, msg: `no exit leads to "${r.name}"` });
+    if (res.errs.length) return { ok: false, errors: errs.concat(res.errs), warnings: warns };
+    // ---- step 2: cut the big grid into maps. A map is at most 16 cells wide and 128 cells in all, its rooms inside a ring
+    // of walls; an exit to a room on another map becomes a portal in that ring ----
+    const all = [...pos.values()], B = { x0: Math.min(...all.map(p => p.x)), x1: Math.max(...all.map(p => p.x)), y0: Math.min(...all.map(p => p.y)), y1: Math.max(...all.map(p => p.y)) };
+    let best = null;
+    const sizes = (B.x1 - B.x0 + 3) <= 16 && (B.x1 - B.x0 + 3) * (B.y1 - B.y0 + 3) <= 128 ? [[B.x1 - B.x0 + 1, B.y1 - B.y0 + 1]] : [[14, 6], [12, 7], [10, 8], [9, 9], [8, 10], [7, 12], [6, 14]];
+    for (const [tw, th] of sizes) for (let ox = 0; ox < tw; ox++) for (let oy = 0; oy < th; oy++) {
+      const tiles = new Set(all.map(p => Math.floor((p.x - B.x0 + ox) / tw) + ':' + Math.floor((p.y - B.y0 + oy) / th)));
+      if (!best || tiles.size < best.n) best = { n: tiles.size, tw, th, ox, oy };
+      if (sizes.length === 1) break;
+    }
+    if (best.n > 16) return { ok: false, errors: [{ line: 1, msg: `too many rooms: they would need ${best.n} maps (at most 16)` }], warnings: warns };
+    const tileOf = p => Math.floor((p.x - B.x0 + best.ox) / best.tw) + ':' + Math.floor((p.y - B.y0 + best.oy) / best.th);
+    const tileIds = [...new Set([tileOf(pos.get(start)), ...rooms.map(r => tileOf(pos.get(r)))])];
+    const cartFor = n => n <= 2 ? '8K' : n <= 4 ? '16K' : n <= 8 ? '32K' : '64K';
+    let cart = meta.cart && CARTS[meta.cart] ? meta.cart : cartFor(tileIds.length);
+    if (CARTS[cart].banks < tileIds.length) { warns.push({ line: 1, msg: `${tileIds.length} maps don't fit a ${cart} cartridge; using ${cartFor(tileIds.length)}` }); cart = cartFor(tileIds.length); }
+    const wallText = "YOU CAN'T GO\nTHAT WAY.";
+    const idxOf = new Map(), frames = [];
+    tileIds.forEach((tid, gi) => {
+      const rs = rooms.filter(r => tileOf(pos.get(r)) === tid), ps = rs.map(r => pos.get(r));
+      const f = { x0: Math.min(...ps.map(p => p.x)) - 1, y0: Math.min(...ps.map(p => p.y)) - 1 };
+      f.W = Math.max(...ps.map(p => p.x)) - f.x0 + 2; f.H = Math.max(...ps.map(p => p.y)) - f.y0 + 2;
+      const mp = blankMap(gi, f.W, f.H); mp.cells = Array.from({ length: f.W * f.H }, () => wall(wallText));
+      for (const r of rs) { const p = pos.get(r), i = (p.y - f.y0) * f.W + (p.x - f.x0); mp.cells[i] = r.cell; idxOf.set(r, { m: gi, i }); }
+      frames.push(Object.assign(f, { rs, tid })); P.maps.push(mp);
+    });
+    // every exit that isn't two rooms side by side on the same map: a portal in the cell beside the room
+    frames.forEach((f, gi) => {
+      const need = new Map();
+      for (const r of f.rs) for (const [d, [dx, dy]] of D2) {
+        const x = r.exits[d]; if (!x) continue;
+        const p = pos.get(r), cx = p.x + dx, cy = p.y + dy, q = at(cx, cy);
+        if (q && q.room === x.to && tileOf(pos.get(x.to)) === f.tid) continue;
+        const i = (cy - f.y0) * f.W + (cx - f.x0), k = String(i);
+        if (need.has(k) && need.get(k) !== x.to) { errs.push({ line: x.n, msg: `two exits into one passage beside ${r.name}` }); continue; }
+        need.set(k, x.to);
+      }
+      for (const [k, to] of need) { const t = idxOf.get(to); P.portals.push({ map: gi, idx: +k, toMap: t.m, toIdx: t.i }); }
+    });
+    if (errs.length) return { ok: false, errors: errs, warnings: warns };
+    const G = frames;
+    while (P.maps.length < CARTS[cart].banks) P.maps.push(blankMap(P.maps.length, 6, 5));
+    P.cart = cart;
+    P.items = items.map(x => x.name); P.events = events.map(x => x.name);
+    P.verbs = verbs.map(w => ({ word: w, none: wrapText(`YOU CAN'T ${w} HERE.`) }));
+    P.start = { room: idxOf.get(start).i, inventory: meta.carrying.map(s => itemOf(s, 0)).filter(v => v != null) };
+    if (idxOf.get(start).m !== 0) return { ok: false, errors: [{ line: 1, msg: 'the start room must be on map A' }], warnings: warns };
+    P.settings.endEvent = meta.endsWhen ? eventOf(meta.endsWhen, 0) : null;
+    P.intro = [wrapText(meta.title.toUpperCase()), wrapText('AN ADVENTURE')];
+    items.forEach((it, i) => { if (!it.declared) warns.push({ line: 1, msg: `the item "${it.name}" is never found anywhere (add "Item: ${it.name.toLowerCase()}" to a room, or "Carrying:")` }); });
+    normalize(P);
+    return { ok: true, project: P, errors: [], warnings: warns, maps: G.length };
+  }
+
+  // ---------- An animated GIF of the walkthrough, drawn the way the playtest draws the screen ----------
+  function gifEncode(w, h, palette, frames) {
+    // palette: [[r,g,b]...] (padded to a power of two); frames: [{ px: Uint8Array(w*h) of indices, delay (1/100 s) }]
+    const out = [], byte = b => out.push(b & 255), word = v => { byte(v); byte(v >> 8); };
+    let bits = 1; while ((1 << bits) < palette.length) bits++;
+    const size = 1 << bits;
+    for (const ch of 'GIF89a') byte(ch.charCodeAt(0));
+    word(w); word(h); byte(0xF0 | (bits - 1)); byte(0); byte(0);
+    for (let i = 0; i < size; i++) { const c = palette[i] || [0, 0, 0]; byte(c[0]); byte(c[1]); byte(c[2]); }
+    byte(0x21); byte(0xFF); byte(11); for (const ch of 'NETSCAPE2.0') byte(ch.charCodeAt(0)); byte(3); byte(1); word(0); byte(0);
+    let prev = null;
+    for (const f of frames) {
+      // only the rectangle that changed since the last frame
+      let x0 = 0, y0 = 0, x1 = w - 1, y1 = h - 1;
+      if (prev) {
+        x0 = w; y0 = h; x1 = -1; y1 = -1;
+        for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (f.px[y * w + x] !== prev[y * w + x]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        if (x1 < 0) { x0 = 0; y0 = 0; x1 = 0; y1 = 0; }
+      }
+      const rw = x1 - x0 + 1, rh = y1 - y0 + 1, sub = new Uint8Array(rw * rh);
+      for (let y = 0; y < rh; y++) for (let x = 0; x < rw; x++) sub[y * rw + x] = f.px[(y0 + y) * w + x0 + x];
+      byte(0x21); byte(0xF9); byte(4); byte(0x04); word(f.delay); byte(0); byte(0);
+      byte(0x2C); word(x0); word(y0); word(rw); word(rh); byte(0);
+      // LZW
+      const minCode = Math.max(2, bits); byte(minCode);
+      const clear = 1 << minCode, eoi = clear + 1;
+      let codeSize = minCode + 1, next = eoi + 1, dict = new Map(), acc = 0, nacc = 0; const data = [];
+      const emit = c => { acc |= c << nacc; nacc += codeSize; while (nacc >= 8) { data.push(acc & 255); acc >>>= 8; nacc -= 8; } };
+      emit(clear);
+      let cur = sub[0];
+      for (let i = 1; i < sub.length; i++) {
+        const k = sub[i], key = cur * 4096 + k;
+        if (dict.has(key)) { cur = dict.get(key); continue; }
+        emit(cur);
+        if (next < 4096) { dict.set(key, next++); if (next > (1 << codeSize) && codeSize < 12) codeSize++; }
+        else { emit(clear); dict = new Map(); codeSize = minCode + 1; next = eoi + 1; }
+        cur = k;
+      }
+      emit(cur); emit(eoi); if (nacc) data.push(acc & 255);
+      for (let i = 0; i < data.length; i += 255) { const n = Math.min(255, data.length - i); byte(n); for (let j = 0; j < n; j++) out.push(data[i + j]); }
+      byte(0);
+      prev = f.px;
+    }
+    byte(0x3B);
+    return new Uint8Array(out);
+  }
+  // one frame of the running cartridge as palette indices, 320 x 384 (each scanline doubled)
+  function emuFrame(e, pic, pal, look) {
+    const W = 320, H = 384, px = new Uint8Array(W * H), c = e.colors();
+    const idx = v => { v &= 0xFE; let i = look.get(v); if (i == null) { i = pal.length; pal.push(v); look.set(v, i); } return i; };
+    const fill = (x, y, w, h, ci) => { for (let yy = y * 2; yy < (y + h) * 2; yy++) px.fill(ci, yy * W + x, yy * W + x + w); };
+    fill(0, 0, W, 10, idx(0)); fill(0, 10, W, 168, idx(c.bg)); fill(0, 168, W, 22, idx(c.menuBg)); fill(0, 190, W, 2, idx(0));
+    const { lines, menu } = e.screenBytes();
+    let skip = 0;
+    if (pic && e.ram[0x4C] === 0 && e.ram[0x4B] === 0) { const ci = idx(pic.color); pic.rows.forEach((row, r) => { for (let x = 0; x < 96; x++) if ((row[x >> 3] >> (7 - (x & 7))) & 1) fill(27 + x * 2, 10 + pic.pad + r * pic.rowH, 2, pic.rowH, ci); }); skip = pic.k; }
+    const plot = (code, x, y, ci) => { for (let r = 0; r < 6; r++) { const v = e.glyph(code, 5 - r); for (let b = 0; b < 8; b++) if (v & (0x80 >> b)) fill(x + b * 2, y + r, 2, 1, ci); } };
+    const tc = idx(c.text), mc = idx(c.menuText);
+    lines.slice(0, MAX_LINES - skip).forEach((ln, l) => ln.forEach((code, k) => plot(code, 27 + k * 16, 10 + (l + skip) * 16, tc)));
+    menu.forEach((code, k) => plot(code, 27 + k * 16, 177, mc));
+    return px;
+  }
+  function walkthroughGif(project, rom, opts = {}) {
+    const P = normalize(JSON.parse(JSON.stringify(project)));
+    const a = analyze(P); if (!a.winnable) return null;
+    const tv = tvOf(P), pal50 = tv.hz === 50, every = opts.every || 5, hold = opts.hold || 50;
+    const e = new Emu(rom); e.layout = 'tak'; e.wide = true;
+    const L = picLayout(P), pic = L ? { k: L.k, pad: L.pad, rowH: L.rowH, color: tvColor(P, L.color), rows: L.rows } : null;
+    const pal = [], look = new Map(), frames = [];
+    let n = 0, last = null;
+    const tick = () => {
+      e.runFrame();
+      if (++n % every) return;
+      const px = emuFrame(e, pic, pal, look), d = Math.round(every * 100 / (pal50 ? 50 : 60));
+      if (last && px.every((v, i) => v === last.px[i])) { last.delay += d; return; }
+      last = { px, delay: d }; frames.push(last);
+    };
+    const run = segs => { for (const [stick, fire, k] of segs) { e.swcha = stick; e.inpt4 = fire ? 0 : 0x80; for (let i = 0; i < k; i++) tick(); } };
+    for (let i = 0; i < 3; i++) e.runFrame();
+    for (let i = 0; i < hold; i++) tick();
+    for (const seg of introSegs(P).map(s => [s])) { run(seg); run([[0xFF, 0, hold]]); }
+    for (const st of a.solution) { run(stepSegs(P, e.state().inv, st)); run([[0xFF, 0, hold]]); }
+    run([[0xFF, 0, 200]]);
+    if (last) last.delay += 150;
+    const rgb = pal.map(v => { const h = tiaRgb(pal50, v).replace('#', ''); return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]; });
+    while (rgb.length < 2 || (rgb.length & (rgb.length - 1))) rgb.push([0, 0, 0]);
+    return { gif: gifEncode(320, 384, rgb, frames), frames: frames.length, steps: a.solution.length };
+  }
+
   // ---------- Web player: one HTML page that plays a finished cartridge, on a phone or a computer ----------
   // src is this file's own source (the page runs the same 6502 emulator the editor uses)
   function b64(bytes) {
@@ -2644,7 +3234,14 @@ canvas { display: block; width: 100%; height: auto; aspect-ratio: 320 / 228; ima
 .tap { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font: 600 16px ui-sans-serif, system-ui, sans-serif; border: 0; width: 100%; cursor: pointer; }
 .tap[hidden] { display: none; }
 .bar { display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; }
-.bar .grp { display: flex; gap: 8px; }
+.bar .grp { display: flex; gap: 8px; flex-wrap: wrap; }
+button.sm:disabled { opacity: .4; cursor: default; }
+.note { min-height: 18px; font: 12px ui-monospace, Menlo, monospace; color: var(--muted); margin-top: 6px; }
+.keys { margin-top: 2px; }
+body.big header, body.big .set, body.big .help { max-width: 1040px; }
+.screen:fullscreen { display: grid; place-items: center; border-radius: 0; background: #000; }
+.screen:fullscreen canvas { width: auto; height: 100vh; max-width: 100vw; }
+.screen:fullscreen::after { border-radius: 0; }
 button.sm { font: 600 12px ui-monospace, Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--fg); background: #2f2a21; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; cursor: pointer; }
 button.sm[aria-pressed="false"] { color: var(--muted); }
 .keys { font: 12px ui-monospace, Menlo, monospace; color: var(--muted); }
@@ -2668,7 +3265,9 @@ footer { margin-top: 10px; color: var(--muted); font-size: 12px; }
 <div class="set">
   <div class="screen"><canvas id="tv" width="320" height="228" aria-label="Game screen"></canvas><button class="tap" id="tap" type="button">Press to play</button></div>
   <div class="bar"><div class="grp"><button class="sm" id="snd" type="button" aria-pressed="true">Sound on</button><button class="sm" id="rst" type="button" title="The console's reset switch">Reset</button></div>
-    <span class="keys">arrows or WASD · space to fire · R resets</span></div>
+    <div class="grp"><button class="sm" id="sav" type="button" title="Keep this exact moment in this browser">Save</button><button class="sm" id="lod" type="button" title="Go back to the saved moment" disabled>Load</button><button class="sm" id="big" type="button" title="Screen size">Bigger</button><button class="sm" id="fs" type="button" title="Full screen">Full screen</button></div></div>
+  <div class="note" id="note" aria-live="polite"></div>
+  <div class="keys">arrows or WASD · space to fire · R resets · a gamepad works too</div>
   <div class="pad">
     <div class="dpad" aria-label="Joystick"><button class="u" data-k="N" aria-label="Up">▲</button><button class="l" data-k="W" aria-label="Left">◀</button><span class="c"></span><button class="r" data-k="E" aria-label="Right">▶</button><button class="d" data-k="S" aria-label="Down">▼</button></div>
     <div class="mid">${htmlEsc(opts.author ? 'by ' + opts.author : '')}</div>
@@ -2725,8 +3324,9 @@ function loop() {
     var now = performance.now(); acc = Math.min(4, acc + (now - last) / 1000 * (CFG.hz === 50 ? 50 : 59.94)); last = now;
     var due = Math.floor(acc); acc -= due; var chunks = [];
     for (var f = 0; f < due; f++) {
-      var sw = 0xFF; if (keys.E) sw &= 0x7F; if (keys.W) sw &= 0xBF; if (keys.S) sw &= 0xDF; if (keys.N) sw &= 0xEF;
-      emu.swcha = sw; emu.inpt4 = keys.fire ? 0x00 : 0x80; emu.swchb = keys.reset ? 0x0A : 0x0B;
+      var k = pad();
+      var sw = 0xFF; if (keys.E || k.E) sw &= 0x7F; if (keys.W || k.W) sw &= 0xBF; if (keys.S || k.S) sw &= 0xDF; if (keys.N || k.N) sw &= 0xEF;
+      emu.swcha = sw; emu.inpt4 = keys.fire || k.fire ? 0x00 : 0x80; emu.swchb = keys.reset || k.reset ? 0x0A : 0x0B;
       emu.runFrame();
       if (audio.on && audio.ctx && emu.aud) { audio.tia.regs(emu.aud); chunks.push(audio.tia.frame()); }
     }
@@ -2735,6 +3335,37 @@ function loop() {
   } catch (e) { crashed = true; g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(0, 90, 320, 40); g.fillStyle = '#fff'; g.font = '12px monospace'; g.fillText('The cartridge stopped: ' + e.message, 8, 114); return; }
   requestAnimationFrame(loop);
 }
+// a gamepad: left stick or d-pad, any face button fires, Start resets
+function pad() {
+  var o = {}, gs = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (var i = 0; i < gs.length; i++) { var g = gs[i]; if (!g) continue;
+    var b = function (n) { return g.buttons[n] && g.buttons[n].pressed; }, ax = g.axes[0] || 0, ay = g.axes[1] || 0;
+    if (ax < -0.5 || b(14)) o.W = 1; if (ax > 0.5 || b(15)) o.E = 1; if (ay < -0.5 || b(12)) o.N = 1; if (ay > 0.5 || b(13)) o.S = 1;
+    if (b(0) || b(1) || b(2) || b(3)) o.fire = 1; if (b(9)) o.reset = 1;
+    if (o.fire || o.N || o.S || o.E || o.W) { tap.hidden = true; if (audio.on) audioReady(); }
+  }
+  return o;
+}
+// save states: the whole machine, kept in this browser
+var SKEY = 'cart-save:' + CFG.title;
+function note(t) { var n = document.getElementById('note'); n.textContent = t; clearTimeout(note.h); note.h = setTimeout(function () { n.textContent = ''; }, 4000); }
+function savedAt() { try { var s = JSON.parse(localStorage.getItem(SKEY) || 'null'); return s && s.t; } catch (e) { return null; } }
+function lodBtn() { document.getElementById('lod').disabled = !savedAt(); }
+document.getElementById('sav').addEventListener('click', function () {
+  try { localStorage.setItem(SKEY, JSON.stringify({ t: Date.now(), s: emu.snapshot() })); note('Saved. Load brings you back to this moment, even after closing the page.'); }
+  catch (e) { note('This browser won’t keep a save here. Use the game’s own codes, if it has them.'); }
+  lodBtn();
+});
+document.getElementById('lod').addEventListener('click', function () {
+  try { var s = JSON.parse(localStorage.getItem(SKEY) || 'null'); if (!s) return; emu.restore(s.s); crashed = false; draw(); note('Loaded the save from ' + new Date(s.t).toLocaleString() + '.'); }
+  catch (e) { note('The save could not be read.'); }
+});
+var bigOn = false; try { bigOn = localStorage.getItem('cart-big') === '1'; } catch (e) {}
+function bigBtn() { document.body.classList.toggle('big', bigOn); document.getElementById('big').textContent = bigOn ? 'Smaller' : 'Bigger'; }
+document.getElementById('big').addEventListener('click', function () { bigOn = !bigOn; try { localStorage.setItem('cart-big', bigOn ? '1' : '0'); } catch (e) {} bigBtn(); });
+var scr = document.querySelector('.screen');
+document.getElementById('fs').addEventListener('click', function () { if (document.fullscreenElement) document.exitFullscreen(); else if (scr.requestFullscreen) scr.requestFullscreen().catch(function () { note('Full screen isn’t available here.'); }); else note('Full screen isn’t available here.'); });
+if (!document.fullscreenEnabled) document.getElementById('fs').hidden = true;
 function sndBtn() { var b = document.getElementById('snd'); b.textContent = audio.on ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(audio.on)); }
 document.getElementById('snd').addEventListener('click', function () { audio.on = !audio.on; try { localStorage.setItem('cart-sound', audio.on ? 'on' : 'off'); } catch (e) {} if (audio.on) audioReady(); sndBtn(); });
 document.getElementById('rst').addEventListener('click', function () { keys.reset = 1; setTimeout(function () { keys.reset = 0; }, 120); });
@@ -2753,7 +3384,7 @@ document.querySelectorAll('[data-k]').forEach(function (b) {
   b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
   b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 });
-sndBtn(); boot(); draw(); requestAnimationFrame(loop);
+sndBtn(); bigBtn(); lodBtn(); boot(); draw(); requestAnimationFrame(loop);
 })();
 <\/script>
 </body></html>
@@ -2771,6 +3402,185 @@ sndBtn(); boot(); draw(); requestAnimationFrame(loop);
     const s = normText(t).replace(/\s*\n\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
     return s.replace(/(^|[.!?]\s+|['"]\s*)([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/\bi\b/g, 'I');
   }
+  // ---------- Cartridge labels in the style of the era: black label, big condensed title, framed artwork ----------
+  const LABEL_STYLES = { picture: 'Picture label (black, framed artwork)', text: 'Text label (giant title)', stripes: 'Stripes (artwork above, colour bands below)', simple: 'Simple (game colours)' };
+  function picRects(P) {
+    const L = picLayout(P); if (!L) return null;
+    let r = ''; L.rows.forEach((row, y) => { let x = 0; while (x < 96) { if ((row[x >> 3] >> (7 - (x & 7))) & 1) { let e = x; while (e < 96 && ((row[e >> 3] >> (7 - (e & 7))) & 1)) e++; r += `<rect x="${x * 2}" y="${y * L.rowH}" width="${(e - x) * 2}" height="${L.rowH}"/>`; x = e; } else x++; } });
+    // trim empty columns either side so the art fills its frame
+    let x0 = 96, x1 = 0; L.rows.forEach(row => { for (let x = 0; x < 96; x++) if ((row[x >> 3] >> (7 - (x & 7))) & 1) { x0 = Math.min(x0, x); x1 = Math.max(x1, x + 1); } });
+    return { rects: r, x: x0 * 2, w: Math.max(2, (x1 - x0) * 2), h: L.rows.length * L.rowH };
+  }
+  function labelSvg(project, opts = {}) {
+    const P = normalize(JSON.parse(JSON.stringify(project)));
+    const o = Object.assign({}, P.print, opts);
+    const W = Math.max(40, Math.min(o.big ? 200 : 160, +o.labelW || 84)), H = Math.max(30, Math.min(o.big ? 200 : 160, +o.labelH || 64));
+    const tv = tvOf(P), pal = !!tv.pal, col = P.maps[0].colors, c = v => tiaRgb(pal, tvColor(P, v));
+    const bg = c(col.bg), ink = c(col.text), band = c(col.menuBg), picCol = P.picture && P.picture.on ? c(P.picture.color) : ink;
+    const style = LABEL_STYLES[o.labelStyle] ? o.labelStyle : 'picture';
+    const tag = String(o.tagline == null ? 'TEXT ADVENTURE' : o.tagline).toUpperCase(), code = String(o.code || '').toUpperCase();
+    const author = String(o.author || '').toUpperCase(), title = String(P.title || 'UNTITLED').toUpperCase();
+    const e = htmlEsc, cream = '#f3ead6', black = '#121110';
+    const FONT = `Impact, Haettenschweiler, 'Arial Narrow Bold', 'Franklin Gothic Bold', 'Helvetica Neue', Arial, sans-serif`;
+    // a title line squeezed or stretched to an exact width, slanted a little like the period's logotypes
+    const fit = (s, x, y, w, size, fill, anchor = 'start', slant = -8, exact) => {
+      const natural = s.length * size * 0.5, len = exact ? w : Math.min(w, Math.max(natural, w * 0.55));
+      const ax = anchor === 'middle' ? x - len / 2 : x;
+      return `<text x="${ax}" y="${y}" font-family="${FONT}" font-weight="900" font-size="${size}" fill="${fill}" textLength="${len}" lengthAdjust="spacingAndGlyphs" transform="skewX(${slant})" style="transform-box:fill-box;transform-origin:left bottom">${e(s)}</text>`;
+    };
+    const split = s => { if (s.length <= 13 || !s.includes(' ')) return [s]; let best = [s], d = 1e9; const w = s.split(' '); for (let i = 1; i < w.length; i++) { const a = w.slice(0, i).join(' '), b = w.slice(i).join(' '), k = Math.abs(a.length - b.length); if (k < d) { d = k; best = [a, b]; } } return best; };
+    const small = (s, x, y, size, fill, anchor = 'start', maxW) => { if (!s) return ''; const est = s.length * size * 0.78, lim = maxW && est > maxW ? ` textLength="${maxW}" lengthAdjust="spacingAndGlyphs"` : ''; return `<text x="${x}" y="${y}" font-family="${FONT}" font-weight="700" font-size="${size}" fill="${fill}" text-anchor="${anchor}" letter-spacing="${size * 0.08}"${lim}>${e(s)}</text>`; };
+    const stack = (lines, x, y0, w, fs, fill, gap = 0.96) => { const mx = Math.max(...lines.map(l => l.length)); return lines.map((l, i) => fit(l, x, y0 + fs * 0.86 + i * fs * gap, w * Math.max(0.45, l.length / mx), fs, fill, 'start', -8, true)).join(''); };
+    const pr = picRects(P);
+    // artwork: the title picture over a night-sky gradient in the game's colours, or stars when there is no picture
+    let gid = 0;
+    const art = (x, y, w, h, r) => {
+      const id = 'g' + (++gid) + Math.random().toString(36).slice(2, 6);
+      let s = `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#05040a"/><stop offset=".55" stop-color="${bg}" stop-opacity=".55"/><stop offset="1" stop-color="${bg}"/></linearGradient><clipPath id="c${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></clipPath></defs>`;
+      s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${bg}"/><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#${id})"/>`;
+      // stars, the same each time for the same title
+      let seed = [...title].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7); const rnd = () => (seed = (seed * 1103515245 + 12345) >>> 0) / 4294967296;
+      s += `<g clip-path="url(#c${id})" fill="#fff">`; for (let i = 0; i < 26; i++) s += `<rect x="${(x + rnd() * w).toFixed(2)}" y="${(y + rnd() * h * 0.6).toFixed(2)}" width="${(0.25 + rnd() * 0.35).toFixed(2)}" height="${(0.25 + rnd() * 0.35).toFixed(2)}" opacity="${(0.35 + rnd() * 0.6).toFixed(2)}"/>`; s += '</g>';
+      if (pr) {
+        const k = Math.min((w * 0.9) / pr.w, (h * 0.86) / pr.h), pw = pr.w * k, ph = pr.h * k;
+        s += `<g clip-path="url(#c${id})"><g transform="translate(${(x + (w - pw) / 2 - pr.x * k).toFixed(3)} ${(y + (h - ph) / 2 + h * 0.03).toFixed(3)}) scale(${k.toFixed(4)})" fill="${picCol}" shape-rendering="crispEdges">${pr.rects}</g></g>`;
+      }
+      return s + `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="none" stroke="${cream}" stroke-opacity=".55" stroke-width=".35"/>`;
+    };
+    // text sizes follow the label's height, or for a box front (tall) its width
+    const S = o.big ? W * 0.55 : H;
+    const m = W * 0.05, svg = (w, h, body, extra = '') => `<svg xmlns="http://www.w3.org/2000/svg" class="lbl" viewBox="0 0 ${w} ${h}" width="${w}mm" height="${h}mm" ${extra}>${body}</svg>`;
+    const foot = `FOR USE WITH A JOYSTICK${tv.pal ? ' · ' + tv.name : ''}`;
+    let body = `<rect width="${W}" height="${H}" rx="2" fill="${black}"/>`;
+    if (style === 'picture') {
+      const lines = split(title), th = H * (lines.length > 1 ? 0.27 : 0.2), fs = Math.min(th / lines.length * 1.05, (W - 2 * m) / Math.max(...lines.map(l => l.length)) * 1.9);
+      body += stack(lines, m, m, W - 2 * m - 1.5, fs, picCol, 0.98);
+      const ay = m + th + H * 0.035, ah = H * 0.76 - ay;
+      body += art(m, ay, W - 2 * m, ah, 1.2);
+      const by = ay + ah + H * 0.03;
+      [band, ink, picCol].forEach((cc, i) => body += `<rect x="${m}" y="${by + i * 0.9}" width="${W - 2 * m}" height=".5" fill="${cc}"/>`);
+      body += small(tag, m, by + 3.2 + S * 0.06, S * 0.06, cream, 'start', (W - 2 * m) * (code ? 0.6 : 1)) + small(code, W - m, by + 3.2 + S * 0.06, S * 0.06, cream, 'end');
+      body += small(author ? 'BY ' + author : '', m, H - m * 0.5, S * 0.04, '#9d9484', 'start', (W - 2 * m) * 0.45) + small(foot, W - m, H - m * 0.5, S * 0.04, '#9d9484', 'end', (W - 2 * m) * 0.5);
+    } else if (style === 'text') {
+      const lines = split(title).length > 1 ? split(title) : [title], fs = Math.min(H * 0.5 / lines.length, (W - 2 * m) / Math.max(...lines.map(l => l.length)) * 1.95);
+      body += stack(lines, m, m, W - 2 * m - 2, fs, picCol);
+      const ry = m + lines.length * fs * 0.96 + H * 0.04;
+      body += `<rect x="${m}" y="${ry}" width="${W - 2 * m}" height="1" fill="${band}"/>`;
+      const aw = W * 0.4, ah = H - ry - m - 2, ax = W - m - aw, lw = W - 2 * m - aw - 3;
+      body += art(ax, ry + 2.5, aw, ah - 0.5, 1);
+      body += small(tag, m, ry + 2.5 + S * 0.07, S * 0.065, cream, 'start', lw) + small(author ? 'BY ' + author : '', m, ry + 2.5 + S * 0.15, S * 0.05, '#c9bfae', 'start', lw);
+      body += small(code, m, H - m - S * 0.07, S * 0.05, '#9d9484', 'start', lw) + small(foot, m, H - m, S * 0.04, '#9d9484', 'start', lw);
+    } else if (style === 'stripes') {
+      const ah = H * 0.48; body += art(0, 0, W, ah, 2) + `<rect x="0" y="${ah - 2}" width="${W}" height="2" fill="${black}"/>`;
+      body += `<rect x="0" y="0" width="${W}" height="${H}" rx="2" fill="none"/>`;
+      const lines = split(title), fs = Math.min(H * 0.2 / lines.length, (W - 2 * m) / Math.max(...lines.map(l => l.length)) * 1.9);
+      body += stack(lines, m, ah + m * 0.5, Math.min(W - 2 * m - 2, Math.max(...lines.map(l => l.length)) * fs * 0.62), fs, cream);
+      const sy = ah + m * 0.5 + lines.length * fs * 0.96 + H * 0.025, cols = [picCol, ink, band, bg];
+      cols.forEach((cc, i) => body += `<rect x="0" y="${(sy + i * H * 0.02).toFixed(2)}" width="${W}" height="${(H * 0.012).toFixed(2)}" fill="${cc}"/>`);
+      const ty = sy + 4 * H * 0.02 + S * 0.065;
+      body += small(tag, m, ty, S * 0.06, cream, 'start', (W - 2 * m) * (code ? 0.6 : 1)) + small(code, W - m, ty, S * 0.06, '#c9bfae', 'end');
+      body += small(author ? 'BY ' + author : '', m, H - m * 0.5, S * 0.04, '#9d9484', 'start', (W - 2 * m) * 0.45) + small(foot, W - m, H - m * 0.5, S * 0.04, '#9d9484', 'end', (W - 2 * m) * 0.5);
+    } else {
+      body = `<rect width="${W}" height="${H}" rx="2" fill="${bg}"/>` + (pr ? art(m, m, W - 2 * m, H * 0.62, 1) : '');
+      body += `<text x="${W / 2}" y="${H * 0.8}" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="${Math.min(H * 0.11, (W - 2 * m) / title.length * 1.7)}" fill="${ink}">${e(P.title)}</text>`;
+      body += `<rect x="0" y="${H * 0.88}" width="${W}" height="${H * 0.12}" fill="${band}"/>` + small(author ? 'BY ' + author : tag, m, H * 0.965, S * 0.05, c(col.menuText)) + small(tv.name, W - m, H * 0.965, S * 0.05, c(col.menuText), 'end');
+    }
+    const front = svg(W, H, body);
+    // the end label: the strip along the cartridge's top edge
+    const EH = 12, efs = EH * 0.62;
+    let eb = `<rect width="${W}" height="${EH}" rx="1" fill="${style === 'simple' ? band : black}"/>`;
+    if (style !== 'simple') eb += `<rect x="${m}" y="${EH * 0.2}" width="1.2" height="${EH * 0.6}" fill="${picCol}"/><rect x="${W - m - 1.2}" y="${EH * 0.2}" width="1.2" height="${EH * 0.6}" fill="${picCol}"/>`;
+    eb += fit(title, W / 2, EH / 2 + efs * 0.36, W - 2 * m - 6, efs, style === 'simple' ? c(col.menuText) : cream, 'middle', style === 'simple' ? 0 : -8);
+    return { front, end: svg(W, EH, eb), W, H, EH, style };
+  }
+
+  // ---------- Print extras: a map of the world, screenshots and a cartridge box ----------
+  // the game's screen as an SVG (the editor's 320 x 192 view: two units per 2600 pixel across, one per line down)
+  function screenSvg(P, o = {}) {
+    const tv = tvOf(P), pal = !!tv.pal, cl = v => tiaRgb(pal, tvColor(P, v)), col = Object.assign({}, P.maps[o.map || 0].colors, o.colors || {});
+    let s = `<rect width="320" height="192" fill="${cl(col.bg)}"/>`;
+    let skip = 0;
+    if (o.title) { const L = picLayout(P); if (L) { const y0 = 10 + L.pad; let r = ''; L.rows.forEach((row, y) => { for (let x = 0; x < 96; x++) if ((row[x >> 3] >> (7 - (x & 7))) & 1) r += `<rect x="${27 + x * 2}" y="${y0 + y * L.rowH}" width="2" height="${L.rowH}"/>`; }); s += `<g fill="${cl(P.picture.color)}">${r}</g>`; skip = L.k; } }
+    const glyphs = (str, x0, y0, fill) => { let r = ''; [...str.slice(0, LINE_W)].forEach((ch, k) => { const code = XCHAR[ch] !== undefined ? XCHAR[ch] : XCHAR[SUBST[ch]]; if (code === undefined) return; for (let row = 0; row < 6; row++) { const v = XFONT[code + 5 - row]; for (let b = 0; b < 8; b++) if (v & (0x80 >> b)) r += `<rect x="${x0 + k * 16 + b * 2}" y="${y0 + row}" width="2" height="1"/>`; } }); return `<g fill="${fill}">${r}</g>`; };
+    normText(o.text || '').split('\n').slice(0, MAX_LINES - skip).forEach((ln, l) => { s += glyphs(ln, 27, 10 + (l + skip) * 16, cl(col.text)); });
+    s += `<rect y="168" width="320" height="22" fill="${cl(col.menuBg)}"/>` + glyphs(normText(o.menu || '').split('\n')[0], 27, 177, cl(col.menuText));
+    return `<svg xmlns="http://www.w3.org/2000/svg" class="shot" viewBox="0 0 320 192" shape-rendering="crispEdges" preserveAspectRatio="xMidYMid meet">${s}</svg>`;
+  }
+  // the world as a map: rooms, the exits between them, passages to other maps; or a blank grid for players to draw on
+  function mapSvg(P, mode) {
+    const e = htmlEsc;
+    if (mode === 'blank') {
+      const C = 14, R = 18, u = 9; let g = '';
+      for (let x = 0; x <= C; x++) g += `<line x1="${x * u}" y1="0" x2="${x * u}" y2="${R * u}"/>`;
+      for (let y = 0; y <= R; y++) g += `<line x1="0" y1="${y * u}" x2="${C * u}" y2="${y * u}"/>`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" class="mapsvg" viewBox="-2 -2 ${C * u + 4} ${R * u + 4}" width="${C * u + 4}mm"><g stroke="#b8ae9c" stroke-width=".2">${g}</g></svg>`;
+    }
+    const out = [];
+    P.maps.forEach((m, mi) => {
+      const rooms = m.cells.map((c, i) => c.type === 'room' && !portalAt(P, mi, i) ? i : -1).filter(i => i >= 0);
+      if (!rooms.length) return;
+      const W = m.width, xs = rooms.map(i => i % W), ys = rooms.map(i => Math.floor(i / W));
+      const x0 = Math.min(...xs) - 1, x1 = Math.max(...xs) + 1, y0 = Math.min(...ys) - 1, y1 = Math.max(...ys) + 1;
+      const u = 24, bw = 19, cx = i => (i % W - x0) * u, cy = i => (Math.floor(i / W) - y0) * u;
+      let lines = '', boxes = '', tabs = '';
+      for (const i of rooms) {
+        const c = m.cells[i], nb = neighbors(P, mi, i);
+        for (const [d, dx, dy] of [['E', 1, 0], ['S', 0, 1]]) {
+          const n = nb[d]; if (!n.valid || n.portal || !n.cell || n.cell.type !== 'room') continue;
+          const lock = n.cell.door.on || c.door.on;
+          lines += `<line x1="${cx(i) + u / 2}" y1="${cy(i) + u / 2}" x2="${cx(i) + u / 2 + dx * u}" y2="${cy(i) + u / 2 + dy * u}" ${lock ? 'stroke-dasharray="1.5 1"' : ''}/>`;
+        }
+        for (const [d, dx, dy] of [['N', 0, -1], ['E', 1, 0], ['S', 0, 1], ['W', -1, 0]]) {
+          const n = nb[d]; if (!n.valid || !n.portal || !n.cell || n.cell.type !== 'room') continue;
+          const tx = cx(i) + u / 2 + dx * (bw / 2 + 2), ty = cy(i) + u / 2 + dy * (bw / 2 + 2);
+          tabs += `<g><line x1="${cx(i) + u / 2 + dx * bw / 2}" y1="${cy(i) + u / 2 + dy * bw / 2}" x2="${tx + dx * 2}" y2="${ty + dy * 2}" stroke="#1d1a15" stroke-width=".5"/>`
+            + `<text x="${tx + dx * 3}" y="${ty + dy * 3 + 1}" font-size="2.6" text-anchor="${dx > 0 ? 'start' : dx < 0 ? 'end' : 'middle'}" fill="#1d1a15">→ ${e(n.map !== mi ? LETTERS[n.map] + ': ' : '')}${e(String(n.cell.name || 'room').slice(0, 14))}</text></g>`;
+        }
+        const name = String(c.name || 'Room'), words = name.split(/\s+/); let l1 = '', l2 = '';
+        for (const w of words) { if ((l1 + ' ' + w).trim().length <= 11 && !l2) l1 = (l1 + ' ' + w).trim(); else l2 = (l2 + ' ' + w).trim(); }
+        const isStart = mi === 0 && i === P.start.room, fill = c.ending ? (c.deadly ? '#e9c2bb' : '#d8e6c4') : c.dark && c.dark.on ? '#cfc9bd' : '#fffdf7';
+        boxes += `<g><rect x="${cx(i) + (u - bw) / 2}" y="${cy(i) + (u - bw) / 2}" width="${bw}" height="${bw}" rx="1.6" fill="${fill}" stroke="#1d1a15" stroke-width="${isStart ? 1 : .5}"/>`
+          + `<text x="${cx(i) + u / 2}" y="${cy(i) + u / 2 - (l2 ? 0.6 : -1)}" font-size="2.9" text-anchor="middle" fill="#1d1a15">${e(l1)}</text>`
+          + (l2 ? `<text x="${cx(i) + u / 2}" y="${cy(i) + u / 2 + 3}" font-size="2.9" text-anchor="middle" fill="#1d1a15">${e(l2.slice(0, 12))}</text>` : '')
+          + (isStart ? `<text x="${cx(i) + u / 2}" y="${cy(i) + (u - bw) / 2 + 4}" font-size="2.6" text-anchor="middle" font-weight="700" fill="#1d1a15">START</text>` : '')
+          + (c.ending ? `<text x="${cx(i) + u / 2}" y="${cy(i) + (u + bw) / 2 - 1.5}" font-size="2.4" text-anchor="middle" font-weight="700" fill="#1d1a15">${c.deadly ? 'DANGER' : 'THE END'}</text>` : '') + '</g>';
+      }
+      const Wmm = (x1 - x0 + 1) * u, Hmm = (y1 - y0 + 1) * u;
+      out.push(`<figure class="mapfig"><figcaption>${e(m.name)}</figcaption><svg xmlns="http://www.w3.org/2000/svg" class="mapsvg" viewBox="-34 0 ${Wmm + 68} ${Hmm}" width="${Math.min(170, Wmm + 68)}mm" font-family="Georgia, serif"><g stroke="#1d1a15" stroke-width="1.4" stroke-linecap="round">${lines}</g>${boxes}${tabs}</svg></figure>`);
+    });
+    return out.join('');
+  }
+  // the box: front (the label's design, bigger), back (story, two screenshots, features), and the strips for its sides
+  function boxHtml(P, o) {
+    const e = htmlEsc, tv = tvOf(P), col = P.maps[0].colors, c = v => tiaRgb(!!tv.pal, tvColor(P, v));
+    const front = labelSvg(P, Object.assign({}, o, { labelW: 140, labelH: 190, big: true })).front;
+    const story = (String(o.story || '').trim() ? String(o.story).trim().split(/\n\s*\n/) : P.intro.slice(1).map(sentenceCase)).filter(Boolean).slice(0, 3);
+    const rooms = P.maps.reduce((t, m, mi) => t + m.cells.filter((x, i) => x.type === 'room' && !portalAt(P, mi, i)).length, 0);
+    const items = P.items.filter((t, i) => normText(t).trim()).length;
+    const feats = [`${rooms} places to explore`, items ? `${items} things to find and use` : null, P.verbs.filter(v => !v.hint).length ? `your own actions: ${P.verbs.filter(v => !v.hint).map(v => normText(v.word)).join(', ')}` : null, P.verbs.some(v => v.hint) ? 'hints when you are stuck' : null,
+      scoreOn(P) ? `a score out of ${scoreMax(P)}` : null, P.settings.passwords ? 'codes to continue later' : null, P.settings.sound !== false ? 'sound and music' : null, `${P.cart} cartridge · ${tv.name}`].filter(Boolean);
+    const start = P.maps[0].cells[P.start.room];
+    const shots = [screenSvg(P, { text: P.intro[0], menu: P.system.more, title: true }), screenSvg(P, { text: start.desc, menu: P.system.look, colors: start.colors && start.colors.on ? { bg: start.colors.bg, text: start.colors.text } : null })];
+    const black = '#121110', cream = '#f3ead6';
+    const strip = (w, h) => labelSvg(P, Object.assign({}, o, { labelW: w })).end.replace(/viewBox="0 0 (\S+) 12"/, `viewBox="0 0 $1 12"`).replace(/height="12mm"/, `height="${h}mm"`).replace('<svg ', '<svg preserveAspectRatio="none" ');
+    return `<section class="box">
+  <h2>Cartridge box</h2>
+  <p class="small noprint">Print at 100%. The front and back are 140 × 190 mm; glue them to a box about 32 mm deep, with the strips along its sides.</p>
+  <div class="cut">${front}</div>
+  <div class="break"></div>
+  <div class="cut"><div class="back" style="background:${black};color:${cream}">
+    <div class="bt">${e(String(P.title).toUpperCase())}</div>
+    <div class="bs">${e(String(o.tagline == null ? 'TEXT ADVENTURE' : o.tagline).toUpperCase())} FOR THE ATARI 2600</div>
+    ${story.map(p => `<p>${e(p)}</p>`).join('')}
+    <div class="shots">${shots.map(s => `<div class="sh">${s}</div>`).join('')}</div>
+    <ul>${feats.map(f => `<li>${e(f)}</li>`).join('')}</ul>
+    <div class="bf"><span>${e(o.author ? 'BY ' + String(o.author).toUpperCase() : 'TEXT ADVENTURE')}${o.year ? ' · ' + e(o.year) : ''}</span><span>${e(String(o.code || '').toUpperCase())}</span></div>
+    <div class="bars">${[c(P.picture && P.picture.on ? P.picture.color : col.text), c(col.text), c(col.menuBg), c(col.bg)].map(x => `<i style="background:${x}"></i>`).join('')}</div>
+  </div></div>
+  <div class="cut">${strip(190, 32)}${strip(140, 32)}${strip(140, 32)}</div>
+</section>`;
+  }
+
   function manualHtml(project, opts = {}) {
     const P = normalize(JSON.parse(JSON.stringify(project)));
     const tv = tvOf(P), pal = !!tv.pal, col = P.maps[0].colors, rgbOf = v => tiaRgb(pal, tvColor(P, v));
@@ -2784,12 +3594,14 @@ sndBtn(); boot(); draw(); requestAnimationFrame(loop);
     const verbs = P.verbs.map(v => normText(v.word).split('\n')[0]).filter(Boolean);
     const acts = [W('go'), W('take'), W('give'), W('use'), W('talk'), W('inventory'), ...verbs, ...(P.settings.passwords ? [W('code')] : [])];
     const actHelp = { [W('go')]: 'leave the action menu and carry on walking', [W('take')]: 'pick up something you have found', [W('give')]: 'hand over something you carry', [W('use')]: 'use something you carry, here', [W('talk')]: 'speak to whoever is here', [W('inventory')]: 'list what you carry' };
+    P.verbs.forEach(v => { if (v.hint) actHelp[normText(v.word).split('\n')[0]] = 'a hint about what to do here, if you get stuck'; });
     verbs.forEach(v => { if (!actHelp[v]) actHelp[v] = 'try it wherever it might help'; });
     if (P.settings.passwords) actHelp[W('code')] = 'show a code for this point in the game';
     const deadly = P.maps.some(m => m.cells.some(c => c.type === 'room' && c.ending && c.deadly));
     const esc = htmlEsc, b = s => `<b class="w">${esc(s)}</b>`;
     const titleArt = (scale) => L ? picSvg(P, scale, picCol) : '';
-    const label = `<div class="label" style="width:${lw}mm;height:${lh}mm"><div class="lart">${titleArt(1)}</div><div class="ltitle">${title}</div><div class="lband"><span>${author ? 'BY ' + author.toUpperCase() : 'TEXT ADVENTURE'}</span><span>${esc(tv.name)}</span></div></div>`;
+    const LB = labelSvg(P, opts);
+    o.story = own; o.map = o.map || P.print.map; o.box = o.box != null ? o.box : P.print.box;
     return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${title}: manual and label</title>
@@ -2816,6 +3628,14 @@ dt { font: 700 9.5pt ui-monospace, Menlo, monospace; } dd { margin: 0; }
 .lart .pic { width: 100%; height: 100%; max-height: 100%; }
 .ltitle { font: 700 13pt/1.1 Georgia, serif; text-align: center; padding: 2mm 3mm; }
 .lband { background: var(--band); color: var(--band-ink); font: 700 6.5pt ui-monospace, Menlo, monospace; letter-spacing: .12em; padding: 1.6mm 3mm; display: flex; justify-content: space-between; }
+.mapfig { margin: 4mm 0; break-inside: avoid; } .mapfig figcaption { font: 700 9pt ui-monospace, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 2mm; } .mapsvg { display: block; max-width: 100%; height: auto; }
+.back { width: 140mm; height: 190mm; padding: 8mm; box-sizing: border-box; display: flex; flex-direction: column; gap: 3mm; font: 9pt/1.45 Georgia, serif; border-radius: 2mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; position: relative; overflow: hidden; }
+.back .bt { font: 900 20pt/1 Impact, 'Arial Narrow Bold', sans-serif; letter-spacing: .02em; transform: skewX(-8deg); color: var(--ink); }
+.back p { margin: 0; font-size: 10pt; } .back ul { margin: 2mm 0 0; padding-left: 4mm; font-size: 9.5pt; line-height: 1.6; } .back .bs { font: 700 7.5pt ui-monospace, Menlo, monospace; letter-spacing: .14em; color: #b7ad99; margin-top: -1.5mm; } .back .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+.back .sh { border: .4mm solid #5c5446; border-radius: 1.5mm; overflow: hidden; line-height: 0; } .back .shot { width: 100%; height: auto; display: block; }
+.back .bf { margin-top: auto; display: flex; justify-content: space-between; font: 700 7pt ui-monospace, Menlo, monospace; letter-spacing: .12em; color: #b7ad99; }
+.back .bars { display: grid; gap: .8mm; } .back .bars i { display: block; height: 1.2mm; }
+.lbl { display: block; -webkit-print-color-adjust: exact; print-color-adjust: exact; max-width: 100%; height: auto; }
 .end { background: var(--band); color: var(--band-ink); font: 700 8pt ui-monospace, Menlo, monospace; letter-spacing: .14em; display: flex; align-items: center; justify-content: center; border-radius: 1mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .small { font-size: 9pt; color: #5b5446; }
 .break { break-before: page; }
@@ -2836,13 +3656,16 @@ dt { font: 700 9.5pt ui-monospace, Menlo, monospace; } dd { margin: 0; }
   <dl>${acts.map(a => `<dt>${esc(a)}</dt><dd>${esc(actHelp[a] || '')}</dd>`).join('')}</dl>
   <p class="small" style="margin-top:3mm">${b(W('give'))} and ${b(W('use'))} open a list of what you carry: left and right choose, fire picks. Look carefully: some things only show themselves when you ${esc(W('look').toLowerCase())}.</p>
   ${P.settings.passwords ? `<h2>Saving your place</h2><p>The 2600 forgets everything when it is switched off, so ${b(W('code'))} in the action menu shows a code for the room you are in, what you carry and what you have done. Write it down. Next time, choose ${b(W('code'))} on the last title page and enter it letter by letter: left and right choose a letter, fire adds it, and ${b(W('delete'))} takes one back.</p>` : ''}
+  ${scoreOn(P) ? `<h2>Scoring</h2><p>You earn points as you make progress. When you win, the bar at the bottom of the screen shows your score out of ${scoreMax(P)}, by turns with ${b(W('theEnd'))}.</p>${P.score.ranks.filter(r => String(r.title || '').trim()).length ? `<dl>${P.score.ranks.filter(r => String(r.title || '').trim()).slice().sort((x, y) => y.min - x.min).map(r => `<dt>${esc(String(r.min))}+</dt><dd>${esc(r.title)}</dd>`).join('')}</dl>` : ''}` : ''}
   ${deadly ? `<h2>Danger</h2><p>Some places are deadly. If the bar shows ${b(W('tryAgain'))}, press fire to start the adventure again from the beginning.</p>` : ''}
   ${notes ? `<h2>Notes</h2>${notes.split(/\n\s*\n/).map(p => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('')}` : ''}
   <p class="small" style="margin-top:8mm">${title}${author ? ' © ' + (year ? year + ' ' : '') + author : ''}. Made with Adventure Cart Workshop.</p>
   <div class="break"></div>
   <h2>Cartridge label</h2>
   <p class="small noprint">Print at 100% (not "fit to page"), cut along the edges and glue to the cartridge. The front label is ${lw} × ${lh} mm; the end label is ${lw} × 12 mm.</p>
-  <div class="cut">${label}<div class="end" style="width:${lw}mm;height:12mm">${title.toUpperCase()}</div></div>
+  <div class="cut">${LB.front}${LB.end}</div>
+  ${o.map && o.map !== 'none' ? `<div class="break"></div><h2>${o.map === 'blank' ? 'Your map' : 'Map'}</h2>${o.map === 'blank' ? '<p class="small">Draw the places you find as you go: a box for each room, a line for each way between them.</p>' : '<p class="small">Solid lines are open ways; dashed ones are locked at first. Arrows lead through passages, to another map when a letter is shown. Green: an ending; red: danger; grey: dark.</p>'}${mapSvg(P, o.map)}` : ''}
+  ${o.box ? `<div class="break"></div>${boxHtml(P, o)}` : ''}
 </div>
 </body></html>
 `;
@@ -2853,7 +3676,7 @@ dt { font: 700 9.5pt ui-monospace, Menlo, monospace; } dd { margin: 0; }
     return P.engine === 'tak' ? buildTak(P, opts) : buildRom(P, engineRom, opts);
   }
   root.TAK = { build, wideNeeded, CARTS, LETTERS, bankOrder, mapOfBank, setCart, portalAt, isLegacyPortals, normalize, fixesNeeded, verbEntry, MAX_VERBS, fontMode, XCHAR, XFONT, XDECODE, DEFAULT_COLORS, newProject, room, wall, CHAR, DECODE, LINE_W, MAX_LINES, SUBST, EXTRA_GLYPHS, normText, badChars, encodePage, parseRom, buildRom, validate, neighbors, isEngine, readText, Emu, act, actSegs, runSegs, stepSegs, introSegs, analyze, verifySolution, assemble, buildTak, takEngineSource, TAK_GEO, BASE, takCompress, takLines, NGLYPH, PARSE_MAX,
-    toScript, fromScript, TIA_CLK, tiaNote, parseTune, TUNES, TITLE_TUNES, TITLE_ROOM, titleTuneText, titleOn, titleData, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, TV, tvOf, tvColor, tiaRgb, NTSC_RGB, PAL_RGB, NTSC_TO_PAL, PW_ALPHA, pwLayout, makeCode, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps, webPlayerHtml, manualHtml };
+    toScript, fromScript, TIA_CLK, tiaNote, parseTune, TUNES, TITLE_TUNES, scoreMax, scoreOn, scoreLine, endTunesUsed, TITLE_ROOM, titleTuneText, titleOn, titleData, SFX, SFX_NAMES, tuneSteps, endTuneText, soundData, TUNE_ROOM, tuneBytes, TV, tvOf, tvColor, tiaRgb, NTSC_RGB, PAL_RGB, NTSC_TO_PAL, PW_ALPHA, pwLayout, makeCode, PIC_W, PIC_MAXLINES, blankTitle, picLayout, picBlock, picRowBytes, TiaSound, renderSteps, webPlayerHtml, manualHtml, walkthroughGif, gifEncode, writeHints, wrapText, fromOutline, OUTLINE_EXAMPLE, labelSvg, LABEL_STYLES, screenSvg, mapSvg, boxHtml };
 })(typeof window !== 'undefined' ? window : globalThis);
 if (typeof module !== 'undefined') module.exports = globalThis.TAK;
 
@@ -2862,7 +3685,7 @@ if (typeof module !== 'undefined') module.exports = globalThis.TAK;
 (function () {
 'use strict';
 var CFG = {"title":"The Last Lighthouse","hz":60,"pal":false,"wide":true,"sound":true,"pic":{"k":5,"pad":14,"rowH":2,"color":30,"rows":[[0,0,0,0,0,1,128,0,0,0,0,0],[0,0,0,0,0,7,224,0,0,0,0,0],[0,0,0,0,0,31,248,0,0,0,0,0],[0,0,0,0,0,51,204,0,0,0,0,0],[0,0,0,3,109,179,205,182,192,0,0,0],[0,0,54,216,0,51,204,0,27,108,0,0],[3,109,128,0,0,51,204,0,0,1,182,192],[0,0,0,0,0,51,204,0,0,0,0,0],[0,0,0,0,0,63,252,0,0,0,0,0],[0,0,0,0,3,255,255,192,0,0,0,0],[0,0,0,0,0,31,248,0,0,0,0,0],[0,0,0,0,0,31,248,0,0,0,0,0],[0,0,0,0,0,31,248,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,63,252,0,0,0,0,0],[0,0,0,0,0,127,254,0,0,0,0,0],[0,0,0,0,0,127,254,0,0,0,0,0],[0,0,0,0,0,127,254,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,255,255,0,0,0,0,0],[0,0,0,0,1,252,63,128,0,0,0,0],[0,0,0,0,1,252,63,128,0,0,0,0],[0,0,0,0,1,252,63,128,0,0,0,0],[0,0,0,3,255,255,255,255,192,0,0,0],[193,240,124,63,255,255,255,255,255,7,193,240],[62,15,131,224,248,62,15,131,224,248,62,15]]},"accent":"#b846a2","accentInk":"#e8e84a","screenBg":"#a71a1a"};
-var ROM = (function (s) { var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; })("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//////////////////////////////////////////////////////////+SDoQeDKr9+tr9/iP8My7//////////////////////////////////////wDwAPB42K32/6IAisqaSND7qQCF7qn9he+p5oXzqf2F9K2k/YWcraX9hZ0gAfSpAoUBhQKFAIUChQKFAqkAhQCpK42WAuaApYApAYWTrYICSrADTADwIN3yIMv4IPL4rZ39hZmt0P+Fmq3S/4WbrdP/hc2t0f+FBoUHhfGlncnwsAzJApAISkpKSqi59v8gbfKthALQ+4UCqQCFAaILhQLK0PulmoUJogWFAsrQ+6kKhZClzAXL0ANMwv2gBbGLqqWT0AWFAkzK8IUCTPDwsYOFG7GFhRyxh4UbsY2Fj7GJhRyGG6WPjRwAiDAwsYuqhQJMyvCxg4UbsYWFHLGHhRuxjYWPJICxiYUchhulj40cAIgwCLGLqoUCTPDwqQDqhRuFHIUbpZDwTIUCqVCNlQLGkPAbIODxrYQC0PugBbGLqqWT0AWFAkzK8IUCTPDwpZ6FkaWfhZIg4PGthALQ+4UCpZuFCaXNhQaFB6IChQLK0PtMt/CFAqkAhQmiBYUCytD7qQKFAakjjZYCpJm5AP+lvfADIKTxrYQC0PtMKvCt+P8gO/NMzvGt+P8gUvNMzvGt+P8gl/RMzvGt+P8gyfRMzvGt+P8gqPRMzvGt+P8gfvSkmbkA/2C5AP9Mdfit9v9MBPSpL6bxhgaGB4WDhYWFh4WJhYuFjaIApZPwAcqgALGRyMkzsAaVg+hM/fHJ/rAahJjpMqixlIWWoACxljAGlYPoyND2pJhM/fHwCpgYZZGFkZAC5pKp+oWEhYaFiIWKhYyFjqSDuSP8hYOkhbkj/IWFpIe5I/yFh6SJuSP8hYmki7kj/IWLpI25I/yFjWCpBoUEhQWpAYUlqQCFJoUJhRuFHIUbogClk/AEqSXQAqkdhYEgy/KlgRhpEKIBIMvyhQKFKq3Y/4WUrdn/hZWt2v+Fl6WchZGlnckCkAIJ8IWSpcwFy9ADTIb+TODxhQI46Q+w/EkHCgoKCpUglRBgog+9dvyVzsoQ+KnOhZypAYWdYKW1yQqQAmkAGGkGqmCltxhpBykfhbdgpbFKSkpIGGWzKR+Fs2hFt6gg8PK5VvyVzua1IP3yqQCFsmCpAIW1hbKFs4W0hbqpA4W3YCDd8qWiSoW4pZk46faFuSAq86kBhb1gqQyFvqW9yQLQA0zG85AHqQWFvkwG9KW60CCmtOAO8Di8hvy5AACFr6kAhbC9h/yFuskJkAW5HgCFsEawZq9mseaypbLJBdADIAfzxrrQBOa05rTGvtC/YKWy8A4YZrHmsqWyyQXQ9SAH86WzIAzzqQCFvWCpBIW+IPDytc6gH9lW/PADiBD4mEW3lc4g/fK1zqS1wAfwDhhlsykfhbPmtca+0NRgxbPwA0x+9CAq86kDhb1gpbrQEaa04A7wXb2H/IW6qQCFr4WwpbLQDSDw8rXOhbHmtakFhbJGsWawZq/Gssa60DCmtKkQOP2H/KjwB0awZq+I0Pm8hvylr5kAAL2H/MkJkAWlsJkeAOa05rSltMkO8ATGvtCaYKkAhb2luckEsAcYafaoTNTxqQCFvaIDlaaVxMoQ+YWshcqpJIXuqQCF8CDd8qkAhbaFoKkhhb+pA4WtpqDgIPASvVb8hbup/4W8qbuFnqkBhZ9gqcWFnqn7hZ9gpbaFtSDw8qSgwCDwFblW/JXO5raltskI0AcgKvOpAoW9YKW20A2tqP2FnK2p/YWdTNrxxrbGtSDw8qkplc5gNC81DS8z/yIMEzIgLv//NzIVGTkVPCf/Iic7EBIvESclF/8QFREf//4MOSYQERIy/xkQJjsz/xIVMgwu//8sICcaOSUW/w41LS8RJxkuLP/+Jy8MJw4YEA4p/yUnMiATDi8VMv8lEw0ZNw8vJ/8gEA47DRMgLv/+Jy8ONf8YDhUZDzkREycZMv8TJzI6IBAvM/8ROAwQCzITLv/+LDIQLwwLDQ8OFv8VLyIQCxEZLxM2/ycvJgwnERMuLi4s//40LwwTERcvDBUl/xc2IgwvM/8NEzomFSAM/zQOLw41Lv/+MhAlEyAMNw//DxE3IDw2/zMvJjYTDiwy/xMZDxMu//4nLxEQIhoTGf8PNjkYJw4y/zMvIhEVEhL/FzYMLv/+My8PNjk2/zMvIBAXLw0QJv8yICcNGTw1DS7//v///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////yAMEw4TLxUy/w0QIAwVDQ8vIBD/EBcTDS8MEw4TLv/+FhALLzITE/8NECAMFQ0P/yYQDiAM/yAnGhUND//+DRAvEA0T/ycNMiYTDjIu//7/eDAwMHAwMBgMBv5gMBgM/sxsPBx4DH7GxnzGxsbGxv7Gxs7e9ubGzPzGxvx+xsbOwHzGxsbGfMYG/MD+wMDAwMD4wP7AwPjA/mA4DMZ85vbeznzGBjgM/MBgMBgMBngwMDAweMzMwMD8xsb8xvz4zMbGzPjw2MwYMGBgMBgMDBgwYDAAMDAAMDAAMDAwMDD8GAAYDMZ8xsDAxnzGxgYGDhA4bMbGxtb+7sbu/tbGxv7GbDg4bMYAAAB8AAAw/DAAAPwA/AAAAGAwMAAAAAAAAEhsbHbM1sbGfMYGfMB8xsZ8xnzGxvxgPBYQCy8yExP/DRAgDBUND/8yFxMiFScR//4gDBMOEywyLw0Q/yYnIBMOLwwTDhMu//4yExETIiAvFSATJf8gEC8PFSQTHv/+MhMREyIgLxUgEyX/IBAvCzITHv/+FhALLycOE/8iJw4OFhUNDx7//iInDSwgLw8VJBP/IAwnIP/+IicNLCAvCzIT/yAMJyD//icvIicNLxASLxAVEf8VDSQTDSAQDhb/IA4WLycPJxUN/ycvEScNIBMODf8yECUTLw4QFxP/JRAOEy4uLv8gDBMvEw0Z/ycvMgwTERH/GRMREyAT/ycvEhUyDP8nLyIQFQ3/DRAOIAz/MhALIAz/MiAnDiD/Jy8aExb/Jy8lJxf/ERAQGv8TJzIg/yYTMiD/ICcaE/8gJxEa/yIQGRP/EBcTDf8yJhUl/w8Q/00ASFIONuIF3RQKGRwhJiwxOz5DWF5gZmhucXd7gYSIipCVmqCkqa2wtrq/xMfIys3T2CcYIhkTEg8MIxoRJQ0XMQ4yIAskJigWCgIDBAUGBwgJIhAZEx7/KSkpKSkpKSn//qcFpgWoBakFrAO4B7kCMy8yJw0Z/w8VJBM8JicW/wsNGRMOLzQO/xITEyAuLi7//zQvMjca/xALOhAS/zI4Lv/+MgwVFzwnDhP/ERAyOjcvM/8xCxUTOhIQDy7//xANERYvNP8iJzsROP8VOicPJzcu//7/////////AEMGAQBFAwFCBQEAgxgBghwBAGgcAmUfA2IfAgAWDgUUEgcAxg4ExRMHAEYPAkYLAkYIBUIIAgBHDgNHCwNHCQNIBwlDBwVBBwUAyAwJyA8JyBMJyBgXwxgLAEgdC0gXC0gaC8gMC0gdC0gXC0gTF0gVCUgXCUgaCUgdHQCZ+737zPuj+3j70/vs+/L77/rv+u/67/rv+u/67/rv+vj///////+wNNg0xyy5vcHFyLTLztHUFQ8MIP8gDBP/FhAL/xAXE/8nIP8VDf8TL/8gL/8NL/8yL///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////QhpWHAwAAPqq/f0j/DMA//////////////////////////////////////8A8ADweNit9v+iAIrKmkjQ+6kAhe6p/YXvqeaF86n9hfStpP2FnK2l/YWdIAH0qQKFAYUChQCFAoUChQKpAIUAqSuNlgLmgKWAKQGFk62CAkqwA0wA8CDd8iDL+CDy+K2d/YWZrdD/hZqt0v+Fm63T/4XNrdH/hQaFB4XxpZ3J8LAMyQKQCEpKSkqoufb/IG3yrYQC0PuFAqkAhQGiC4UCytD7pZqFCaIFhQLK0PupCoWQpcwFy9ADTML9oAWxi6qlk9AFhQJMyvCFAkzw8LGDhRuxhYUcsYeFG7GNhY+xiYUchhulj40cAIgwMLGLqoUCTMrwsYOFG7GFhRyxh4UbsY2FjySAsYmFHIYbpY+NHACIMAixi6qFAkzw8KkA6oUbhRyFG6WQ8EyFAqlQjZUCxpDwGyDg8a2EAtD7oAWxi6qlk9AFhQJMyvCFAkzw8KWehZGln4WSIODxrYQC0PuFAqWbhQmlzYUGhQeiAoUCytD7TLfwhQKpAIUJogWFAsrQ+6kChQGpI42WAqSZuQD/pb3wAyCk8a2EAtD7TCrwrfj/IDvzTM7xrfj/IFLzTM7xrfj/IJf0TM7xrfj/IMn0TM7xrfj/IKj0TM7xrfj/IH70pJm5AP9guQD/THX4rfb/TAT0qS+m8YYGhgeFg4WFhYeFiYWLhY2iAKWT8AHKoACxkcjJM7AGlYPoTP3xyf6wGoSY6TKosZSFlqAAsZYwBpWD6MjQ9qSYTP3x8AqYGGWRhZGQAuaSqfqFhIWGhYiFioWMhY6kg7kj/IWDpIW5I/yFhaSHuSP8hYekibkj/IWJpIu5I/yFi6SNuSP8hY1gqQaFBIUFqQGFJakAhSaFCYUbhRyFG6IApZPwBKkl0AKpHYWBIMvypYEYaRCiASDL8oUChSqt2P+FlK3Z/4WVrdr/hZelnIWRpZ3JApACCfCFkqXMBcvQA0yG/kzg8YUCOOkPsPxJBwoKCgqVIJUQYOA/AwAAAAAAAAAAAAAAAAAAAAAAAADYAwAAAAD/////////+P//AQEBAAAAAAAAAAAAAAAAAwAAAABtAAAAAD7///z8/P8AAH9/fz8AAB8fH/8/MzMzszMfBwEP//8/Pz//AAD+/v78AAD4+Pj//MzMzM3M+OCAg///gICAAAAAAAAAAAAAAAAAwAAAAAC2AAAAAOD/wAAAAAAAAAAAAAAAAAAAAAAAAAAbwAAAAAD4BwAAAAAAAAAAAAAAAAAAAAAAAAABbAAAAAAAPsEAAAAAAAAAAAAAAAAAAAAAAAAAtgAAAAAAAA/wAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAAsIAwnDRoyH/8VLDQvODUZ/zMvDycgEy8gEP8zLyIRFRIS/zknFQ4yLiz//iwnLxc2ICAW/zIMExERHy8MEzYt/wwnNC8nLxIVMgz/EhAOLxUgLiz//iw1IDIvGRANLCD/JRMNGS8zJSn/MhMRNDIuLw8QIP8nDRYvDjghLP/+MicNGS8ZCzUy/w4QEREvEA3/EhA2NA4u//8WNy8gCw4N/xgnIhou//4nDS8QERn/MicVERAO/zknNjIvJyD/DBUyLxMlFyAW/xcRJyATLv/+Ly8zLxEnOf8vERUPDCAMNzIT//8vLy8nLwIGAAD/LycZNA0gCzb//jMvESclFy8QDf8PCxERLw4QIhr/DCcyLw8QNf8ZJw4aLv/+Jy8ZCzkWLzITJ/8iDBM5LzIVIDL/FQ0vM/8iEA41Di7//hY3LyIQFRH/My8OOP8QNA4vFjcO/zIMNxEZEw4u//7///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////8gDBMOEy8VMv8NECAMFQ0PLyAQ/xAXEw0vDBMOEy7//hYQCy8yExP/DRAgDBUND/8mEA4gDP8gJxoVDQ///g0QLxANE/8nDTImEw4yLv/+/3gwMDBwMDAYDAb+YDAYDP7MbDwceAx+xsZ8xsbGxsb+xsbO3vbmxsz8xsb8fsbGzsB8xsbGxnzGBvzA/sDAwMDA+MD+wMD4wP5gOAzGfOb23s58xgY4DPzAYDAYDAZ4MDAwMHjMzMDA/MbG/Mb8+MzGxsz48NjMGDBgYDAYDAwYMGAwADAwADAwADAwMDAw/BgAGAzGfMbAwMZ8xsYGBg4QOGzGxsbW/u7G7v7Wxsb+xmw4OGzGAAAAfAAAMPwwAAD8APwAAABgMDAAAAAAAABIbGx2zNbGxnzGBnzAfMbGfMZ8xsb8YDwWEAsvMhMT/w0QIAwVDQ//MhcTIhUnEf/+IAwTDhMsMi8NEP8mJyATDi8MEw4TLv/+MhMREyIgLxUgEyX/IBAvDxUkEx7//jITERMiIC8VIBMl/yAQLwsyEx7//hYQCy8nDhP/IicODhYVDQ8e//4iJw0sIC8PFSQT/yAMJyD//iInDSwgLwsyE/8gDCcg//4nLyInDS8QEi8QFRH/FQ0kEw0gEA4W/yAOFi8nDycVDf8nLxEnDSATDg3/MhAlEy8OEBcT/yUQDhMuLi7/IAwTLxMNGf8nLzIMExER/xkTERMgE/8nLxIVMgz/Jy8iEBUN/w0QDiAM/zIQCyAM/zIgJw4g/ycvGhMW/ycvJScX/xEQEBr/EycyIP8mEzIg/yAnGhP/ICcRGv8iEBkT/xAXEw3/MiYVJf8PEP9NAEhSDjbiBd0UChkcISYsMTs+Q1heYGZobnF3e4GEiIqQlZqgpKmtsLa6v8THyMrN09gnGCIZExIPDCMaESUNFzEOMiALJCYoFgoCAwQFBgcICSIQGRMe/ykpKSkpKSkp//6nBaYFqAWpBawDuAe5Aj7BAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAP8AAAAAAAAAAAAAAAAAAAAAAAAABtAAAAAAAAg3wAAAAAAAAAAAAAAAAAAAAAAAAAgDYAAAAAAP///////////////////////////////wBDBgEARQMBQgUBAIMYAYIcAQBoHAJlHwNiHwIAFg4FFBIHAMYOBMUTBwBGDwJGCwJGCAVCCAIARw4DRwsDRwkDSAcJQwcFQQcFAMgMCcgPCcgTCcgYF8MYCwBIHQtIFwtIGgvIDAtIHQtIFwtIExdIFQlIFwlIGglIHR0Amfu9+8z7o/t4+9P77Pvy++/67/rv+u/67/rv+u/67/r5////////sDTYNMcslPzM/ADzOPNw86jzsPzd8hzzVPOM88TzqR6FBoUHqQaFkKIOhQLK0PugG7GLqqWT0AWFAkzm/YUCTDr+sYOFG7GFhRyxh4UbsY2Fj7GJhRyGG6WPjRwAsYuqhQIkgLGDhRuxhYUcsYeFG7GNhY+xiYUchhulj40cAIgwCLGLqoUCTOb9qQDqhRuFHIUbTCHxsYOFG7GFhRyxh4UbsY2FjySAsYmFHIYbpY+NHACxi6qFAiSAsYOFG7GFhRyxh4UbsY2FjySAsYmFHIYbpY+NHACIMLCxi6qFAkw6/qALpZPwAqAXogu5qv2Vg4jKEPdgoamsr7KltSAME/8QFxP/JBP/DRP/DhP/EAv/MiD//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////0IaVhwMAAD6mv7+I/wzAP//////////////////////////////////////APAA8A==");
+var ROM = (function (s) { var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; })("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/jMQDf80IhEVEhL/FycgDC7//jQiDBMyIP8VMi8TJRcgFi7//hYQCy8mDicXLwsX/zQ1Lv/+Mzb/JjYZFv8ZCw0TMi7//jM2/ycNLxARGS8MCyAu//4zNv80Nf8lJw4aEyAu//4gDhYvIBAvEBcTDS7//jInDRku//4AnygAAAAAAAEAAAAAAAABAv////9XJwAAAACY2mqN/gMDAM8oNijfJw8nniYAAAAAAAAAAAAAAAABAv////+GNgAAAADoxWW3/gIBZv7j/TX+aDaiNgAAAAAAAAAAAAAAAAEC/////3onAAAAAOjFZeD+AwK4KOY1KTbqJr8nALw2AAAAAAAAAAAAAAAAAQL/////0zYAAAAAQMFBDP8B/P0aKMn9AAAAaygAAAAAAAAAAIDAQDD/KTdRKILgEAAR/p0nhSgAAAAAAAAAAAAAAAABAv/////9JwAAAABAwUFQ/wBG/hYmATcAAAAAAAYAMyfy/AACAP///wTEJgAAI/4C/////3X+AAAAAIDAQHT/Vv5JNgCdNQAAAAAABAAAAOIeAACBwMCj/0Qmg/7//////////////////////////////0IaVhwMS/38r/396/wzOv//////////////////////////////////////APAA8HjYrfb/ogCKyppI0PupF4XuqfOF76mHhfOp/YX0rUX9hZytRv2FnSBJ9KkChQGFAoUAhQKFAoUCqQCFAKkrjZYC5oClgCkBhZOtggJKsANMAPAgF/OtPv2Fma35/yDz8aSZuQD/IH36rdD/hZqt0v+Fm63T/4XNrdH/hQaFB4XxpfbwCIWapfeFBoUHpZ3J8LAMyQKQCEpKSkqoufb/IKfyrYQC0PuFAqkAhQGiC4UCytD7pZqFCaIFhQLK0PupCoWQpcwFy9ADTGP9oAWxi6qlk9AFhQJM3vCFAkwE8bGDhRuxhYUcsYeFG7GNhY+xiYUchhulj40cAIgwMLGLqoUCTN7wsYOFG7GFhRyxh4UbsY2FjySAsYmFHIYbpY+NHACIMAixi6qFAkwE8akA6oUbhRyFG6WQ8EyFAqlQjZUCxpDwGyAa8q2EAtD7oAWxi6qlk9AFhQJM3vCFAkwE8aWehZGln4WSIBryrYQC0PuFAqWbhQmlzYUGhQeiAoUCytD7TMvwhQKpAIUJogWFAsrQ+6kC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//////////////////////////////////////////////////////////+SDoQeDEv9/Hv9/ev8My7//////////////////////////////////////wDwAPB42K32/6IAisqaSND7qReF7qnzhe+ph4Xzqf2F9K1F/YWcrUb9hZ0gSfSpAoUBhQKFAIUChQKFAqkAhQCpK42WAuaApYApAYWTrYICSrADTADwIBfzrT79hZmt+f8g8/GkmbkA/yB9+q3Q/4WardL/hZut0/+Fza3R/4UGhQeF8aX28AiFmqX3hQaFB6WdyfCwDMkCkAhKSkpKqLn2/yCn8q2EAtD7hQKpAIUBoguFAsrQ+6WahQmiBYUCytD7qQqFkKXMBcvQA0xj/aAFsYuqpZPQBYUCTN7whQJMBPGxg4UbsYWFHLGHhRuxjYWPsYmFHIYbpY+NHACIMDCxi6qFAkze8LGDhRuxhYUcsYeFG7GNhY8kgLGJhRyGG6WPjRwAiDAIsYuqhQJMBPGpAOqFG4UchRulkPBMhQKpUI2VAsaQ8BsgGvKthALQ+6AFsYuqpZPQBYUCTN7whQJMBPGlnoWRpZ+FkiAa8q2EAtD7hQKlm4UJpc2FBoUHogKFAsrQ+0zL8IUCqQCFCaIFhQLK0PupAoUBqSONlgKkmbkA/6W98Aut+P8gjPOkmbkA/62EAtD7TCrwrfj/IHXzTOHxrfj/INH0TOHxrfj/IAP1TOHxrfj/IOL0TOHxrfj/ILj0pJm5AP9guQD/TCT6rfb/TEz0pfDwA8bwYKAAse6FGfAXSkpKSoUVyLHuhRfIse6F8KXuGGkDhe5gqS+m8YYGhgeFg4WFhYeFiYWLhY2iAKWT8AHKoACxkcjJM7AGlYPoTDfyyf6wGoSY6TKosZSFlqAAsZYwBpWD6MjQ9qSYTDfy8AqYGGWRhZGQAuaSqfyFhIWGhYiFioWMhY6kg7nr/IWDpIW56/yFhaSHuev8hYekibnr/IWJpIu56/yFi6SNuev8hY1gqQaFBIUFqQGFJakAhSaFCYUbhRyFG6IApZPwBKkl0AKpHYWBIAXzpYEYaRCiASAF84UChSqt2P+FlK3Z/4WVrdr/hZelnIWRpZ3JApACCfCFkqXMBcvQA0wn/kwa8oUCOOkPsPxJBwoKCgqVIJUQYKIPvWL1lc7KEPipzoWcqQGFnWCltckKkAJpABhpBqpgpbcYaQcpH4W3YKWxSkpKSBhlsykfhbNoRbeoICrzuUL1lc7mtSA386kAhbJgqQCFtYWyhbOFtIW6qQOFt2AgF/OlokqFuKWZOOn2hbkgZPOpAYW9YKkMhb6lvckC0ANMAPSQB6kFhb5MQPSlutAgprTgDvA4vHL1uQAAha+pAIWwvXP1hbrJCZAFuR4AhbBGsGavZrHmsqWyyQXQAyBB88a60ATmtOa0xr7Qv2ClsvAOGGax5rKlsskF0PUgQfOlsyBG86kAhb1gqQSFviAq87XOoB/ZQvXwA4gQ+JhFt5XOIDfztc6ktcAH8A4YZbMpH4Wz5rXGvtDUYMWz8ANMuPQgZPOpA4W9YKW60BGmtOAO8F29c/WFuqkAha+FsKWy0A0gKvO1zoWx5rWpBYWyRrFmsGavxrLGutAwprSpEDj9c/Wo8AdGsGaviND5vHL1pa+ZAAC9c/XJCZAFpbCZHgDmtOa0pbTJDvAExr7QmmCpAIW9pbnJBLAHGGn2qEzn8akAhb2iA5WmlcTKEPmFrIXKqTuF7qkAhfAgF/OpAIW2haCpIYW/qQOFraag4CDwEr1C9YW7qf+FvKm7hZ6pAYWfYKmWhZ6p+4WfYKW2hbUgKvOkoMAg8BW5QvWVzua2pbbJCNAHIGTzqQKFvWClttANrUn9hZytSv2FnUzt8ca2xrUgKvOpKZXOYCcYIhkTEg8MIxoRJQ0XMQ4yIAskJigWCgIDBAUGBwgJIhAZEx7/KSkpKSkpKSn//qcFpgWoBakFrAO4B7kCLyIRFRIS/ycOGBAO/zIMFRcy/xUPDCD/IAwT/xAXE/8WEAv/ECUT/yQTMv8vMif/Ey//DS//Lyf/Ew7/MiD/DRn/JyD/Lwz/FQ3/FTL/IBD/Ey7/Lyb/DRP/EA3/ESf/FSD/ICf/LDMvSCUX/0EvGQ4WLi8SFRER/0k4PC8z/05FFRER/xJAGS8zFQ7/JicWPj8uLP/+Jz4LIP87JzwyL0L/My8TJzsu//8nNxARGf9IDSA5NxEVEzL/FTczLzInPC7//jNNPP8PFUtFJxb/Czw5LzUO/xITEyAuLi7//zUvMkAa/xALIC8QEv8yOi7//k44DhP/ERA7L0AvM/8xCxUTIC8SEA8u//9HERYvNf8iJzcROv9JOA8nQC7//ixGIDIvGUcsIP8lEzwvMyUp/zITEUsuLw8QIP8nDRYvDjQhLP/+NS80DS8z/yIMEzsu//9AMhUZNkE4/yInNxASL0glF/8QFREf//4MNiYQERIy/xkQJjcz/xJBDC7//yxKGjYlFv8ONC0vSBkuLP/+LCAMJw0aMh//FSwkNjRGGf8zLw89NkL/M0T/OycVDjIuLP/+SS9BLxdJIgz/GScOGi9ALzP/DAsgLv//NS9GExk4/xE6Lv/+CzI2Mj//DjQ+OUP/MzcgJxEaL0L/JgwQEyQ5L0H/DDlD//4yPxANNgw5E/8mJw0gMjj/EkEMLv8zN0oaE/8yPy8ONC7//icvDjT/GA4VGQ82ERMnGTL/Eyc7L0IvM/8ROgwQCzJD//4sMhA+Cw0PDhb/FS8iEAsRGS8TPf8nRQwnEUMuLiz//jU+ExEXPhUl/xc9IgwvM/9GIEVJDP81Di8ONC7//hEQEBr/IhEQMhMRFi3/MzdKGjYn/0gNIDkNLv/+Mj8gDEAP/w8RQCAyOCD/M0U9OSwy/xMZD0P//ic+TCn/JSc7OS9B/yUTPEAPOP9CDjdGIC7//jMvOycVDjL/IhEVJRgvEyc7/0I4Lw89Q//+My8PPTY9/zMvQhcvDRAm/zsnPDIvNA0u//4nLxEQIhoTGf8PPTYYJw4y/zNE/xc9DC7//hUiFkUnS/8iDicyDC9H/zMvDhAiGjIu//41OA42QP8zTREgFv8ZEA8vSiQ5DS7//jU4DjZH/zM+TP8mJxERLv/+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////Jy8iJw0vEBIvEBUR/xUNJBMNIBAOFv8gDhYvJw8nFQ3/Jy8RJw0gEw4N/zIQJRMvDhAXE/8lEA4TLi4u/yAMEy8TDRn/DRAgDBUND/8nLzIMExER/xkTERMgE/8nLxIVMgz/Jy8iEBUN/w0QDiAM/zIQCyAM/zIgJw4g/ycvGhMW/ycvJScX/xEQEBr/EycyIP8mEzIg/yAnGhP/DxUkE/8gJxEa/yIQGRP/EBcTDf8yJhUl/wwVDSD/CzIT//94MDAwcDAwGAwG/mAwGAz+zGw8HHgMfsbGfMbGxsbG/sbGzt725sbM/MbG/H7Gxs7AfMbGxsZ8xgb8wP7AwMDAwPjA/sDA+MD+YDgMxnzm9t7OfMYGOAz8wGAwGAwGeDAwMDB4zMzAwPzGxvzG/PjMxsbM+PDYzBgwYGAwGAwMGDBgMAAwMAAwMAAwMDAwMPwYABgMxnzGwMDGfMbGBgYOEDhsxsbG1v7uxu7+1sbG/sZsODhsxgAAAHwAADD8MAAA/AD8AAAAYDAwAAAAAAAASGxsdszWxsZ8xgZ8wHzGxnzGfMbG/GA8DxD/TQBIUg424gXdFAoZHCEmLDE7PkNYXmBmaG5xd3uBhIiKkJWaoKSprbC2ur/Ex8jKzdPYYvuO+537bPtB+6T7vfvD++r86vzq/Or86vzq/Or86vz4////////wjUINnEmmJygsLO2uZO8v8LFpMjLztGA1Nfa3eDjqIesjf//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////QhpWHAwAAPxL/fXr/DMA//////////////////////////////////////8A8ADweNit9v+iAIrKmkjQ+6kXhe6p84XvqYeF86n9hfStRf2FnK1G/YWdIEn0qQKFAYUChQCFAoUChQKpAIUAqSuNlgLmgKWAKQGFk62CAkqwA0wA8CAX860+/YWZrfn/IPPxpJm5AP8gffqt0P+Fmq3S/4WbrdP/hc2t0f+FBoUHhfGl9vAIhZql94UGhQelncnwsAzJApAISkpKSqi59v8gp/KthALQ+4UCqQCFAaILhQLK0PulmoUJogWFAsrQ+6kKhZClzAXL0ANMY/2gBbGLqqWT0AWFAkze8IUCTATxsYOFG7GFhRyxh4UbsY2Fj7GJhRyGG6WPjRwAiDAwsYuqhQJM3vCxg4UbsYWFHLGHhRuxjYWPJICxiYUchhulj40cAIgwCLGLqoUCTATxqQDqhRuFHIUbpZDwTIUCqVCNlQLGkPAbIBryrYQC0PugBbGLqqWT0AWFAkze8IUCTATxpZ6FkaWfhZIgGvKthALQ+4UCpZuFCaXNhQaFB6IChQLK0PtMy/CFAqkAhQmiBYUCytD7qQKFAakjjZYCpJm5AP+lvfALrfj/IIzzpJm5AP+thALQ+0wq8K34/yB180zh8a34/yDR9Ezh8a34/yAD9Uzh8a34/yDi9Ezh8a34/yC49KSZuQD/YLkA/0wk+q32/0xM9KXw8APG8GCgALHuhRnwF0pKSkqFFcix7oUXyLHuhfCl7hhpA4XuYKkvpvGGBoYHhYOFhYWHhYmFi4WNogClk/AByqAAsZHIyTOwBpWD6Ew38sn+sBqEmOkyqLGUhZagALGWMAaVg+jI0PakmEw38vAKmBhlkYWRkALmkqn8hYSFhoWIhYqFjIWOpIO56/yFg6SFuev8hYWkh7nr/IWHpIm56/yFiaSLuev8hYukjbnr/IWNYKkGhQSFBakBhSWpAIUmhQmFG4UchRuiAKWT8ASpJdACqR2FgSAF86WBGGkQogEgBfOFAoUqrdj/hZSt2f+Fla3a/4WXpZyFkaWdyQKQAgnwhZKlzAXL0ANMJ/5MGvKFAjjpD7D8SQcKCgoKlSCVEGAAQwYBAEUDAUIFAQCDGAGCHAEAaBwCZR8DYh8CABYOBRQSBwDGDgTFEwcARg8CRgsCRggFQggCAEcOA0cLA0cJA0gHCUMHBUEHBQDIDAnIDwnIEwnIGBfDGAsASB0LSBcLSBoLyAwLSB0LSBcLSBMXSBUJSBcJSBoJSB0dAD7BAAAAAAAAAAAAAAAAAAAAAAAAAAMAAAAAAAAP8AAAAAAAAAAAAAAAAAAAAAAAAABtAAAAAAAAg3wAAAAAAAAAAAAAAAAAAAAAAAAAgDYAAAAAAP///////////////////////////////+A/AwAAAAAAAAAAAAAAAAAAAAAAAADYAwAAAAD4//8BAQEAAAAAAAAAAAAAAAADAAAAAG0AAAAAPv///Pz8/wAAf39/PwAAHx8f/z8zMzOzMx8HAQ///z8/P/8AAP7+/vwAAPj4+P/8zMzMzcz44ICD//+AgIAAAAAAAAAAAAAAAADAAAAAALYAAAAA4P/AAAAAAAAAAAAAAAAAAAAAAAAAABvAAAAAAPgHAAAAAAAAAAAAAAAAAAAAAAAAAAFsAAAAAAA+wQAAAAAAAAAAAAAAAAAAAAAAAAC2AAAAAAAAD/AAAAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAP////8REyIgLxUgEyX/DRAgDBUND/8vDBMOE/8yDBMREf8RFQ8MIP8gJxoTL/8iERUSEv8vDxUkE/8WEAsv/xIVMgz/IAwT/y8QDf8yE/8TDv8nDf8yL/8gEP8QDv8nIP8nL/8yIP80EhURES8z/xEnJRcuLzv/MiYTExc/M/84J0IiE/8lQxMu//8yDBUXPzInFRH/DBAlEy8yJxITLv/+Mj4ZLxkLDRMy/w4QERFC/xJDEyQ9Lv//NCALDg3/GCciGi7//i8vMy8RJ0n/LzsMEAs4//8vLy9HAgYAAP8vJxkkEw0gCzn//j4vEBEZ/zInFRFD/0knOT9E/wwVPxMlFyAW/xcRRBMu//4zLxEnJRdC/w8LEREvDhAiGv8MJz8PEA0T/xknDhou//40IhAVEf8zLw4QFxP/ECQ9LxYQCw7/MgwQCxEZPS7//kcZC0kWLzgn/yIME0kvMhUgMv8VDS8z/yJDDT0u//4sRxc5ICAW/zcfNi3/DCckEy9HQP8SQy8VIC4s//4yECUTEA0TNv8mPiA/J/83Lv8zDS88J/9ALv/+LBI5MgwvQB//FS8gDicZEy8SQ/83Mi4s//5HMgwTPf9GLxkOEBcy/0EvMy84Jy7//hEQEBr/IhEQOBEWLf8zDS88J/83Lv/+NS9B/xkQNi7/GhMTF/8TKBcRQ0Uu//40PDP/ET4gPQ0vPhn/Oy8VIC7//hUgLxU/QRD/GScOGi9BLzgTLv/+NCc5L0T/My9G/0knFQ4yLv/+MzkvFTL/NS9B/xAXEw02Lv/+NDgT/zX/JkMgDP8gJxpF//40OBP/Nf8yFxMiFScR//4zOSw/DRD/JkQ9Ni7//g0QQhP/PjImPTIu//4iPiwgLws4/yAMRP/+NCc5/yInDg4WRR7//iI+LCBI/yAMRP/+ODr/QS8LOB7//jg6/0FIHv/+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////ycvIicNLxASLxAVEf8VDSQTDSAQDhb/IA4WLycPJxUN/ycvEScNIBMODf8yECUTLw4QFxP/JRAOEy4uLv8gDBMvEw0Z/w0QIAwVDQ//Jy8yDBMREf8ZExETIBP/Jy8SFTIM/ycvIhAVDf8NEA4gDP8yEAsgDP8yICcOIP8nLxoTFv8nLyUnF/8REBAa/xMnMiD/JhMyIP8gJxoT/w8VJBP/ICcRGv8iEBkT/xAXEw3/MiYVJf8MFQ0g/wsyE///eDAwMHAwMBgMBv5gMBgM/sxsPBx4DH7GxnzGxsbGxv7Gxs7e9ubGzPzGxvx+xsbOwHzGxsbGfMYG/MD+wMDAwMD4wP7AwPjA/mA4DMZ85vbeznzGBjgM/MBgMBgMBngwMDAweMzMwMD8xsb8xvz4zMbGzPjw2MwYMGBgMBgMDBgwYDAAMDAAMDAAMDAwMDD8GAAYDMZ8xsDAxnzGxgYGDhA4bMbGxtb+7sbu/tbGxv7GbDg4bMYAAAB8AAAw/DAAAPwA/AAAAGAwMAAAAAAAAEhsbHbM1sbGfMYGfMB8xsZ8xnzGxvxgPA8Q/00ASFIONuIF3RQKGRwhJiwxOz5DWF5gZmhucXd7gYSIipCVmqCkqa2wtrq/xMfIys3T2GL7jvud+2z7Qfuk+737w/vq/Or86vzq/Or86vzq/Or8+f///////8I1CDZxJpTzzPMc9FT0jPTE9LDzAPQ49HD0qPTg9KkehQaFB6kGhZCiDoUCytD7oBuxi6qlk9AFhQJMh/2FAkzb/bGDhRuxhYUcsYeFG7GNhY+xiYUchhulj40cALGLqoUCJICxg4UbsYWFHLGHhRuxjYWPsYmFHIYbpY+NHACIMAixi6qFAkyH/akA6oUbhRyFG0w18bGDhRuxhYUcsYeFG7GNhY8kgLGJhRyGG6WPjRwAsYuqhQIkgLGDhRuxhYUcsYeFG7GNhY8kgLGJhRyGG6WPjRwAiDCwsYuqhQJM2/2gC6WT8AKgF6ILuUv9lYOIyhD3YEA2ChIYSBUAHiRLTlE7VERXWg4qXTBg/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////0IaVhwMAAD8O/716/wzAP//////////////////////////////////////APAA8A==");
 var TAK = window.TAK, tv = document.getElementById('tv'), g = tv.getContext('2d');
 var keys = { N: 0, S: 0, E: 0, W: 0, fire: 0 }, emu, audio = { ctx: null, gain: null, t: 0, on: true, tia: new TAK.TiaSound(CFG.hz === 50) };
 try { audio.on = localStorage.getItem('cart-sound') !== 'off'; } catch (e) {}
@@ -2903,8 +3726,9 @@ function loop() {
     var now = performance.now(); acc = Math.min(4, acc + (now - last) / 1000 * (CFG.hz === 50 ? 50 : 59.94)); last = now;
     var due = Math.floor(acc); acc -= due; var chunks = [];
     for (var f = 0; f < due; f++) {
-      var sw = 0xFF; if (keys.E) sw &= 0x7F; if (keys.W) sw &= 0xBF; if (keys.S) sw &= 0xDF; if (keys.N) sw &= 0xEF;
-      emu.swcha = sw; emu.inpt4 = keys.fire ? 0x00 : 0x80; emu.swchb = keys.reset ? 0x0A : 0x0B;
+      var k = pad();
+      var sw = 0xFF; if (keys.E || k.E) sw &= 0x7F; if (keys.W || k.W) sw &= 0xBF; if (keys.S || k.S) sw &= 0xDF; if (keys.N || k.N) sw &= 0xEF;
+      emu.swcha = sw; emu.inpt4 = keys.fire || k.fire ? 0x00 : 0x80; emu.swchb = keys.reset || k.reset ? 0x0A : 0x0B;
       emu.runFrame();
       if (audio.on && audio.ctx && emu.aud) { audio.tia.regs(emu.aud); chunks.push(audio.tia.frame()); }
     }
@@ -2913,6 +3737,37 @@ function loop() {
   } catch (e) { crashed = true; g.fillStyle = 'rgba(0,0,0,.7)'; g.fillRect(0, 90, 320, 40); g.fillStyle = '#fff'; g.font = '12px monospace'; g.fillText('The cartridge stopped: ' + e.message, 8, 114); return; }
   requestAnimationFrame(loop);
 }
+// a gamepad: left stick or d-pad, any face button fires, Start resets
+function pad() {
+  var o = {}, gs = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (var i = 0; i < gs.length; i++) { var g = gs[i]; if (!g) continue;
+    var b = function (n) { return g.buttons[n] && g.buttons[n].pressed; }, ax = g.axes[0] || 0, ay = g.axes[1] || 0;
+    if (ax < -0.5 || b(14)) o.W = 1; if (ax > 0.5 || b(15)) o.E = 1; if (ay < -0.5 || b(12)) o.N = 1; if (ay > 0.5 || b(13)) o.S = 1;
+    if (b(0) || b(1) || b(2) || b(3)) o.fire = 1; if (b(9)) o.reset = 1;
+    if (o.fire || o.N || o.S || o.E || o.W) { tap.hidden = true; if (audio.on) audioReady(); }
+  }
+  return o;
+}
+// save states: the whole machine, kept in this browser
+var SKEY = 'cart-save:' + CFG.title;
+function note(t) { var n = document.getElementById('note'); n.textContent = t; clearTimeout(note.h); note.h = setTimeout(function () { n.textContent = ''; }, 4000); }
+function savedAt() { try { var s = JSON.parse(localStorage.getItem(SKEY) || 'null'); return s && s.t; } catch (e) { return null; } }
+function lodBtn() { document.getElementById('lod').disabled = !savedAt(); }
+document.getElementById('sav').addEventListener('click', function () {
+  try { localStorage.setItem(SKEY, JSON.stringify({ t: Date.now(), s: emu.snapshot() })); note('Saved. Load brings you back to this moment, even after closing the page.'); }
+  catch (e) { note('This browser won’t keep a save here. Use the game’s own codes, if it has them.'); }
+  lodBtn();
+});
+document.getElementById('lod').addEventListener('click', function () {
+  try { var s = JSON.parse(localStorage.getItem(SKEY) || 'null'); if (!s) return; emu.restore(s.s); crashed = false; draw(); note('Loaded the save from ' + new Date(s.t).toLocaleString() + '.'); }
+  catch (e) { note('The save could not be read.'); }
+});
+var bigOn = false; try { bigOn = localStorage.getItem('cart-big') === '1'; } catch (e) {}
+function bigBtn() { document.body.classList.toggle('big', bigOn); document.getElementById('big').textContent = bigOn ? 'Smaller' : 'Bigger'; }
+document.getElementById('big').addEventListener('click', function () { bigOn = !bigOn; try { localStorage.setItem('cart-big', bigOn ? '1' : '0'); } catch (e) {} bigBtn(); });
+var scr = document.querySelector('.screen');
+document.getElementById('fs').addEventListener('click', function () { if (document.fullscreenElement) document.exitFullscreen(); else if (scr.requestFullscreen) scr.requestFullscreen().catch(function () { note('Full screen isn’t available here.'); }); else note('Full screen isn’t available here.'); });
+if (!document.fullscreenEnabled) document.getElementById('fs').hidden = true;
 function sndBtn() { var b = document.getElementById('snd'); b.textContent = audio.on ? 'Sound on' : 'Sound off'; b.setAttribute('aria-pressed', String(audio.on)); }
 document.getElementById('snd').addEventListener('click', function () { audio.on = !audio.on; try { localStorage.setItem('cart-sound', audio.on ? 'on' : 'off'); } catch (e) {} if (audio.on) audioReady(); sndBtn(); });
 document.getElementById('rst').addEventListener('click', function () { keys.reset = 1; setTimeout(function () { keys.reset = 0; }, 120); });
@@ -2931,7 +3786,7 @@ document.querySelectorAll('[data-k]').forEach(function (b) {
   b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
   b.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 });
-sndBtn(); boot(); draw(); requestAnimationFrame(loop);
+sndBtn(); bigBtn(); lodBtn(); boot(); draw(); requestAnimationFrame(loop);
 })();
 </script>
 </body></html>

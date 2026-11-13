@@ -6,7 +6,7 @@ title: The Last Lighthouse
 engine: workshop
 cart: 16K
 start: A 2,2
-carrying: 1
+carrying: nothing
 game ends on event: 3 (Lamp lit)
 sound: on
 tune: homecoming
@@ -18,6 +18,11 @@ tv: NTSC
 author: 
 year: 
 label size: 84 x 64 mm
+label style: picture
+manual map: none
+box: off
+label tagline: TEXT ADVENTURE
+label code: 
 
 items:
   1: A LANTERN
@@ -55,6 +60,18 @@ events:
   15: Event 15
   16: Event 16
 
+score: on
+# points for each event (event: points)
+points:
+  1: 10
+  2: 15
+  3: 25
+# rank titles for the manual (lowest score: title)
+ranks:
+  0: Landlubber
+  25: Deckhand
+  50: Keeper of the Light
+
 # your own verbs: the menu word, then what it says in a room with no reply of its own
 verbs:
   1: OPEN
@@ -64,6 +81,11 @@ verbs:
   2: SWIM
     |THERE'S NO
     |WATER HERE.
+  3 (hints): HINT
+    |NOTHING TO
+    |DO HERE.
+    |KEEP
+    |EXPLORING.
 
 words:
   look: LOOK
@@ -84,6 +106,7 @@ words:
   try again: TRY AGAIN
   code: CODE
   delete: DELETE
+  score: SCORE
 
 messages:
   nothing special:
@@ -114,6 +137,9 @@ messages:
     |YOU ARE
     |CARRYING:
   power-on screen:
+  too dark:
+    |IT IS TOO
+    |DARK TO SEE.
 
 intro page:
   |  THE LAST
@@ -194,7 +220,7 @@ map A: 6 x 5
       |MASTER IS
       |MENDING A
       |TORN NET.
-    use item 4 (SOME ROPE):
+    use item 4 (SOME ROPE), uses it up:
       |YOU HELP HIM
       |PATCH THE
       |NET WITH
@@ -211,6 +237,12 @@ map A: 6 x 5
       |THE CLIFF
       |STAIRS.'
     sets event: 1 (Stairs open)
+    verb 3 (HINT):
+      |USE SOME
+      |ROPE HERE.
+      |THEN TALK TO
+      |WHOEVER IS
+      |HERE.
 
   room 2,3: Fish market
     arrive:
@@ -234,6 +266,12 @@ map A: 6 x 5
       |'FRESH FISH!
       |I TRADE FOR
       |SHELLS.'
+    verb 3 (HINT):
+      |SOMEONE HERE
+      |WANTS A
+      |SHELL.
+      |THEN TAKE A
+      |FISH.
 
   room 2,4: Tavern
     arrive:
@@ -263,6 +301,12 @@ map A: 6 x 5
       |'SO HUNGRY
       |I COULD EAT
       |A WHALE...'
+    verb 3 (HINT):
+      |SOMEONE HERE
+      |WANTS A
+      |FISH.
+      |THEN TAKE
+      |SOME ROPE.
 
   wall 3,1:
     |A SHEER
@@ -284,6 +328,11 @@ map A: 6 x 5
     take:
       |YOU PICK UP
       |A PINK
+      |SHELL.
+    verb 3 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
       |SHELL.
 
   room 3,3: Cliff stairs
@@ -338,6 +387,21 @@ map A: 6 x 5
       |A HUT
       |STANDS TO
       |THE EAST.
+      |
+      |AN OLD
+      |LANTERN LIES
+      |IN THE SAND.
+    item: 1 (A LANTERN)
+    look reveals the item: yes
+    take:
+      |YOU TAKE THE
+      |LANTERN AND
+      |LIGHT IT.
+    verb 3 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |LANTERN.
 
   room 4,3: Old hut
     arrive:
@@ -358,6 +422,16 @@ map A: 6 x 5
     verb 1 (OPEN) already done:
       |THE CHEST
       |IS EMPTY.
+    verb 3 (HINT):
+      |TRY TO OPEN.
+    dark unless carrying item 1 (A LANTERN):
+      |IT IS PITCH
+      |DARK IN THE
+      |HUT.
+      |
+      |YOU NEED A
+      |LIGHT.
+    room colours: background $F2, text $FC
 
   wall 4,4:
     |A SHEER
@@ -395,6 +469,7 @@ map A: 6 x 5
     look:
       |SAND.
     ending: game over
+    room colours: background $E2, text $1E
 
   wall 5,3:
     |SAND DUNES
@@ -467,6 +542,9 @@ map B: 6 x 4
       |'NOT UP
       |THERE,
       |STRANGER!'
+    verb 3 (HINT):
+      |USE A CAN OF
+      |OIL HERE.
 
   wall 3,1:
     |A SHEER
@@ -522,6 +600,14 @@ map B: 6 x 4
       |FIND THEIR
       |WAY HOME.'
     sets event: 2 (Keeper helps)
+    verb 3 (HINT):
+      |USE A
+      |LANTERN
+      |HERE.
+      |THEN TALK TO
+      |WHOEVER IS
+      |HERE.
+    room colours: background $00, text $0C
     after event 2 (Keeper helps), arrive:
       |THE OLD
       |KEEPER NODS

@@ -11,6 +11,11 @@
   {
    "word": "SWIM",
    "none": "THERE'S NO\nWATER HERE."
+  },
+  {
+   "word": "HINT",
+   "none": "NOTHING TO\nDO HERE.\nKEEP\nEXPLORING.",
+   "hint": true
   }
  ],
  "cart": "16K",
@@ -40,9 +45,7 @@
  ],
  "start": {
   "room": 7,
-  "inventory": [
-   0
-  ]
+  "inventory": []
  },
  "items": [
   "A LANTERN",
@@ -107,7 +110,9 @@
   "nothing": "NOTHING",
   "tryAgain": "TRY AGAIN",
   "code": "CODE",
-  "delete": "DELETE"
+  "delete": "DELETE",
+  "dark": "IT IS TOO\nDARK TO SEE.",
+  "score": "SCORE"
  },
  "intro": [
   "  THE LAST\n LIGHTHOUSE\n\n   A 2600\n ADVENTURE",
@@ -162,6 +167,7 @@
      "use": {
       "on": true,
       "item": 3,
+      "consumes": true,
       "text": "YOU HELP HIM\nPATCH THE\nNET WITH\nYOUR ROPE.",
       "setsEvent": false
      },
@@ -190,7 +196,30 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "USE SOME\nROPE HERE.\nTHEN TALK TO\nWHOEVER IS\nHERE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "room",
@@ -207,7 +236,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": true,
@@ -234,7 +264,30 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "SOMEONE HERE\nWANTS A\nSHELL.\nTHEN TAKE A\nFISH.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "room",
@@ -251,7 +304,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": true,
@@ -278,7 +332,30 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "SOMEONE HERE\nWANTS A\nFISH.\nTHEN TAKE\nSOME ROPE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "wall",
@@ -307,7 +384,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -334,7 +412,30 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE A\nSHELL.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "room",
@@ -351,7 +452,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -378,7 +480,18 @@
       "look": "THE GATE AT\nTHE TOP NOW\nSTANDS OPEN."
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "room",
@@ -395,7 +508,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -422,7 +536,18 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "wall",
@@ -440,18 +565,19 @@
      "type": "room",
      "name": "Dunes",
      "desc": "YOU ARE IN\nWINDY\nDUNES.",
-     "look": "A HUT\nSTANDS TO\nTHE EAST.",
-     "lookReveals": false,
-     "item": null,
+     "look": "A HUT\nSTANDS TO\nTHE EAST.\n\nAN OLD\nLANTERN LIES\nIN THE SAND.",
+     "lookReveals": true,
+     "item": 0,
      "take": {
-      "on": false,
-      "text": ""
+      "on": true,
+      "text": "YOU TAKE THE\nLANTERN AND\nLIGHT IT."
      },
      "use": {
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -478,7 +604,30 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE A\nLANTERN.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "room",
@@ -495,7 +644,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -529,11 +679,34 @@
        "needEvent": null,
        "gives": 4,
        "sets": null,
+       "consumes": false,
        "text": "YOU OPEN THE\nCHEST.\n\nINSIDE IS A\nCAN OF LAMP\nOIL!",
        "fail": "",
        "done": "THE CHEST\nIS EMPTY."
+      },
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "TRY TO OPEN.",
+       "fail": "",
+       "done": ""
       }
-     ]
+     ],
+     "dark": {
+      "on": true,
+      "item": 0,
+      "text": "IT IS PITCH\nDARK IN THE\nHUT.\n\nYOU NEED A\nLIGHT."
+     },
+     "colors": {
+      "on": true,
+      "bg": 242,
+      "text": 252
+     },
+     "endTune": ""
     },
     {
      "type": "wall",
@@ -566,7 +739,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -593,7 +767,18 @@
       "look": ""
      },
      "deadly": true,
-     "verbs": []
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": true,
+      "bg": 226,
+      "text": 30
+     },
+     "endTune": ""
     },
     {
      "type": "wall",
@@ -675,7 +860,8 @@
       "on": true,
       "item": 4,
       "setsEvent": true,
-      "text": "YOU FILL THE\nLAMP. LIGHT\nSWEEPS THE\nSEA ONCE\nMORE.\n\nSHIPS SAIL\nHOME SAFE."
+      "text": "YOU FILL THE\nLAMP. LIGHT\nSWEEPS THE\nSEA ONCE\nMORE.\n\nSHIPS SAIL\nHOME SAFE.",
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -702,7 +888,30 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "USE A CAN OF\nOIL HERE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "wall",
@@ -739,7 +948,8 @@
       "on": false,
       "item": null,
       "text": "",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -773,11 +983,23 @@
        "needEvent": null,
        "gives": null,
        "sets": null,
+       "consumes": false,
        "text": "BRRR! THE\nSEA IS FAR\nTOO COLD.",
        "fail": "",
        "done": ""
       }
-     ]
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
     },
     {
      "type": "room",
@@ -794,7 +1016,8 @@
       "on": true,
       "item": 0,
       "text": "YOUR LANTERN\nREVEALS AN\nOLD KEEPER\nIN A CHAIR.",
-      "setsEvent": false
+      "setsEvent": false,
+      "consumes": false
      },
      "give": {
       "on": false,
@@ -821,7 +1044,30 @@
       "look": ""
      },
      "deadly": false,
-     "verbs": []
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "USE A\nLANTERN\nHERE.\nTHEN TALK TO\nWHOEVER IS\nHERE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": true,
+      "bg": 0,
+      "text": 12
+     },
+     "endTune": ""
     },
     {
      "type": "wall",
@@ -1126,6 +1372,41 @@
    }
   }
  ],
+ "score": {
+  "on": true,
+  "points": [
+   10,
+   15,
+   25,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "ranks": [
+   {
+    "min": 0,
+    "title": "Landlubber"
+   },
+   {
+    "min": 25,
+    "title": "Deckhand"
+   },
+   {
+    "min": 50,
+    "title": "Keeper of the Light"
+   }
+  ]
+ },
  "picture": {
   "on": true,
   "rowH": 2,
@@ -1168,6 +1449,11 @@
   "story": "",
   "notes": "",
   "labelW": 84,
-  "labelH": 64
+  "labelH": 64,
+  "labelStyle": "picture",
+  "tagline": "TEXT ADVENTURE",
+  "code": "",
+  "map": "none",
+  "box": false
  }
 }

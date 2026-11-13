@@ -1,0 +1,30 @@
+Title: The Lost Mine
+Start: Camp
+Ends when: Gold found
+
+Camp
+  You are at a quiet camp by the river.
+  Look: A tent flaps in the wind. A lamp hangs from a pole.
+  Item: an old lamp (look)
+  Take: You unhook the lamp.
+  North: Trail
+
+Trail
+  A dusty trail climbs into the hills.
+  Look: An old miner sits on a rock.
+  Talk: "Bring me something to eat, friend."
+  Give an apple: He munches happily. "The mine is open now." [sets Mine open]
+  East: Orchard
+  North: Mine (locked until Mine open: Planks bar the way.)
+
+Orchard
+  Apple trees grow in neat rows.
+  Look: One apple is still on a branch.
+  Item: an apple (look)
+  Take: You pick the apple.
+
+Mine
+  It is pitch dark down here.
+  Dark unless an old lamp: You can't see a thing.
+  Look: Gold glints in the rock!
+  Dig: You dig out a nugget of gold! [needs an old lamp] [sets Gold found]
