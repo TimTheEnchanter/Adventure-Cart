@@ -1,0 +1,365 @@
+# The Lost City of Tzalan: a long, fair adventure for a 64K cartridge
+Title: The Lost City of Tzalan
+Cart: 64K
+Maps: 8
+Start: Base camp
+Ends when: City awakened
+
+# ---------------- the jungle ----------------
+Base camp
+  Your camp sits in a jungle clearing. Insects buzz.
+  Look: Tents and a crackling campfire. A machete is stuck in a stump.
+  Item: a machete (look)
+  Take: You pull the machete free.
+  Light: You hold the reeds in the campfire. They catch! Now you have a torch. [needs a reed torch] [uses it up] [gives a lit torch] [refused: The campfire crackles. You have nothing to light.] [done: The fire crackles happily.]
+  North: Jungle path
+  East: River landing
+  West: Reed marsh
+  South: Supply tent
+
+Supply tent
+  You are in the supply tent.
+  Look: Empty crates. One corn cake is left in a tin.
+  Item: a corn cake (look)
+  Take: You wrap up the corn cake.
+
+Reed marsh
+  You squelch through a reed marsh.
+  Look: Tall dry reeds, good for a torch. The mud to the west bubbles.
+  Item: a reed torch (look)
+  Take: You bind a bundle of reeds into a torch. It is not lit.
+  West: Quicksand
+  North: Fig tree
+
+Quicksand
+  The mud sucks at your boots. You sink... and sink...
+  Ending: game over
+
+River landing
+  You are at the river landing.
+  Look: Your canoe is tied up here. A coil of rope lies in it.
+  Item: some rope (look)
+  Take: You sling the rope over your shoulder.
+  North: Riverbank
+
+Riverbank
+  You walk along a muddy riverbank.
+  Look: A water gourd floats in the shallows.
+  Item: a gourd (look)
+  Take: You fill the gourd with fresh water.
+  West: Jungle path
+  North: Kapok tree
+
+Kapok tree
+  A giant kapok tree towers over you.
+  Look: Its roots are like walls. You could climb it.
+  Climb: From the top you see stone towers far to the north! [sets Saw the city] [done: Just jungle, and the towers to the north.]
+  West: Overgrown trail
+
+Jungle path
+  You follow a narrow jungle path.
+  Look: Strange birds call. The path runs north.
+  North: Overgrown trail
+  West: Fig tree
+
+Fig tree
+  You stand under a huge fig tree.
+  Look: A cheeky monkey sits on a branch. Something shiny hangs on its collar.
+  Talk: The monkey chatters and stares at your pack. It looks hungry.
+  Give a corn cake: The monkey grabs the cake and drops the shiny thing! [sets Monkey fed]
+  Item: a stone key
+  Take: You pick up a carved stone key.
+  West: Parrot clearing
+  After Monkey fed, look: The monkey munches its cake, very pleased with itself.
+
+Parrot clearing
+  You are in a sunny clearing.
+  Look: A red parrot watches you from a branch.
+  Talk: The parrot squawks: "MOON BY NIGHT! SUN BY DAY! GOLD FOR THE GUARDIAN!"
+  South: Stream
+
+Overgrown trail
+  You are on an overgrown trail.
+  Look: Thick vines block the way north.
+  Use a machete: You hack through the vines. The way north is clear! [sets Vines cut]
+  North: Gorge edge (locked until Vines cut: Thick vines block the way.)
+  After Vines cut, look: Cut vines lie everywhere. The way north is open.
+
+Gorge edge
+  You are at the edge of a deep gorge.
+  Look: A rope bridge hangs in tatters. You could mend it with rope.
+  Use some rope: You tie the rope across the gap. The bridge will hold! [sets Bridge mended] [uses it up]
+  North: Far bank (locked until Bridge mended: The bridge is broken.)
+  East: Waterfall
+  After Bridge mended, look: Your mended bridge sways over the gorge.
+
+Waterfall
+  A waterfall roars into the gorge.
+  Look: Wet rocks lead up behind the falling water.
+  Climb: You climb behind the waterfall and find an old carving: a star above a throne. [sets Found the carving] [done: The carving of the star is still there.]
+  North: Overlook
+
+Far bank
+  You are on the far bank of the gorge.
+  Look: An old stone road leads north into the jungle.
+  North: Stone road
+
+Stone road
+  You walk an ancient stone road.
+  Look: Statues of jaguars line the way, green with moss.
+  North: City gate
+  East: Hunters' hide
+
+Hunters' hide
+  You find an old hunters' hide.
+  Look: Bones and broken spears. Nobody has been here for centuries.
+  East: Ruined shrine
+
+City gate
+  You stand before the gate of Tzalan.
+  Colours: $F2 $FE
+  Look: A huge stone door, carved with a keyhole.
+  Use a stone key: The key turns. The great door grinds open! [sets Gate opened]
+  North: Great plaza (locked until Gate opened: The gate is shut.)
+  After Gate opened, look: The great door stands open.
+
+# ---------------- the city ----------------
+Great plaza
+  You are in the great plaza of Tzalan.
+  Colours: $F2 $FE
+  Look: Silent pyramids and towers all around. Nothing moves.
+  North: Avenue of kings
+  East: Market ruins
+  West: Explorer's tent
+
+Explorer's tent
+  You find a ragged tent.
+  Colours: $F2 $FE
+  Look: An old explorer lies here, weak with thirst.
+  Talk: "Water... please... water..."
+  Give a gourd: He drinks deeply. "Bless you! Take my journal. It may help." [sets Explorer helped]
+  Item: a journal
+  Take: You take the old journal.
+  Read: The journal says: THE MOON OPENS THE NIGHT TEMPLE. THE SUN OPENS THE DAY. [needs a journal] [sets Read the journal] [refused: You have nothing to read.]
+  West: Ball court
+  After Explorer helped, look: The explorer sleeps peacefully, his water gourd at his side.
+
+Ball court
+  You are in an ancient ball court.
+  Colours: $F2 $FE
+  Look: Stone rings high on the walls. Glyphs run along the floor.
+  Read: The glyphs say: THE GUARDIAN BELOW TRADES ONLY FOR GOLD. [sets Read the glyphs] [done: THE GUARDIAN TRADES ONLY FOR GOLD.]
+  South: Bath house
+
+Market ruins
+  You are in the ruined market.
+  Colours: $F2 $FE
+  Look: Broken stalls. An old knife lies among the pots.
+  Item: an old knife (look)
+  Take: You take the old knife. Still sharp!
+  East: Observatory
+  South: Old well
+
+Observatory
+  You stand at the foot of a round tower.
+  Colours: $F2 $FE
+  Look: The observatory. Its stairs have fallen, but you could climb the stones.
+  Climb: You climb the crumbling tower. At the top lies a silver moon disc! [gives a moon disc] [done: The stars must have looked fine from here.]
+  North: Aqueduct
+
+Old well
+  You are beside an old well.
+  Colours: $F2 $FE
+  Look: The well is very deep. A strong vine hangs from a tree nearby.
+  Climb: You tie the vine to the well and test it. You can climb down now. [sets Vine tied] [done: The vine hangs down into the well.]
+  South: Well bottom (passage; locked until Vine tied: The well is too deep to climb down.)
+
+Avenue of kings
+  You walk the Avenue of Kings.
+  Colours: $F2 $FE
+  Look: Stone kings stare down. A temple stands west, a pyramid east.
+  West: Moon temple
+  East: Sun pyramid
+  North: Priests' houses
+
+Priests' houses
+  You are among the priests' houses.
+  Colours: $F2 $FE
+  Look: Painted walls show priests bowing to a glowing star.
+  North: Library
+  West: Garden of stone
+
+Moon temple
+  You stand before the Moon Temple.
+  Colours: $82 $8E
+  Look: A round hollow is carved in the door, the size of a disc.
+  Use a moon disc: The disc fits! The temple door slides open. [sets Moon door open]
+  West: Moon hall (locked until Moon door open: The temple door is sealed.)
+
+Moon hall
+  You are in the Moon Hall.
+  Colours: $82 $8E
+  Dark unless a lit torch: It is black as night in here.
+  Look: Silver moons are painted on the walls.
+  West: Moon sanctum
+
+Moon sanctum
+  You are in the Moon Sanctum.
+  Colours: $82 $8E
+  Dark unless a lit torch: You can't see a thing.
+  Look: A golden sun disc rests on the altar. Odd, in a moon temple!
+  Item: a sun disc (look)
+  Take: You lift the heavy sun disc.
+
+Sun pyramid
+  You stand at the foot of the Sun Pyramid.
+  Colours: $1A $10
+  Look: Its door has a round hollow, the size of a disc.
+  Use a sun disc: The disc fits! Stone grinds as the door opens. [sets Sun door open]
+  North: Pyramid stairs (locked until Sun door open: The pyramid door is sealed.)
+
+Pyramid stairs
+  You climb the steep inner stairs.
+  Colours: $1A $10
+  Look: Hundreds of steps lead up to the sky.
+  North: Pyramid summit
+
+Pyramid summit
+  You reach the top of the Sun Pyramid.
+  Colours: $1A $10
+  Look: An altar with the shape of a face carved into it. You can see for miles.
+  Use a jade mask: You set the mask in the altar. Far below, water rushes away! [sets Lake drained] [uses it up]
+  After Lake drained, look: The jade mask glows on the altar.
+
+# ---------------- under the city ----------------
+Well bottom
+  You are at the bottom of the well.
+  Dark unless a lit torch: Total darkness. Water drips.
+  Look: A tunnel leads south.
+  North: Old well
+  South: Cavern
+
+Cavern
+  You are in a huge cavern.
+  Dark unless a lit torch: Darkness all around. A cold wind blows from the south.
+  Look: Tunnels lead west and east. A cold wind blows from the south.
+  West: Web tunnel
+  East: Lake shore
+  South: Chasm
+
+Chasm
+  You step into empty air and fall into the chasm!
+  Ending: game over
+
+Web tunnel
+  You are in a tunnel thick with webs.
+  Dark unless a lit torch: Something sticky brushes your face.
+  Look: Huge webs block the way west. You could cut them.
+  Use an old knife: You slash the webs. The way west is clear! [sets Webs cut]
+  West: Hidden vault (locked until Webs cut: Thick webs block the way.)
+
+Hidden vault
+  You are in a hidden vault.
+  Colours: $C2 $CE
+  Look: A beautiful jade mask lies on a stone shelf.
+  Item: a jade mask (look)
+  Take: You take the jade mask.
+  North: Bone pit
+
+Lake shore
+  You stand at the shore of a dark lake.
+  Colours: $90 $9E
+  Look: Black water fills the cave. Something glints far below.
+  After Lake drained: The lake has drained away! Steps lead down to the lake bed.
+  After Lake drained, look: Wet steps lead down to the lake bed.
+  South: Lake bed (locked until Lake drained: The water is far too deep.)
+  East: Hall of masks
+
+Lake bed
+  You are on the muddy lake bed.
+  Colours: $90 $9E
+  Look: Among the mud and shells lies a gold idol!
+  Item: a gold idol (look)
+  Take: You take the gold idol.
+  South: Crystal cave
+
+Hall of masks
+  You are in the Hall of Masks.
+  Colours: $54 $5E
+  Look: Stone faces line the walls. At the end, a ghostly figure waits.
+  East: Guardian's hall
+  North: Mushroom grotto
+
+Guardian's hall
+  You are in the Guardian's hall.
+  Colours: $54 $5E
+  Look: The ghost of an old warrior guards a gate of stars.
+  Talk: "Who wakes me? Bring gold, and I will open the Gate of Stars."
+  Give a gold idol: The guardian smiles. "A fine gift." The Gate of Stars swings open! [sets Guardian pleased]
+  North: Star chamber (locked until Guardian pleased: The guardian bars the way.)
+  After Guardian pleased, look: The guardian nods. The Gate of Stars stands open.
+
+Star chamber
+  You are in the Star Chamber.
+  Colours: $00 $1E
+  Look: Points of light glitter in the ceiling. A glowing stone rests on a pedestal.
+  Item: a star stone (look)
+  Take: The star stone is warm in your hand.
+  North: Throne room
+
+Throne room
+  You are in the throne room of Tzalan.
+  Colours: $00 $1E
+  Look: A great stone throne, with a star-shaped hollow above it.
+  Use a star stone: You set the star stone above the throne. Light floods the city. Tzalan awakens! [sets City awakened]
+
+# ---------------- extra places ----------------
+Stream
+  You splash across a cool stream.
+  Look: Bright frogs sit on the stones. One croaks at you.
+  Talk: The frog croaks. You feel a little silly.
+
+Ruined shrine
+  You find a small ruined shrine.
+  Look: Offerings of old shells lie before a broken idol.
+  Read: The shrine says: TRAVELLER, THE CITY SLEEPS UNTIL THE STAR RETURNS.
+
+Overlook
+  You stand on a rocky overlook.
+  Look: Mist rises from the gorge. Far north, towers poke through the trees.
+
+Bath house
+  You are in the old bath house.
+  Colours: $F2 $FE
+  Look: Dry stone pools. Painted fish swim on the walls.
+
+Aqueduct
+  You walk along a crumbling aqueduct.
+  Colours: $F2 $FE
+  Look: Once it carried water to the whole city. Now it carries leaves.
+
+Library
+  You are in the house of books.
+  Colours: $F2 $FE
+  Look: Folded bark books, most turned to dust.
+  Read: One book survives: THE KINGS SLEEP BELOW THE LAKE, GUARDED BY THE OLD WARRIOR.
+
+Garden of stone
+  You are in a garden of stone.
+  Colours: $F2 $FE
+  Look: Stone flowers and stone birds. Not a living thing grows here.
+
+Mushroom grotto
+  You are in a glowing grotto.
+  Colours: $C0 $CC
+  Look: Pale mushrooms give off a faint green light.
+
+Crystal cave
+  You are in a crystal cave.
+  Colours: $90 $9E
+  Look: Crystals sparkle in the lamplight like a sky full of stars.
+
+Bone pit
+  You are in a pit of old bones.
+  Colours: $C2 $CE
+  Look: The bones of those who came before. A shiver runs down your back.

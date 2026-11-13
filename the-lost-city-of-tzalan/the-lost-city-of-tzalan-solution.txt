@@ -1,0 +1,79 @@
+The Lost City of Tzalan: the shortest way through (77 steps)
+
+1. Base camp: go east
+2. River landing: take
+3. River landing: go west
+4. Base camp: go south
+5. Supply tent: take
+6. Supply tent: go north
+7. Base camp: go north
+8. Jungle path: go west
+9. Fig tree: give a corn cake
+10. Fig tree: take
+11. Fig tree: go south
+12. Reed marsh: take
+13. Reed marsh: go east
+14. Base camp: take
+15. Base camp: light
+16. Base camp: go north
+17. Jungle path: go north
+18. Overgrown trail: use a machete
+19. Overgrown trail: go north
+20. Gorge edge: use some rope
+21. Gorge edge: go north
+22. Far bank: go north
+23. Stone road: go north
+24. City gate: use a stone key
+25. City gate: go north
+26. Great plaza: go east
+27. Market ruins: go east
+28. Observatory: climb
+29. Observatory: go west
+30. Market ruins: take
+31. Market ruins: go south
+32. Old well: climb
+33. Old well: go south
+34. Well bottom: go south
+35. Cavern: go west
+36. Web tunnel: use an old knife
+37. Web tunnel: go west
+38. Hidden vault: take
+39. Hidden vault: go east
+40. Web tunnel: go east
+41. Cavern: go north
+42. Well bottom: go north
+43. Old well: go north
+44. Market ruins: go west
+45. Great plaza: go north
+46. Avenue of kings: go west
+47. Moon temple: use a moon disc
+48. Moon temple: go west
+49. Moon hall: go west
+50. Moon sanctum: take
+51. Moon sanctum: go east
+52. Moon hall: go east
+53. Moon temple: go east
+54. Avenue of kings: go east
+55. Sun pyramid: use a sun disc
+56. Sun pyramid: go north
+57. Pyramid stairs: go north
+58. Pyramid summit: use a jade mask
+59. Pyramid summit: go south
+60. Pyramid stairs: go south
+61. Sun pyramid: go west
+62. Avenue of kings: go south
+63. Great plaza: go east
+64. Market ruins: go south
+65. Old well: go south
+66. Well bottom: go south
+67. Cavern: go east
+68. Lake shore: go south
+69. Lake bed: take
+70. Lake bed: go north
+71. Lake shore: go east
+72. Hall of masks: go east
+73. Guardian's hall: give a gold idol
+74. Guardian's hall: go north
+75. Star chamber: take
+76. Star chamber: go north
+77. Throne room: use a star stone

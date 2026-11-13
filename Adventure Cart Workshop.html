@@ -2871,7 +2871,7 @@ textarea.script { width: 100%; min-height: 560px; font: 12.5px/17px var(--font-m
   const K = { MOVE: 0, LOOK: 4, TAKE: 5, GIVE: 6, USE: 7, TALK: 8, VERB: 9 };
   function analyze(project, opts = {}) {
     const P = normalize(project);
-    const cap = opts.maxStates || 250000;
+    const cap = opts.maxStates || 400000;
     const endMask = bit(P.settings.endEvent);
     const legacy = isLegacyPortals(P); // only the original gateway code strands players
     const t0 = Date.now();
@@ -3181,6 +3181,7 @@ Mine
           if (key === 'carrying') { meta.carrying = val.split(',').map(s => s.trim()).filter(Boolean); return; }
           if (key === 'ends when' || key === 'game ends when') { meta.endsWhen = val; return; }
           if (key === 'cart') { meta.cart = val.toUpperCase(); return; }
+          if (key === 'maps') { meta.maps = Math.max(1, Math.min(16, parseInt(val, 10) || 1)); return; }
         }
         cur = { name: t.replace(/:$/, ''), n, desc: [], fields: [] }; rooms.push(cur); return;
       }
@@ -3213,9 +3214,10 @@ Mine
         const usesUp = tg.some(x => /^uses? (it )?up$/i.test(x));
         if (DIRS4[key]) {
           const d = DIRS4[key]; let v = val, one = false, lock = null;
-          const pm = /\(([^)]*)\)\s*$/.exec(v); if (pm) { v = v.slice(0, pm.index).trim(); for (const part of pm[1].split(';')) { const p = part.trim(); if (/^one[- ]way$/i.test(p)) one = true; else if ((m = /^locked until ([^:]+):?\s*(.*)$/i.exec(p))) lock = { ev: m[1], text: m[2] }; else if (p) errs.push({ line: n, msg: `can't read "(${p})": use (one way) or (locked until EVENT: message)` }); } }
+          let passage = false;
+          const pm = /\(([^)]*)\)\s*$/.exec(v); if (pm) { v = v.slice(0, pm.index).trim(); for (const part of pm[1].split(';')) { const p = part.trim(); if (/^one[- ]way$/i.test(p)) one = true; else if (/^(passage|stairs|down|up|ladder|tunnel)$/i.test(p)) passage = true; else if ((m = /^locked until ([^:]+):?\s*(.*)$/i.exec(p))) lock = { ev: m[1], text: m[2] }; else if (p) errs.push({ line: n, msg: `can't read "(${p})": use (one way) or (locked until EVENT: message)` }); } }
           const to = byName.get(v.toLowerCase()); if (!to) { errs.push({ line: n, msg: `no room called "${v}"` }); continue; }
-          r.exits[d] = { to, one, n };
+          r.exits[d] = { to, one, n, passage };
           if (lock) { if (to.lock && to.lock.ev !== lock.ev) errs.push({ line: n, msg: `"${to.name}" is already locked until another event` }); to.lock = Object.assign({ n }, lock); }
         }
         else if (key === 'look') c.look = text(val);
@@ -3239,7 +3241,7 @@ Mine
           for (const x of tg) {
             if ((m = /^needs?\s+(.+)$/i.exec(x))) { const nm = m[1].replace(/^(item|event)\s+/i, ''); if (/^event\s/i.test(m[1]) || items.findIndex(it => it.key === strip(nm)) < 0) e.needEvent = eventOf(nm, n); else e.needItem = itemOf(nm, n); }
             else if ((m = /^sets\s+(.+)$/i.exec(x))) e.sets = eventOf(m[1], n);
-            else if ((m = /^gives\s+(.+)$/i.exec(x))) e.gives = itemOf(m[1], n);
+            else if ((m = /^gives\s+(.+)$/i.exec(x))) { e.gives = itemOf(m[1], n, true); }
             else if (/^uses? (it )?up$/i.test(x)) e.consumes = true;
             else if ((m = /^(refused|otherwise)\s*:\s*(.+)$/i.exec(x))) e.fail = text(m[2]);
             else if ((m = /^(done|already done)\s*:\s*(.+)$/i.exec(x))) e.done = text(m[2]);
@@ -3256,7 +3258,7 @@ Mine
     // reverse exits: an exit leads both ways unless it says (one way) or the other room says otherwise
     for (const r of rooms) for (const [d, x] of Object.entries(r.exits)) {
       if (x.one) continue; const back = x.to.exits[OPP[d]];
-      if (!back) x.to.exits[OPP[d]] = { to: r, one: false, n: x.n, implied: true };
+      if (!back) x.to.exits[OPP[d]] = { to: r, one: false, n: x.n, implied: true, passage: x.passage };
       else if (back.to !== r) warns.push({ line: x.n, msg: `${r.name} → ${d} → ${x.to.name}, but ${x.to.name}'s ${OPP[d]} goes to ${back.to.name}: going back won't return to ${r.name}` });
     }
     if (errs.length) return { ok: false, errors: errs, warnings: warns };
@@ -3269,7 +3271,7 @@ Mine
     const exitTo = (r, d) => r.exits[d] ? r.exits[d].to : null;
     let cells, pos, at;
     const attempt = (forced) => {
-    const errs1 = [], culprits = new Set();
+    const errs1 = [], culprits = new Set(); let regions = 0;
     cells = new Map(); pos = new Map(); at = (x, y) => cells.get(key(x, y));
     // the cell beside a placed room in each direction it has an exit is kept for that exit
     const reserved = new Map();
@@ -3313,11 +3315,16 @@ Mine
         const [dx, dy] = D[d], qx = p.x + dx, qy = p.y + dy, q = at(qx, qy);
         if (!(q && ((q.room && q.room === x.to) || q.portal === x.to))) {
           if (q) { errs1.push({ line: x.n, msg: `can't lay out ${r.name} → ${d} → ${x.to.name}: that spot already holds ${q.room ? q.room.name : 'a passage'}. Try another direction.` }); continue; }
-          if (!pos.has(x.to) && !forced.has(x.to) && okFor(qx, qy, x.to)) place(x.to, qx, qy);
+          if (!pos.has(x.to) && !forced.has(x.to) && !x.passage && okFor(qx, qy, x.to)) place(x.to, qx, qy);
           else {
             if (!okPortal(qx, qy, r, x.to)) { for (const [, [ex, ey]] of D2) { const c = at(qx + ex, qy + ey); if (c && c.room && c.room !== r && c.room !== x.to) culprits.add(c.room); } errs1.push({ line: x.n, msg: `can't lay out ${r.name} → ${d} → ${x.to.name}: other rooms crowd that spot. Try another direction, or fewer exits around ${r.name}.` }); continue; }
             portal(qx, qy, x.to);
-            if (!pos.has(x.to)) { const s = spot(qx, qy, x.to); if (!s) { errs1.push({ line: x.n, msg: `no room left to lay out ${x.to.name}` }); continue; } place(x.to, s[0], s[1]); }
+            if (!pos.has(x.to)) {
+              // a passage (stairs, a well, a tunnel) leads somewhere new: start that part of the world well away from the rest
+              const far = x.passage ? [qx, qy + 64 * (++regions)] : [qx, qy];
+              const s = x.passage ? (okFor(far[0], far[1], x.to) ? far : spot(far[0], far[1], x.to)) : spot(qx, qy, x.to);
+              if (!s) { errs1.push({ line: x.n, msg: `no room left to lay out ${x.to.name}` }); continue; } place(x.to, s[0], s[1]);
+            }
           }
         }
         if (!seenR.has(x.to)) { seenR.add(x.to); queue.push(x.to); }
@@ -3341,11 +3348,22 @@ Mine
     // of walls; an exit to a room on another map becomes a portal in that ring ----
     const all = [...pos.values()], B = { x0: Math.min(...all.map(p => p.x)), x1: Math.max(...all.map(p => p.x)), y0: Math.min(...all.map(p => p.y)), y1: Math.max(...all.map(p => p.y)) };
     let best = null;
-    const sizes = (B.x1 - B.x0 + 3) <= 16 && (B.x1 - B.x0 + 3) * (B.y1 - B.y0 + 3) <= 128 ? [[B.x1 - B.x0 + 1, B.y1 - B.y0 + 1]] : [[14, 6], [12, 7], [10, 8], [9, 9], [8, 10], [7, 12], [6, 14]];
-    for (const [tw, th] of sizes) for (let ox = 0; ox < tw; ox++) for (let oy = 0; oy < th; oy++) {
-      const tiles = new Set(all.map(p => Math.floor((p.x - B.x0 + ox) / tw) + ':' + Math.floor((p.y - B.y0 + oy) / th)));
-      if (!best || tiles.size < best.n) best = { n: tiles.size, tw, th, ox, oy };
-      if (sizes.length === 1) break;
+    const one = (B.x1 - B.x0 + 3) <= 16 && (B.x1 - B.x0 + 3) * (B.y1 - B.y0 + 3) <= 128;
+    const want = meta.maps || 1;
+    if (want > 1) {
+      // "Maps: N": cut into N maps, as evenly as the geometry allows (each map's bank then holds fewer rooms)
+      for (let tw = 2; tw <= 14; tw++) for (let th = 2; (tw + 2) * (th + 2) <= 128; th++) for (let ox = 0; ox < tw; ox++) for (let oy = 0; oy < th; oy++) {
+        const cnt = new Map(); for (const p of all) { const k = Math.floor((p.x - B.x0 + ox) / tw) + ':' + Math.floor((p.y - B.y0 + oy) / th); cnt.set(k, (cnt.get(k) || 0) + 1); }
+        const n = cnt.size, worst = Math.max(...cnt.values()), score = Math.abs(n - want) * 1000 + worst;
+        if (!best || score < best.score) best = { score, n, tw, th, ox, oy };
+      }
+    } else {
+      const sizes = one ? [[B.x1 - B.x0 + 1, B.y1 - B.y0 + 1]] : [[14, 6], [12, 7], [10, 8], [9, 9], [8, 10], [7, 12], [6, 14]];
+      for (const [tw, th] of sizes) for (let ox = 0; ox < tw; ox++) for (let oy = 0; oy < th; oy++) {
+        const tiles = new Set(all.map(p => Math.floor((p.x - B.x0 + ox) / tw) + ':' + Math.floor((p.y - B.y0 + oy) / th)));
+        if (!best || tiles.size < best.n) best = { n: tiles.size, tw, th, ox, oy };
+        if (sizes.length === 1) break;
+      }
     }
     if (best.n > 16) return { ok: false, errors: [{ line: 1, msg: `too many rooms: they would need ${best.n} maps (at most 16)` }], warnings: warns };
     const tileOf = p => Math.floor((p.x - B.x0 + best.ox) / best.tw) + ':' + Math.floor((p.y - B.y0 + best.oy) / best.th);
@@ -4485,6 +4503,7 @@ function renderOutline(body) {
     box, ta,
     el('details', { class: 'scriptref', open: true }, el('summary', { text: 'Outline reference' }), el('pre', { text: [
       'Title: The Lost Mine        Start: Camp        Carrying: a lamp, a key',
+      'Cart: 16K                   Maps: 2            (split the rooms over this many maps: more room in each bank)',
       'Ends when: Gold found       (an event; or mark rooms "Ending: win")',
       '',
       'Camp                        (a room: its name on a line of its own)',
@@ -4492,6 +4511,7 @@ function renderOutline(body) {
       '  Look: text',
       '  North: Trail              (east, south, west; exits lead both ways unless the other room says otherwise)',
       '  North: Cave (one way)     North: Mine (locked until Mine open: Planks bar the way.)',
+      '  South: Cellar (passage)   (a way that leaves the grid: stairs down, a tunnel; the far side goes wherever there is room)',
       '  Item: a lamp (look)       (look = LOOK reveals it)     Take: You take the lamp.',
       '  Use a rope: text [sets Boat tied] [uses it up]',
       '  Give an apple: text [sets Miner fed]',
