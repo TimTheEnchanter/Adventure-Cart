@@ -1,0 +1,616 @@
+# Adventure Cart Workshop script
+# Lines starting with # are comments. Text lines start with |, and everything after the | is kept exactly.
+# Rows and columns count from 1. Items and events are numbered 1 to 16. A name in brackets after a number is only a reminder.
+
+title: Kestrel Station
+engine: workshop
+cart: 16K
+start: A 3,6
+carrying: nothing
+game ends on event: 4 (Pod launched)
+sound: on
+tune: fanfare
+custom tune: C5:8 E5:8 G5:8 C6:24
+title music: quest
+custom title music: C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24
+passwords: on
+tv: NTSC
+author: 
+year: 
+label size: 84 x 64 mm
+label style: stripes
+manual map: none
+box: on
+label tagline: SPACE ADVENTURE
+label code: ACW-02
+
+items:
+  1: A TORCH
+  2: A WRENCH
+  3: AN OIL CAN
+  4: A CROWBAR
+  5: A FUSE
+  6: A KEYCARD
+  7: 
+  8: 
+  9: 
+  10: 
+  11: 
+  12: 
+  13: 
+  14: 
+  15: 
+  16: 
+
+events:
+  1: Power on
+  2: Robot oiled
+  3: Codes loaded
+  4: Pod launched
+  5: Event 5
+  6: Event 6
+  7: Event 7
+  8: Event 8
+  9: Event 9
+  10: Event 10
+  11: Event 11
+  12: Event 12
+  13: Event 13
+  14: Event 14
+  15: Event 15
+  16: Event 16
+
+score: on
+# points for each event (event: points)
+points:
+  1: 15
+  2: 10
+  3: 15
+  4: 20
+# rank titles for the manual (lowest score: title)
+ranks:
+  0: Space cadet
+  30: Engineer
+  60: Station commander
+
+# your own verbs: the menu word, then what it says in a room with no reply of its own
+verbs:
+  1: PRY
+    |YOU CAN'T
+    |PRY HERE.
+  2: SCAN
+    |YOU CAN'T
+    |SCAN HERE.
+  3: REPAIR
+    |YOU CAN'T
+    |REPAIR HERE.
+  4 (hints): HINT
+    |NOTHING TO
+    |DO HERE.
+    |KEEP
+    |EXPLORING.
+
+words:
+  look: LOOK
+  north: NORTH
+  east: EAST
+  south: SOUTH
+  west: WEST
+  go: GO
+  take: TAKE
+  give: GIVE
+  use: USE
+  talk: TALK
+  inventory: INVENTORY
+  more: MORE...
+  start: START
+  the end: THE END
+  nothing: NOTHING
+  try again: TRY AGAIN
+  code: CODE
+  delete: DELETE
+  score: SCORE
+
+messages:
+  nothing special:
+    |YOU SEE
+    |NOTHING
+    |SPECIAL
+  nothing to take:
+    |YOU SEE
+    |NOTHING
+    |WORTH
+    |TAKING
+  nobody answers:
+    |NO ONE
+    |ANSWERS.
+  give prompt:
+    |SELECT ITEM
+    |TO GIVE:
+  can't give:
+    |CAN'T GIVE
+    |THAT
+  use prompt:
+    |SELECT ITEM
+    |TO USE:
+  can't use:
+    |CAN'T USE
+    |THAT
+  carrying:
+    |YOU ARE
+    |CARRYING:
+  power-on screen:
+  too dark:
+    |IT IS TOO
+    |DARK TO SEE.
+
+intro page:
+  |  KESTREL
+  |  STATION
+  |
+  |  ALONE IN
+  |   ORBIT
+
+intro page:
+  |YOU WAKE
+  |FROM COLD
+  |SLEEP. THE
+  |CREW IS
+  |GONE.
+
+intro page:
+  |POWER IS
+  |FAILING.
+  |
+  |FIND A WAY
+  |TO THE LAST
+  |ESCAPE POD.
+
+manual story:
+  |You wake from cold sleep aboard Kestrel Station. The crew is gone, the alarms are wailing, and the power is failing.
+  |
+  |Find a way to the last escape pod before it is too late.
+
+picture: on
+  rows: 28
+  row height: 2
+  colour: $9E
+  |
+  |............................................................#
+  |......................#.........................#..........................................#
+  |.....#.................................###################
+  |....................................#########################.............#
+  |.................................#######........#........#######
+  |................................#####...........#...........#####
+  |..............................#####.............#.............#####
+  |.............................#####..............#..............#####
+  |...............#............####................#................####
+  |...........................#####................#................#####..............#
+  |...........................####.............#########.............####
+  |...........................####............###########............####
+  |..........................#############################################
+  |...........................####............###########............####
+  |............#..............####.............#########.............####
+  |...........................#####................#................#####
+  |............................####................#................####
+  |.............................#####..............#..............#####
+  |..............................#####.............#.............#####
+  |................................#####...........#...........#####...............#
+  |.................................#######........#........#######
+  |..........##################........#########################
+  |......##########################.......###################
+  |....##############################..............#
+  |...################################...................................#
+  |...################################.....................................................#
+  |...################################
+
+map A: 10 x 6
+  colours: background $80, text $9C, menu $84, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6 7 8 9 0
+  #   1 . . . . . > . . . .
+  #   2 . . . . > R > . . .
+  #   3 . R R > . * . > R .
+  #   4 . R . . . . . . . .
+  #   5 . R . . . . . . . .
+  #   6 . . . . . . . . . .
+
+  portal 1,6: to B 5,5
+
+  portal 2,5: to B 4,2
+
+  room 2,6: Corridor
+    arrive:
+      |YOU ARE IN A
+      |LONG
+      |CORRIDOR.
+      |RED LIGHTS
+      |FLASH.
+    look:
+      |DOORS
+      |EVERYWHERE.
+      |A WRENCH
+      |DRIFTS PAST
+      |IN THE LOW
+      |GRAVITY.
+    item: 2 (A WRENCH)
+    look reveals the item: yes
+    take:
+      |YOU CATCH
+      |THE WRENCH.
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |WRENCH.
+    room colours: background $42, text $4E
+
+  portal 2,7: to B 4,8
+
+  room 3,2: Engine room
+    arrive:
+      |YOU ARE IN
+      |THE ENGINE
+      |ROOM.
+    look:
+      |A DEAD
+      |GENERATOR.
+      |ITS FUSE
+      |SOCKET IS
+      |EMPTY.
+    verb 3 (REPAIR), needs item 5 (A FUSE), sets event 1 (Power on):
+      |YOU SLOT IN
+      |THE FUSE.
+      |THE
+      |GENERATOR
+      |ROARS!
+      |LIGHTS
+      |FLICKER ON
+      |EVERYWHERE.
+    verb 3 (REPAIR) refused:
+      |IT NEEDS A
+      |FUSE.
+    verb 3 (REPAIR) already done:
+      |THE
+      |GENERATOR
+      |PURRS.
+    verb 2 (SCAN):
+      |THE SCANNER
+      |READS: FUSE
+      |MISSING.
+    verb 4 (HINT):
+      |TRY TO
+      |REPAIR.
+    room colours: background $F2, text $FE
+
+  room 3,3: Storage
+    arrive:
+      |YOU ARE IN A
+      |STORAGE BAY.
+    look:
+      |CRATES OF
+      |SPARE PARTS.
+      |A CROWBAR
+      |LEANS ON
+      |ONE.
+    item: 4 (A CROWBAR)
+    look reveals the item: yes
+    take:
+      |YOU GRAB THE
+      |CROWBAR.
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |CROWBAR.
+    dark unless carrying item 1 (A TORCH):
+      |IT IS PITCH
+      |DARK. CRATES
+      |LOOM.
+
+  portal 3,4: to B 5,5
+
+  room 3,6: Cryo bay
+    arrive:
+      |YOU WAKE IN
+      |A FROSTY
+      |CRYO POD.
+      |ALARMS WAIL.
+    look:
+      |EMPTY PODS.
+      |A TORCH IS
+      |CLIPPED TO
+      |THE WALL.
+    item: 1 (A TORCH)
+    look reveals the item: yes
+    take:
+      |YOU SWITCH
+      |ON THE
+      |TORCH.
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |TORCH.
+    room colours: background $84, text $8E
+
+  portal 3,8: to B 5,5
+
+  room 3,9: Workshop
+    arrive:
+      |YOU ARE IN
+      |THE
+      |WORKSHOP.
+    look:
+      |A BATTERED
+      |REPAIR ROBOT
+      |SITS SLUMPED
+      |IN A CORNER.
+    item: 5 (A FUSE)
+    take:
+      |YOU TAKE THE
+      |FUSE.
+    give item 3 (AN OIL CAN):
+      |THE ROBOT
+      |OILS ITS
+      |JOINTS AND
+      |HANDS YOU A
+      |FUSE.
+      |"THANKS.
+      |BZZT."
+    talk:
+      |"BZZT.
+      |JOINTS
+      |STIFF. NEED
+      |OIL. BZZT."
+    sets event: 2 (Robot oiled)
+    verb 2 (SCAN):
+      |THE SCANNER
+      |READS:
+      |ROBOT, MODEL
+      |K9. NEEDS
+      |OIL.
+    verb 4 (HINT):
+      |SOMEONE HERE
+      |WANTS AN OIL
+      |CAN.
+      |THEN TAKE A
+      |FUSE.
+
+  room 4,2: Reactor
+    arrive:
+      |YOU ARE IN
+      |THE REACTOR
+      |ROOM.
+    look:
+      |THE CORE
+      |GLOWS. A
+      |HATCH LEADS
+      |SOUTH INTO
+      |THE DARK.
+    room colours: background $40, text $1E
+
+  room 5,2: Vent
+    arrive:
+      |YOU CRAWL
+      |INTO A VENT.
+      |IT DROPS
+      |AWAY BENEATH
+      |YOU!
+    look:
+    ending: game over
+
+map B: 9 x 6
+  colours: background $80, text $9C, menu $84, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6 7 8 9
+  #   1 . . . . . . . . .
+  #   2 . . . . R . . . .
+  #   3 . . . R R R . . .
+  #   4 . R > . R . > R .
+  #   5 . . . > R > . . .
+  #   6 . . . . > . . . .
+
+  room 2,5: Airlock
+    arrive:
+      |YOU STEP
+      |INTO THE
+      |AIRLOCK. THE
+      |OUTER DOOR
+      |IS OPEN!
+    look:
+    ending: game over
+
+  room 3,4: Command deck
+    arrive:
+      |YOU ARE ON
+      |THE COMMAND
+      |DECK.
+    look:
+      |THE
+      |CAPTAIN'S
+      |CONSOLE
+      |BLINKS. IT
+      |HAS A CARD
+      |SLOT.
+    use item 6 (A KEYCARD), sets the event:
+      |THE CONSOLE
+      |WAKES.
+      |LAUNCH CODES
+      |LOADED.
+    sets event: 3 (Codes loaded)
+    verb 2 (SCAN):
+      |THE SCANNER
+      |READS:
+      |CONSOLE
+      |NEEDS A
+      |KEYCARD.
+    verb 4 (HINT):
+      |USE A
+      |KEYCARD
+      |HERE.
+    room colours: background $C2, text $CE
+
+  room 3,5: Upper hall
+    arrive:
+      |YOU ARE IN
+      |THE UPPER
+      |HALL.
+    look:
+      |WINDOWS SHOW
+      |THE STARS.
+      |DOORS LEAD
+      |WEST AND
+      |EAST.
+    locked until event 1 (Power on):
+      |THE LIFT IS
+      |DEAD. NO
+      |POWER.
+    room colours: background $84, text $8E
+
+  room 3,6: Pod bay
+    arrive:
+      |YOU ARE IN
+      |THE POD BAY.
+    look:
+      |ONE ESCAPE
+      |POD REMAINS.
+      |A DOCKING
+      |CLAMP IS
+      |JAMMED.
+    use item 2 (A WRENCH), sets the event:
+      |YOU KNOCK
+      |THE CLAMP
+      |FREE AND
+      |CLIMB IN.
+      |THE POD
+      |BLASTS AWAY
+      |TO SAFETY!
+    sets event: 4 (Pod launched)
+    locked until event 3 (Codes loaded):
+      |PODS LOCKED.
+      |LAUNCH CODES
+      |NEEDED.
+    verb 4 (HINT):
+      |USE A WRENCH
+      |HERE.
+
+  room 4,2: Medbay
+    arrive:
+      |YOU ARE IN
+      |THE MEDBAY.
+    look:
+      |BEDS,
+      |SCANNERS,
+      |AND A LOCKED
+      |SUPPLY
+      |LOCKER.
+    verb 1 (PRY), needs item 4 (A CROWBAR), gives item 6 (A KEYCARD):
+      |YOU LEVER
+      |THE LOCKER
+      |OPEN. INSIDE
+      |IS A
+      |KEYCARD!
+    verb 1 (PRY) refused:
+      |THE LOCKER
+      |WON'T BUDGE
+      |WITH BARE
+      |HANDS.
+    verb 1 (PRY) already done:
+      |THE LOCKER
+      |IS EMPTY.
+    verb 2 (SCAN):
+      |THE SCANNER
+      |BEEPS: YOU
+      |ARE FINE.
+      |JUST COLD.
+    verb 4 (HINT):
+      |TRY TO PRY.
+
+  portal 4,3: to A 2,6
+
+  room 4,5: Lift
+    arrive:
+      |YOU ARE IN
+      |THE LIFT.
+    look:
+      |BUTTONS FOR
+      |THE UPPER
+      |DECK. THE
+      |LIFT NEEDS
+      |POWER.
+
+  portal 4,7: to A 2,6
+
+  room 4,8: Galley
+    arrive:
+      |YOU ARE IN
+      |THE GALLEY.
+    look:
+      |FOOD PACKS
+      |FLOAT IN A
+      |BROKEN
+      |FREEZER. AN
+      |OIL CAN SITS
+      |BY THE
+      |STOVE.
+    item: 3 (AN OIL CAN)
+    look reveals the item: yes
+    take:
+      |YOU TAKE THE
+      |OIL CAN.
+    verb 4 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE AN
+      |OIL CAN.
+
+  portal 5,4: to A 3,3
+
+  room 5,5: Junction
+    arrive:
+      |YOU ARE AT A
+      |JUNCTION.
+    look:
+      |SIGNS:
+      |ENGINES
+      |WEST,
+      |WORKSHOP
+      |EAST, LIFT
+      |NORTH.
+
+  portal 5,6: to A 3,9
+
+  portal 6,5: to A 2,6
+
+map C: 6 x 5
+  colours: background $80, text $9C, menu $84, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map D: 6 x 5
+  colours: background $80, text $9C, menu $84, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .

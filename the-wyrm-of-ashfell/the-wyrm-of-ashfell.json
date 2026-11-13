@@ -1,0 +1,1047 @@
+{
+ "kit": "tak",
+ "version": 1,
+ "title": "The Wyrm of Ashfell",
+ "engine": "tak",
+ "verbs": [
+  {
+   "word": "HINT",
+   "none": "NOTHING TO\nDO HERE.\nKEEP\nEXPLORING.",
+   "hint": true
+  }
+ ],
+ "cart": "8K",
+ "settings": {
+  "endEvent": 2,
+  "sound": true,
+  "tv": "ntsc",
+  "tune": "jig",
+  "customTune": "C5:8 E5:8 G5:8 C6:24",
+  "titleTune": "none",
+  "customTitleTune": "C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24",
+  "passwords": false
+ },
+ "portals": [
+  {
+   "map": 0,
+   "idx": 38,
+   "toMap": 0,
+   "toIdx": 22
+  },
+  {
+   "map": 0,
+   "idx": 23,
+   "toMap": 0,
+   "toIdx": 39
+  },
+  {
+   "map": 0,
+   "idx": 31,
+   "toMap": 0,
+   "toIdx": 43
+  },
+  {
+   "map": 0,
+   "idx": 44,
+   "toMap": 0,
+   "toIdx": 32
+  }
+ ],
+ "start": {
+  "room": 39,
+  "inventory": []
+ },
+ "items": [
+  "A TORCH",
+  "A SWORD",
+  "SOME COAL",
+  "A HONEYCOMB",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  ""
+ ],
+ "events": [
+  "Forge lit",
+  "Troll fed",
+  "Wyrm gone",
+  "Event 4",
+  "Event 5",
+  "Event 6",
+  "Event 7",
+  "Event 8",
+  "Event 9",
+  "Event 10",
+  "Event 11",
+  "Event 12",
+  "Event 13",
+  "Event 14",
+  "Event 15",
+  "Event 16"
+ ],
+ "system": {
+  "look": "LOOK",
+  "north": "NORTH",
+  "east": "EAST",
+  "south": "SOUTH",
+  "west": "WEST",
+  "go": "GO",
+  "take": "TAKE",
+  "give": "GIVE",
+  "use": "USE",
+  "talk": "TALK",
+  "inventory": "INVENTORY",
+  "more": "MORE...",
+  "start": "START",
+  "nothingSpecial": "YOU SEE\nNOTHING\nSPECIAL",
+  "nothingToTake": "YOU SEE\nNOTHING\nWORTH\nTAKING",
+  "talkDefault": "NO ONE\nANSWERS.",
+  "selectGive": "SELECT ITEM\nTO GIVE:",
+  "cantGive": "CAN'T GIVE\nTHAT",
+  "selectUse": "SELECT ITEM\nTO USE:",
+  "cantUse": "CAN'T USE\nTHAT",
+  "carrying": "YOU ARE\nCARRYING:",
+  "bootB": "",
+  "theEnd": "THE END",
+  "nothing": "NOTHING",
+  "tryAgain": "TRY AGAIN",
+  "code": "CODE",
+  "delete": "DELETE",
+  "dark": "IT IS TOO\nDARK TO SEE.",
+  "score": "SCORE"
+ },
+ "intro": [
+  "  THE WYRM\n OF ASHFELL",
+  "A WYRM HAS\nCOME TO\nASHFELL.\n\nTHE VILLAGE\nNEEDS A\nHERO."
+ ],
+ "maps": [
+  {
+   "name": "Map A",
+   "width": 7,
+   "rows": 8,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Wyrm's lair",
+     "desc": "YOU ARE IN\nTHE WYRM'S\nLAIR.",
+     "look": "A GREAT RED\nWYRM SLEEPS\nON A PILE OF\nGOLD.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": true,
+      "item": 1,
+      "text": "YOU RAISE\nTHE GLEAMING\nSWORD. THE\nWYRM WAKES,\nSHRIEKS AND\nFLIES FAR\nAWAY!",
+      "setsEvent": true,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": 2,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 0,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "USE A SWORD\nHERE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": true,
+      "item": 0,
+      "text": "IT IS BLACK\nAS PITCH.\nSOMETHING\nHUGE\nBREATHES."
+     },
+     "colors": {
+      "on": true,
+      "bg": 64,
+      "text": 30
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Cave mouth",
+     "desc": "YOU ARE AT\nTHE MOUTH OF\nA CAVE.",
+     "look": "BONES AND\nASH. SMOKE\nDRIFTS OUT.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": true,
+      "needEvent": 1,
+      "text": "THE TROLL\nBLOCKS THE\nBRIDGE."
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Mine",
+     "desc": "YOU ARE AT\nTHE OLD\nMINE.",
+     "look": "BLACK LUMPS\nLITTER THE\nGROUND.",
+     "lookReveals": true,
+     "item": 2,
+     "take": {
+      "on": true,
+      "text": "YOU PICK UP\nSOME COAL."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 0,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE\nSOME COAL.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "River bridge",
+     "desc": "YOU ARE AT A\nSTONE\nBRIDGE.",
+     "look": "A GRUMPY\nTROLL SITS\nON THE\nBRIDGE,\nLICKING HIS\nLIPS.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": true,
+      "item": 3,
+      "text": "THE TROLL\nGOBBLES IT\nUP AND WAVES\nYOU ACROSS."
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "\"ME HUNGRY.\nME WANT\nSOMETHING\nSWEET.\""
+     },
+     "sets": 1,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 0,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "SOMEONE HERE\nWANTS A\nHONEYCOMB.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Forest path",
+     "desc": "YOU ARE ON A\nFOREST PATH.",
+     "look": "BEES BUZZ\nAROUND A\nHOLLOW OAK.\nHONEY DRIPS\nDOWN.",
+     "lookReveals": true,
+     "item": 3,
+     "take": {
+      "on": true,
+      "text": "YOU EASE OUT\nA HONEYCOMB.\nONLY ONE\nSTING!"
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 0,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE A\nHONEYCOMB.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Village square",
+     "desc": "YOU ARE IN\nTHE VILLAGE\nSQUARE.",
+     "look": "FOLK HURRY\nBY. A TORCH\nBURNS IN A\nBRACKET BY\nTHE WELL.",
+     "lookReveals": true,
+     "item": 0,
+     "take": {
+      "on": true,
+      "text": "YOU TAKE THE\nTORCH."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "AN OLD WOMAN\nSAYS: \"THE\nWYRM SLEEPS\nPAST THE\nRIVER. ONLY\nSTEEL WILL\nSCARE IT.\""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Smithy",
+     "desc": "YOU ARE IN\nTHE SMITHY.",
+     "look": "THE SMITH\nPOKES A COLD\nFORGE.",
+     "lookReveals": false,
+     "item": 1,
+     "take": {
+      "on": true,
+      "text": "YOU TAKE THE\nSWORD."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": true,
+      "item": 2,
+      "text": "THE FORGE\nROARS. THE\nSMITH\nHAMMERS OUT\nA FINE SWORD\nFOR YOU!"
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "\"NO COAL, NO\nFIRE, NO\nSWORD. FETCH\nME COAL!\""
+     },
+     "sets": 0,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 0,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "SOMEONE HERE\nWANTS SOME\nCOAL.\nTHEN TAKE A\nSWORD.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Cliff edge",
+     "desc": "YOU SLIP ON\nTHE WET\nROCKS AND\nFALL!",
+     "look": "",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": true,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": true,
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 210,
+    "text": 30,
+    "menuBg": 244,
+    "menuText": 14
+   }
+  },
+  {
+   "name": "Map B",
+   "width": 6,
+   "rows": 5,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 210,
+    "text": 30,
+    "menuBg": 244,
+    "menuText": 14
+   }
+  }
+ ],
+ "picture": {
+  "on": true,
+  "rowH": 2,
+  "color": 28,
+  "height": 22,
+  "rows": [
+   "000000000000800000000000",
+   "000000000003e00000000000",
+   "000000000001c00000000000",
+   "000000000001c00000000000",
+   "000000000001c00000000000",
+   "000000000001c00000000000",
+   "0000000000ffff8000000000",
+   "0000000000ffff8000000000",
+   "000000000003e00000000000",
+   "000000000003e00000000000",
+   "000000000003e00000000800",
+   "000000000003e00000001400",
+   "000200000003e00000002200",
+   "000500000003e00000004100",
+   "000880000003e00000008080",
+   "001040000003e00000010040",
+   "00202000003ffe0000010040",
+   "00c020000ffffff800020020",
+   "01001003ffffffffe0040010",
+   "020008ffffffffffff880008",
+   "04003ffffffffffffffe0004",
+   "080ffffffffffffffffff802"
+  ]
+ },
+ "score": {
+  "on": true,
+  "points": [
+   10,
+   10,
+   10,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "ranks": [
+   {
+    "min": 0,
+    "title": "Village lad"
+   },
+   {
+    "min": 30,
+    "title": "Wyrm-chaser"
+   }
+  ]
+ },
+ "print": {
+  "author": "",
+  "year": "",
+  "story": "A wyrm has come to Ashfell and sleeps in the cave past the river. The villagers are too frightened to sleep.\n\nThe village needs a hero, and only steel will scare a wyrm.",
+  "notes": "",
+  "labelW": 84,
+  "labelH": 64,
+  "labelStyle": "text",
+  "tagline": "FANTASY ADVENTURE",
+  "code": "ACW-03",
+  "map": "blank",
+  "box": false
+ }
+}

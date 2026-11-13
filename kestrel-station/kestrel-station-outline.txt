@@ -1,0 +1,106 @@
+Title: Kestrel Station
+Cart: 16K
+Maps: 2
+Start: Cryo bay
+Ends when: Pod launched
+
+Cryo bay
+  You wake in a frosty cryo pod. Alarms wail.
+  Colours: $84 $8E
+  Look: Empty pods. A torch is clipped to the wall.
+  Item: a torch (look)
+  Take: You switch on the torch.
+  North: Corridor
+
+Corridor
+  You are in a long corridor. Red lights flash.
+  Colours: $42 $4E
+  Look: Doors everywhere. A wrench drifts past in the low gravity.
+  Item: a wrench (look)
+  Take: You catch the wrench.
+  West: Medbay
+  East: Galley
+  North: Junction
+
+Medbay
+  You are in the medbay.
+  Look: Beds, scanners, and a locked supply locker.
+  Pry: You lever the locker open. Inside is a keycard! [needs a crowbar] [gives a keycard] [refused: The locker won't budge with bare hands.] [done: The locker is empty.]
+  Scan: The scanner beeps: YOU ARE FINE. JUST COLD.
+
+Galley
+  You are in the galley.
+  Look: Food packs float in a broken freezer. An oil can sits by the stove.
+  Item: an oil can (look)
+  Take: You take the oil can.
+
+Junction
+  You are at a junction.
+  Look: Signs: ENGINES WEST, WORKSHOP EAST, LIFT NORTH.
+  West: Storage
+  East: Workshop
+  North: Lift
+
+Storage
+  You are in a storage bay.
+  Dark unless a torch: It is pitch dark. Crates loom.
+  Look: Crates of spare parts. A crowbar leans on one.
+  Item: a crowbar (look)
+  Take: You grab the crowbar.
+  West: Engine room
+
+Engine room
+  You are in the engine room.
+  Colours: $F2 $FE
+  Look: A dead generator. Its fuse socket is empty.
+  Repair: You slot in the fuse. The generator roars! Lights flicker on everywhere. [needs a fuse] [sets Power on] [refused: It needs a fuse.] [done: The generator purrs.]
+  Scan: The scanner reads: FUSE MISSING.
+  South: Reactor
+
+Reactor
+  You are in the reactor room.
+  Colours: $40 $1E
+  Look: The core glows. A hatch leads south into the dark.
+  South: Vent
+
+Vent
+  You crawl into a vent. It drops away beneath you!
+  Ending: game over
+
+Workshop
+  You are in the workshop.
+  Look: A battered repair robot sits slumped in a corner.
+  Talk: "BZZT. JOINTS STIFF. NEED OIL. BZZT."
+  Give an oil can: The robot oils its joints and hands you a fuse. "THANKS. BZZT." [sets Robot oiled]
+  Item: a fuse
+  Take: You take the fuse.
+  Scan: The scanner reads: ROBOT, MODEL K9. NEEDS OIL.
+
+Lift
+  You are in the lift.
+  Look: Buttons for the upper deck. The lift needs power.
+  North: Upper hall (locked until Power on: The lift is dead. No power.)
+
+Upper hall
+  You are in the upper hall.
+  Colours: $84 $8E
+  Look: Windows show the stars. Doors lead west and east.
+  West: Command deck
+  East: Pod bay (locked until Codes loaded: PODS LOCKED. LAUNCH CODES NEEDED.)
+  North: Airlock
+
+Command deck
+  You are on the command deck.
+  Colours: $C2 $CE
+  Look: The captain's console blinks. It has a card slot.
+  Use a keycard: The console wakes. LAUNCH CODES LOADED. [sets Codes loaded]
+  Scan: The scanner reads: CONSOLE NEEDS A KEYCARD.
+
+Pod bay
+  You are in the pod bay.
+  Look: One escape pod remains. A docking clamp is jammed.
+  Use a wrench: You knock the clamp free and climb in. The pod blasts away to safety! [sets Pod launched]
+
+Airlock
+  You step into the airlock. The outer door is open!
+  Ending: game over

@@ -1,0 +1,59 @@
+Title: The Wyrm of Ashfell
+Cart: 8K
+Start: Village square
+Ends when: Wyrm gone
+
+Village square
+  You are in the village square.
+  Look: Folk hurry by. A torch burns in a bracket by the well.
+  Item: a torch (look)
+  Take: You take the torch.
+  Talk: An old woman says: "The wyrm sleeps past the river. Only steel will scare it."
+  East: Smithy
+  West: Mine
+  North: Forest path
+
+Smithy
+  You are in the smithy.
+  Look: The smith pokes a cold forge.
+  Talk: "No coal, no fire, no sword. Fetch me coal!"
+  Give some coal: The forge roars. The smith hammers out a fine sword for you! [sets Forge lit]
+  Item: a sword
+  Take: You take the sword.
+
+Mine
+  You are at the old mine.
+  Look: Black lumps litter the ground.
+  Item: some coal (look)
+  Take: You pick up some coal.
+
+Forest path
+  You are on a forest path.
+  Look: Bees buzz around a hollow oak. Honey drips down.
+  Item: a honeycomb (look)
+  Take: You ease out a honeycomb. Only one sting!
+  North: River bridge
+  West: Cliff edge
+
+Cliff edge
+  You slip on the wet rocks and fall!
+  Ending: game over
+
+River bridge
+  You are at a stone bridge.
+  Look: A grumpy troll sits on the bridge, licking his lips.
+  Talk: "Me hungry. Me want something SWEET."
+  Give a honeycomb: The troll gobbles it up and waves you across. [sets Troll fed]
+  North: Cave mouth (locked until Troll fed: The troll blocks the bridge.)
+
+Cave mouth
+  You are at the mouth of a cave.
+  Look: Bones and ash. Smoke drifts out.
+  North: Wyrm's lair
+
+Wyrm's lair
+  You are in the wyrm's lair.
+  Dark unless a torch: It is black as pitch. Something huge breathes.
+  Colours: $40 $1E
+  Look: A great red wyrm sleeps on a pile of gold.
+  Use a sword: You raise the gleaming sword. The wyrm wakes, shrieks and flies far away! [sets Wyrm gone]

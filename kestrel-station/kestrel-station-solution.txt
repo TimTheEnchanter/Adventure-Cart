@@ -1,0 +1,31 @@
+Kestrel Station: the shortest way through (29 steps)
+
+1. Cryo bay: take
+2. Cryo bay: go north
+3. Corridor: go east
+4. Galley: take
+5. Galley: go west
+6. Corridor: go north
+7. Junction: go east
+8. Workshop: give an oil can
+9. Workshop: take
+10. Workshop: go west
+11. Junction: go west
+12. Storage: go west
+13. Engine room: repair
+14. Engine room: go east
+15. Storage: take
+16. Storage: go east
+17. Junction: go south
+18. Corridor: go west
+19. Medbay: pry
+20. Medbay: go east
+21. Corridor: take
+22. Corridor: go north
+23. Junction: go north
+24. Lift: go north
+25. Upper hall: go west
+26. Command deck: use a keycard
+27. Command deck: go east
+28. Upper hall: go east
+29. Pod bay: use a wrench

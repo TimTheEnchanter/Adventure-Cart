@@ -1,0 +1,16 @@
+The Wyrm of Ashfell: the shortest way through (14 steps)
+
+1. Village square: go west
+2. Mine: take
+3. Mine: go east
+4. Village square: go east
+5. Smithy: give some coal
+6. Smithy: take
+7. Smithy: go west
+8. Village square: go north
+9. Forest path: take
+10. Forest path: go north
+11. River bridge: give a honeycomb
+12. River bridge: go north
+13. Cave mouth: go north
+14. Wyrm's lair: use a sword

@@ -1,0 +1,397 @@
+# Adventure Cart Workshop script
+# Lines starting with # are comments. Text lines start with |, and everything after the | is kept exactly.
+# Rows and columns count from 1. Items and events are numbered 1 to 16. A name in brackets after a number is only a reminder.
+
+title: The Wyrm of Ashfell
+engine: workshop
+cart: 8K
+start: A 6,5
+carrying: nothing
+game ends on event: 3 (Wyrm gone)
+sound: on
+tune: jig
+custom tune: C5:8 E5:8 G5:8 C6:24
+title music: none
+custom title music: C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24
+passwords: off
+tv: NTSC
+author: 
+year: 
+label size: 84 x 64 mm
+label style: text
+manual map: blank
+box: off
+label tagline: FANTASY ADVENTURE
+label code: ACW-03
+
+items:
+  1: A TORCH
+  2: A SWORD
+  3: SOME COAL
+  4: A HONEYCOMB
+  5: 
+  6: 
+  7: 
+  8: 
+  9: 
+  10: 
+  11: 
+  12: 
+  13: 
+  14: 
+  15: 
+  16: 
+
+events:
+  1: Forge lit
+  2: Troll fed
+  3: Wyrm gone
+  4: Event 4
+  5: Event 5
+  6: Event 6
+  7: Event 7
+  8: Event 8
+  9: Event 9
+  10: Event 10
+  11: Event 11
+  12: Event 12
+  13: Event 13
+  14: Event 14
+  15: Event 15
+  16: Event 16
+
+score: on
+# points for each event (event: points)
+points:
+  1: 10
+  2: 10
+  3: 10
+# rank titles for the manual (lowest score: title)
+ranks:
+  0: Village lad
+  30: Wyrm-chaser
+
+# your own verbs: the menu word, then what it says in a room with no reply of its own
+verbs:
+  1 (hints): HINT
+    |NOTHING TO
+    |DO HERE.
+    |KEEP
+    |EXPLORING.
+
+words:
+  look: LOOK
+  north: NORTH
+  east: EAST
+  south: SOUTH
+  west: WEST
+  go: GO
+  take: TAKE
+  give: GIVE
+  use: USE
+  talk: TALK
+  inventory: INVENTORY
+  more: MORE...
+  start: START
+  the end: THE END
+  nothing: NOTHING
+  try again: TRY AGAIN
+  code: CODE
+  delete: DELETE
+  score: SCORE
+
+messages:
+  nothing special:
+    |YOU SEE
+    |NOTHING
+    |SPECIAL
+  nothing to take:
+    |YOU SEE
+    |NOTHING
+    |WORTH
+    |TAKING
+  nobody answers:
+    |NO ONE
+    |ANSWERS.
+  give prompt:
+    |SELECT ITEM
+    |TO GIVE:
+  can't give:
+    |CAN'T GIVE
+    |THAT
+  use prompt:
+    |SELECT ITEM
+    |TO USE:
+  can't use:
+    |CAN'T USE
+    |THAT
+  carrying:
+    |YOU ARE
+    |CARRYING:
+  power-on screen:
+  too dark:
+    |IT IS TOO
+    |DARK TO SEE.
+
+intro page:
+  |  THE WYRM
+  | OF ASHFELL
+
+intro page:
+  |A WYRM HAS
+  |COME TO
+  |ASHFELL.
+  |
+  |THE VILLAGE
+  |NEEDS A
+  |HERO.
+
+manual story:
+  |A wyrm has come to Ashfell and sleeps in the cave past the river. The villagers are too frightened to sleep.
+  |
+  |The village needs a hero, and only steel will scare a wyrm.
+
+picture: on
+  rows: 22
+  row height: 2
+  colour: $1C
+  |................................................#
+  |..............................................#####
+  |...............................................###
+  |...............................................###
+  |...............................................###
+  |...............................................###
+  |........................................#################
+  |........................................#################
+  |..............................................#####
+  |..............................................#####
+  |..............................................#####.................................#
+  |..............................................#####................................#.#
+  |..............#...............................#####...............................#...#
+  |.............#.#..............................#####..............................#.....#
+  |............#...#.............................#####.............................#.......#
+  |...........#.....#............................#####............................#.........#
+  |..........#.......#.......................#############........................#.........#
+  |........##........#.................#########################.................#...........#
+  |.......#...........#..........#####################################..........#.............#
+  |......#.............#...#################################################...#...............#
+  |.....#............#############################################################..............#
+  |....#.......#########################################################################.........#
+
+map A: 7 x 8
+  colours: background $D2, text $1E, menu $F4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6 7
+  #   1 . . . . . . .
+  #   2 . . . . R . .
+  #   3 . . . . R . .
+  #   4 . R > . R . .
+  #   5 . . . > R . .
+  #   6 . . . > * R .
+  #   7 . R > . . . .
+  #   8 . . . . . . .
+
+  room 2,5: Wyrm's lair
+    arrive:
+      |YOU ARE IN
+      |THE WYRM'S
+      |LAIR.
+    look:
+      |A GREAT RED
+      |WYRM SLEEPS
+      |ON A PILE OF
+      |GOLD.
+    use item 2 (A SWORD), sets the event:
+      |YOU RAISE
+      |THE GLEAMING
+      |SWORD. THE
+      |WYRM WAKES,
+      |SHRIEKS AND
+      |FLIES FAR
+      |AWAY!
+    sets event: 3 (Wyrm gone)
+    verb 1 (HINT):
+      |USE A SWORD
+      |HERE.
+    dark unless carrying item 1 (A TORCH):
+      |IT IS BLACK
+      |AS PITCH.
+      |SOMETHING
+      |HUGE
+      |BREATHES.
+    room colours: background $40, text $1E
+
+  room 3,5: Cave mouth
+    arrive:
+      |YOU ARE AT
+      |THE MOUTH OF
+      |A CAVE.
+    look:
+      |BONES AND
+      |ASH. SMOKE
+      |DRIFTS OUT.
+    locked until event 2 (Troll fed):
+      |THE TROLL
+      |BLOCKS THE
+      |BRIDGE.
+
+  room 4,2: Mine
+    arrive:
+      |YOU ARE AT
+      |THE OLD
+      |MINE.
+    look:
+      |BLACK LUMPS
+      |LITTER THE
+      |GROUND.
+    item: 3 (SOME COAL)
+    look reveals the item: yes
+    take:
+      |YOU PICK UP
+      |SOME COAL.
+    verb 1 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE
+      |SOME COAL.
+
+  portal 4,3: to A 6,5
+
+  room 4,5: River bridge
+    arrive:
+      |YOU ARE AT A
+      |STONE
+      |BRIDGE.
+    look:
+      |A GRUMPY
+      |TROLL SITS
+      |ON THE
+      |BRIDGE,
+      |LICKING HIS
+      |LIPS.
+    give item 4 (A HONEYCOMB):
+      |THE TROLL
+      |GOBBLES IT
+      |UP AND WAVES
+      |YOU ACROSS.
+    talk:
+      |"ME HUNGRY.
+      |ME WANT
+      |SOMETHING
+      |SWEET."
+    sets event: 2 (Troll fed)
+    verb 1 (HINT):
+      |SOMEONE HERE
+      |WANTS A
+      |HONEYCOMB.
+
+  portal 5,4: to A 7,2
+
+  room 5,5: Forest path
+    arrive:
+      |YOU ARE ON A
+      |FOREST PATH.
+    look:
+      |BEES BUZZ
+      |AROUND A
+      |HOLLOW OAK.
+      |HONEY DRIPS
+      |DOWN.
+    item: 4 (A HONEYCOMB)
+    look reveals the item: yes
+    take:
+      |YOU EASE OUT
+      |A HONEYCOMB.
+      |ONLY ONE
+      |STING!
+    verb 1 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |HONEYCOMB.
+
+  portal 6,4: to A 4,2
+
+  room 6,5: Village square
+    arrive:
+      |YOU ARE IN
+      |THE VILLAGE
+      |SQUARE.
+    look:
+      |FOLK HURRY
+      |BY. A TORCH
+      |BURNS IN A
+      |BRACKET BY
+      |THE WELL.
+    item: 1 (A TORCH)
+    look reveals the item: yes
+    take:
+      |YOU TAKE THE
+      |TORCH.
+    talk:
+      |AN OLD WOMAN
+      |SAYS: "THE
+      |WYRM SLEEPS
+      |PAST THE
+      |RIVER. ONLY
+      |STEEL WILL
+      |SCARE IT."
+
+  room 6,6: Smithy
+    arrive:
+      |YOU ARE IN
+      |THE SMITHY.
+    look:
+      |THE SMITH
+      |POKES A COLD
+      |FORGE.
+    item: 2 (A SWORD)
+    take:
+      |YOU TAKE THE
+      |SWORD.
+    give item 3 (SOME COAL):
+      |THE FORGE
+      |ROARS. THE
+      |SMITH
+      |HAMMERS OUT
+      |A FINE SWORD
+      |FOR YOU!
+    talk:
+      |"NO COAL, NO
+      |FIRE, NO
+      |SWORD. FETCH
+      |ME COAL!"
+    sets event: 1 (Forge lit)
+    verb 1 (HINT):
+      |SOMEONE HERE
+      |WANTS SOME
+      |COAL.
+      |THEN TAKE A
+      |SWORD.
+
+  room 7,2: Cliff edge
+    arrive:
+      |YOU SLIP ON
+      |THE WET
+      |ROCKS AND
+      |FALL!
+    look:
+    ending: game over
+
+  portal 7,3: to A 5,5
+
+map B: 6 x 5
+  colours: background $D2, text $1E, menu $F4, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .

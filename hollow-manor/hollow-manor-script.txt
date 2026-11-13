@@ -1,0 +1,580 @@
+# Adventure Cart Workshop script
+# Lines starting with # are comments. Text lines start with |, and everything after the | is kept exactly.
+# Rows and columns count from 1. Items and events are numbered 1 to 16. A name in brackets after a number is only a reminder.
+
+title: Hollow Manor
+engine: workshop
+cart: 16K
+start: A 7,3
+carrying: nothing
+game ends on event: 5 (Aunt at rest)
+sound: on
+tune: lament
+custom tune: C5:8 E5:8 G5:8 C6:24
+title music: mystery
+custom title music: C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24
+passwords: off
+tv: NTSC
+author: 
+year: 
+label size: 84 x 64 mm
+label style: picture
+manual map: blank
+box: on
+label tagline: GHOST STORY
+label code: ACW-01
+
+items:
+  1: A LANTERN
+  2: A BRASS KEY
+  3: A DIARY
+  4: A CRANK
+  5: SOME BREAD
+  6: A SILVER KEY
+  7: 
+  8: 
+  9: 
+  10: 
+  11: 
+  12: 
+  13: 
+  14: 
+  15: 
+  16: 
+
+events:
+  1: Door unlocked
+  2: Clue found
+  3: Cook fed
+  4: Bedroom open
+  5: Aunt at rest
+  6: Event 6
+  7: Event 7
+  8: Event 8
+  9: Event 9
+  10: Event 10
+  11: Event 11
+  12: Event 12
+  13: Event 13
+  14: Event 14
+  15: Event 15
+  16: Event 16
+
+score: on
+# points for each event (event: points)
+points:
+  1: 5
+  2: 10
+  3: 10
+  4: 10
+  5: 15
+# rank titles for the manual (lowest score: title)
+ranks:
+  0: Nervous visitor
+  25: Ghost hunter
+  50: Friend of the family
+
+# your own verbs: the menu word, then what it says in a room with no reply of its own
+verbs:
+  1: READ
+    |YOU CAN'T
+    |READ HERE.
+  2: OPEN
+    |YOU CAN'T
+    |OPEN HERE.
+  3 (hints): HINT
+    |NOTHING TO
+    |DO HERE.
+    |KEEP
+    |EXPLORING.
+
+words:
+  look: LOOK
+  north: NORTH
+  east: EAST
+  south: SOUTH
+  west: WEST
+  go: GO
+  take: TAKE
+  give: GIVE
+  use: USE
+  talk: TALK
+  inventory: INVENTORY
+  more: MORE...
+  start: START
+  the end: THE END
+  nothing: NOTHING
+  try again: TRY AGAIN
+  code: CODE
+  delete: DELETE
+  score: SCORE
+
+messages:
+  nothing special:
+    |YOU SEE
+    |NOTHING
+    |SPECIAL
+  nothing to take:
+    |YOU SEE
+    |NOTHING
+    |WORTH
+    |TAKING
+  nobody answers:
+    |NO ONE
+    |ANSWERS.
+  give prompt:
+    |SELECT ITEM
+    |TO GIVE:
+  can't give:
+    |CAN'T GIVE
+    |THAT
+  use prompt:
+    |SELECT ITEM
+    |TO USE:
+  can't use:
+    |CAN'T USE
+    |THAT
+  carrying:
+    |YOU ARE
+    |CARRYING:
+  power-on screen:
+  too dark:
+    |IT IS TOO
+    |DARK TO SEE.
+
+intro page:
+  |   HOLLOW
+  |   MANOR
+  |
+  | A GHOST
+  |   STORY
+
+intro page:
+  |GREAT AUNT
+  |EDITH HAS
+  |LEFT YOU
+  |HER OLD
+  |HOUSE.
+
+intro page:
+  |THEY SAY
+  |SHE STILL
+  |WALKS THE
+  |HALLS, AND
+  |CANNOT REST.
+  |
+  |PERHAPS YOU
+  |CAN HELP.
+
+manual story:
+  |Great Aunt Edith has left you her old house on the hill.
+  |
+  |They say she still walks the halls at night, and cannot rest. Perhaps you can help her.
+
+picture: on
+  rows: 28
+  row height: 2
+  colour: $0C
+  |
+  |........................................#
+  |.........................#................................#..........#..................#
+  |....#...................###.....................#...................###.............#########
+  |........................###...................#####.................###............###########
+  |.......................#####................#########..............#####..........#############
+  |..............#.......#######.............#############...........#######..........###########
+  |.....................#########..........#################........#########..........#########
+  |.....................#########........#####################......#########..............#
+  |......#.............###########.....#########################...###########
+  |...............#......########....#############################...########
+  |..............#.......########..#################################.########
+  |.....#.......#........####################################################................#
+  |......#......#........##...#########################################...###
+  |.......#..#.#.........##...#########################################...###
+  |........#.##..........##...#######...#####...#######...#####...#####...###
+  |........#.#...........############...#####...#######...#####...###########
+  |....#....##...........############...#####...#######...#####...###########
+  |.....#...##...........############...#####...#######...#####...###########
+  |......##.#............####################################################
+  |........##............####################################################
+  |.........#............############...#####...#.....#...#####...###########
+  |.........#............############...#####...#.....#...#####...###########
+  |.........#............############...#####...#.....#...#####...###########
+  |........#.............############...#####...#.....#...#####...###########
+  |........#.............########################.....#######################
+  |........#.............########################.....#######################
+  |################################################################################################
+
+map A: 6 x 8
+  colours: background $82, text $0E, menu $64, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . R R . . .
+  #   3 . . R R . .
+  #   4 . . R . . .
+  #   5 . R R R R .
+  #   6 . . R . . .
+  #   7 . R * R . .
+  #   8 . . . . . .
+
+  room 2,2: Rotten floor
+    arrive:
+      |THE BOARDS
+      |GIVE WAY!
+      |YOU FALL
+      |INTO THE
+      |DARK...
+    look:
+    ending: game over
+
+  room 2,3: Attic
+    arrive:
+      |YOU ARE IN
+      |THE ATTIC.
+    look:
+      |OLD TRUNKS.
+      |THE BOARDS
+      |TO THE WEST
+      |LOOK ROTTEN.
+    dark unless carrying item 1 (A LANTERN):
+      |DARKNESS.
+      |THE FLOOR
+      |CREAKS
+      |ODDLY.
+
+  room 3,3: Landing
+    arrive:
+      |YOU ARE ON
+      |THE UPSTAIRS
+      |LANDING.
+    look:
+      |A
+      |GRANDFATHER
+      |CLOCK STANDS
+      |HERE. A DOOR
+      |LEADS EAST.
+    use item 6 (A SILVER KEY), sets the event:
+      |THE BEDROOM
+      |DOOR CLICKS
+      |OPEN.
+    sets event: 4 (Bedroom open)
+    verb 2 (OPEN), needs event 2 (Clue found), gives item 6 (A SILVER KEY):
+      |YOU OPEN THE
+      |CLOCK.
+      |INSIDE HANGS
+      |A TINY
+      |SILVER KEY!
+    verb 2 (OPEN) refused:
+      |THE CLOCK IS
+      |SHUT TIGHT.
+      |HOW ODD.
+    verb 2 (OPEN) already done:
+      |THE CLOCK IS
+      |EMPTY NOW.
+    verb 3 (HINT):
+      |TRY TO OPEN.
+      |THEN USE A
+      |SILVER KEY
+      |HERE.
+
+  room 3,4: Bedroom
+    arrive:
+      |YOU ARE IN
+      |GREAT AUNT
+      |EDITH'S
+      |BEDROOM.
+    look:
+      |A PALE
+      |FIGURE
+      |FLOATS
+      |BESIDE A
+      |DUSTY MUSIC
+      |BOX.
+    use item 4 (A CRANK), sets the event:
+      |YOU WIND THE
+      |MUSIC BOX. A
+      |SWEET TUNE
+      |FILLS THE
+      |ROOM. AUNT
+      |EDITH SMILES
+      |AND IS GONE.
+    talk:
+      |"MY MUSIC
+      |BOX... IT
+      |HAS LOST ITS
+      |CRANK. I
+      |CANNOT
+      |REST."
+    sets event: 5 (Aunt at rest)
+    locked until event 4 (Bedroom open):
+      |THE BEDROOM
+      |DOOR IS
+      |LOCKED.
+    verb 3 (HINT):
+      |USE A CRANK
+      |HERE.
+    room colours: background $C2, text $CE
+
+  room 4,3: Staircase
+    arrive:
+      |YOU ARE ON A
+      |GRAND
+      |STAIRCASE.
+    look:
+      |THE STEPS
+      |GROAN. A
+      |CLOCK TICKS
+      |SOMEWHERE
+      |ABOVE.
+
+  room 5,2: Library
+    arrive:
+      |YOU ARE IN
+      |THE LIBRARY.
+    look:
+      |SHELVES OF
+      |CRUMBLING
+      |BOOKS. A
+      |DIARY LIES
+      |OPEN ON A
+      |DESK.
+    item: 3 (A DIARY)
+    look reveals the item: yes
+    take:
+      |YOU TAKE THE
+      |DIARY.
+    verb 1 (READ), needs item 3 (A DIARY), sets event 2 (Clue found):
+      |THE LAST
+      |PAGE SAYS:
+      |MY SILVER
+      |KEY IS IN
+      |THE CLOCK.
+    verb 1 (READ) refused:
+      |THERE IS
+      |NOTHING HERE
+      |TO READ.
+    verb 1 (READ) already done:
+      |MY SILVER
+      |KEY IS IN
+      |THE CLOCK.
+    verb 3 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |DIARY.
+      |THEN TRY TO
+      |READ.
+    dark unless carrying item 1 (A LANTERN):
+      |IT IS TOO
+      |DARK TO SEE.
+      |YOU HEAR
+      |PAGES
+      |RUSTLE.
+
+  room 5,3: Great hall
+    arrive:
+      |YOU ARE IN
+      |THE GREAT
+      |HALL. DUST
+      |COVERS
+      |EVERYTHING.
+    look:
+      |A PORTRAIT
+      |OF A STERN
+      |OLD WOMAN
+      |WATCHES YOU.
+    talk:
+      |ONLY ECHOES
+      |ANSWER.
+    locked until event 1 (Door unlocked):
+      |THE FRONT
+      |DOOR IS
+      |LOCKED.
+
+  room 5,4: Kitchen
+    arrive:
+      |YOU ARE IN A
+      |COLD
+      |KITCHEN.
+    look:
+      |THE GHOST OF
+      |A COOK STIRS
+      |AN EMPTY
+      |POT.
+    item: 4 (A CRANK)
+    take:
+      |YOU PICK UP
+      |A SMALL
+      |BRASS CRANK.
+    give item 5 (SOME BREAD):
+      |THE COOK
+      |BEAMS AND
+      |FADES.
+      |SOMETHING
+      |DROPS TO THE
+      |FLOOR!
+    talk:
+      |"SO
+      |HUNGRY...
+      |BRING ME
+      |BREAD,
+      |DEARIE."
+    sets event: 3 (Cook fed)
+    verb 3 (HINT):
+      |SOMEONE HERE
+      |WANTS SOME
+      |BREAD.
+      |THEN TAKE A
+      |CRANK.
+
+  room 5,5: Pantry
+    arrive:
+      |YOU ARE IN
+      |THE PANTRY.
+    look:
+      |EMPTY JARS,
+      |AND ONE
+      |STALE LOAF
+      |OF BREAD.
+    item: 5 (SOME BREAD)
+    look reveals the item: yes
+    take:
+      |YOU TAKE THE
+      |BREAD.
+    verb 3 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE
+      |SOME BREAD.
+    dark unless carrying item 1 (A LANTERN):
+      |PITCH BLACK.
+      |SOMETHING
+      |SCUTTLES.
+
+  room 6,3: Porch
+    arrive:
+      |YOU ARE ON A
+      |CREAKING
+      |PORCH.
+    look:
+      |A HEAVY
+      |FRONT DOOR,
+      |ITS LOCK
+      |GREEN WITH
+      |AGE.
+    use item 2 (A BRASS KEY), sets the event:
+      |THE LOCK
+      |TURNS WITH A
+      |GROAN. THE
+      |DOOR SWINGS
+      |OPEN.
+    sets event: 1 (Door unlocked)
+    verb 3 (HINT):
+      |USE A BRASS
+      |KEY HERE.
+
+  room 7,2: Garden
+    arrive:
+      |YOU ARE IN
+      |AN OVERGROWN
+      |GARDEN.
+    look:
+      |DEAD ROSES.
+      |SOMETHING
+      |GLINTS IN
+      |THE FLOWER
+      |BED.
+    item: 2 (A BRASS KEY)
+    look reveals the item: yes
+    take:
+      |YOU BRUSH
+      |OFF THE
+      |BRASS KEY.
+    verb 3 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |BRASS KEY.
+
+  room 7,3: Iron gates
+    arrive:
+      |YOU STAND AT
+      |THE RUSTY
+      |GATES OF
+      |HOLLOW
+      |MANOR.
+    look:
+      |A PATH RUNS
+      |NORTH TO THE
+      |HOUSE. A
+      |SHED LEANS
+      |TO THE EAST.
+      |A GARDEN
+      |LIES WEST.
+
+  room 7,4: Tool shed
+    arrive:
+      |YOU ARE IN A
+      |CRAMPED TOOL
+      |SHED.
+    look:
+      |COBWEBS
+      |EVERYWHERE.
+      |AN OLD
+      |LANTERN
+      |HANGS ON A
+      |NAIL.
+    item: 1 (A LANTERN)
+    look reveals the item: yes
+    take:
+      |YOU LIGHT
+      |THE LANTERN.
+      |IT GLOWS A
+      |WARM YELLOW.
+    verb 3 (HINT):
+      |LOOK
+      |CLOSELY,
+      |THEN TAKE A
+      |LANTERN.
+
+map B: 6 x 5
+  colours: background $82, text $0E, menu $64, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map C: 6 x 5
+  colours: background $82, text $0E, menu $64, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .
+
+map D: 6 x 5
+  colours: background $82, text $0E, menu $64, menu text $0E
+  default wall:
+    |YOU CAN'T GO
+    |THAT WAY.
+  # layout: R room, . wall, > portal, * start
+  #     1 2 3 4 5 6
+  #   1 . . . . . .
+  #   2 . . . . . .
+  #   3 . . . . . .
+  #   4 . . . . . .
+  #   5 . . . . . .

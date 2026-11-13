@@ -1,0 +1,1593 @@
+{
+ "kit": "tak",
+ "version": 1,
+ "title": "Hollow Manor",
+ "engine": "tak",
+ "verbs": [
+  {
+   "word": "READ",
+   "none": "YOU CAN'T\nREAD HERE."
+  },
+  {
+   "word": "OPEN",
+   "none": "YOU CAN'T\nOPEN HERE."
+  },
+  {
+   "word": "HINT",
+   "none": "NOTHING TO\nDO HERE.\nKEEP\nEXPLORING.",
+   "hint": true
+  }
+ ],
+ "cart": "16K",
+ "settings": {
+  "endEvent": 4,
+  "sound": true,
+  "tv": "ntsc",
+  "tune": "lament",
+  "customTune": "C5:8 E5:8 G5:8 C6:24",
+  "titleTune": "mystery",
+  "customTitleTune": "C5:12 E5:12 G5:12 E5:12 F5:12 D5:12 C5:24 -:24",
+  "passwords": false
+ },
+ "portals": [],
+ "start": {
+  "room": 38,
+  "inventory": []
+ },
+ "items": [
+  "A LANTERN",
+  "A BRASS KEY",
+  "A DIARY",
+  "A CRANK",
+  "SOME BREAD",
+  "A SILVER KEY",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  "",
+  ""
+ ],
+ "events": [
+  "Door unlocked",
+  "Clue found",
+  "Cook fed",
+  "Bedroom open",
+  "Aunt at rest",
+  "Event 6",
+  "Event 7",
+  "Event 8",
+  "Event 9",
+  "Event 10",
+  "Event 11",
+  "Event 12",
+  "Event 13",
+  "Event 14",
+  "Event 15",
+  "Event 16"
+ ],
+ "system": {
+  "look": "LOOK",
+  "north": "NORTH",
+  "east": "EAST",
+  "south": "SOUTH",
+  "west": "WEST",
+  "go": "GO",
+  "take": "TAKE",
+  "give": "GIVE",
+  "use": "USE",
+  "talk": "TALK",
+  "inventory": "INVENTORY",
+  "more": "MORE...",
+  "start": "START",
+  "nothingSpecial": "YOU SEE\nNOTHING\nSPECIAL",
+  "nothingToTake": "YOU SEE\nNOTHING\nWORTH\nTAKING",
+  "talkDefault": "NO ONE\nANSWERS.",
+  "selectGive": "SELECT ITEM\nTO GIVE:",
+  "cantGive": "CAN'T GIVE\nTHAT",
+  "selectUse": "SELECT ITEM\nTO USE:",
+  "cantUse": "CAN'T USE\nTHAT",
+  "carrying": "YOU ARE\nCARRYING:",
+  "bootB": "",
+  "theEnd": "THE END",
+  "nothing": "NOTHING",
+  "tryAgain": "TRY AGAIN",
+  "code": "CODE",
+  "delete": "DELETE",
+  "dark": "IT IS TOO\nDARK TO SEE.",
+  "score": "SCORE"
+ },
+ "intro": [
+  "   HOLLOW\n   MANOR\n\n A GHOST\n   STORY",
+  "GREAT AUNT\nEDITH HAS\nLEFT YOU\nHER OLD\nHOUSE.",
+  "THEY SAY\nSHE STILL\nWALKS THE\nHALLS, AND\nCANNOT REST.\n\nPERHAPS YOU\nCAN HELP."
+ ],
+ "maps": [
+  {
+   "name": "Map A",
+   "width": 6,
+   "rows": 8,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Rotten floor",
+     "desc": "THE BOARDS\nGIVE WAY!\nYOU FALL\nINTO THE\nDARK...",
+     "look": "",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": true,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": true,
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Attic",
+     "desc": "YOU ARE IN\nTHE ATTIC.",
+     "look": "OLD TRUNKS.\nTHE BOARDS\nTO THE WEST\nLOOK ROTTEN.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [],
+     "dark": {
+      "on": true,
+      "item": 0,
+      "text": "DARKNESS.\nTHE FLOOR\nCREAKS\nODDLY."
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Landing",
+     "desc": "YOU ARE ON\nTHE UPSTAIRS\nLANDING.",
+     "look": "A\nGRANDFATHER\nCLOCK STANDS\nHERE. A DOOR\nLEADS EAST.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": true,
+      "item": 5,
+      "text": "THE BEDROOM\nDOOR CLICKS\nOPEN.",
+      "setsEvent": true,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": 3,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 1,
+       "needItem": null,
+       "needEvent": 1,
+       "gives": 5,
+       "sets": null,
+       "consumes": false,
+       "text": "YOU OPEN THE\nCLOCK.\nINSIDE HANGS\nA TINY\nSILVER KEY!",
+       "fail": "THE CLOCK IS\nSHUT TIGHT.\nHOW ODD.",
+       "done": "THE CLOCK IS\nEMPTY NOW."
+      },
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "TRY TO OPEN.\nTHEN USE A\nSILVER KEY\nHERE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Bedroom",
+     "desc": "YOU ARE IN\nGREAT AUNT\nEDITH'S\nBEDROOM.",
+     "look": "A PALE\nFIGURE\nFLOATS\nBESIDE A\nDUSTY MUSIC\nBOX.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": true,
+      "item": 3,
+      "text": "YOU WIND THE\nMUSIC BOX. A\nSWEET TUNE\nFILLS THE\nROOM. AUNT\nEDITH SMILES\nAND IS GONE.",
+      "setsEvent": true,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "\"MY MUSIC\nBOX... IT\nHAS LOST ITS\nCRANK. I\nCANNOT\nREST.\""
+     },
+     "sets": 4,
+     "door": {
+      "on": true,
+      "needEvent": 3,
+      "text": "THE BEDROOM\nDOOR IS\nLOCKED."
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "USE A CRANK\nHERE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": true,
+      "bg": 194,
+      "text": 206
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Staircase",
+     "desc": "YOU ARE ON A\nGRAND\nSTAIRCASE.",
+     "look": "THE STEPS\nGROAN. A\nCLOCK TICKS\nSOMEWHERE\nABOVE.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Library",
+     "desc": "YOU ARE IN\nTHE LIBRARY.",
+     "look": "SHELVES OF\nCRUMBLING\nBOOKS. A\nDIARY LIES\nOPEN ON A\nDESK.",
+     "lookReveals": true,
+     "item": 2,
+     "take": {
+      "on": true,
+      "text": "YOU TAKE THE\nDIARY."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 0,
+       "needItem": 2,
+       "needEvent": null,
+       "gives": null,
+       "sets": 1,
+       "consumes": false,
+       "text": "THE LAST\nPAGE SAYS:\nMY SILVER\nKEY IS IN\nTHE CLOCK.",
+       "fail": "THERE IS\nNOTHING HERE\nTO READ.",
+       "done": "MY SILVER\nKEY IS IN\nTHE CLOCK."
+      },
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE A\nDIARY.\nTHEN TRY TO\nREAD.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": true,
+      "item": 0,
+      "text": "IT IS TOO\nDARK TO SEE.\nYOU HEAR\nPAGES\nRUSTLE."
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Great hall",
+     "desc": "YOU ARE IN\nTHE GREAT\nHALL. DUST\nCOVERS\nEVERYTHING.",
+     "look": "A PORTRAIT\nOF A STERN\nOLD WOMAN\nWATCHES YOU.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "ONLY ECHOES\nANSWER."
+     },
+     "sets": null,
+     "door": {
+      "on": true,
+      "needEvent": 0,
+      "text": "THE FRONT\nDOOR IS\nLOCKED."
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Kitchen",
+     "desc": "YOU ARE IN A\nCOLD\nKITCHEN.",
+     "look": "THE GHOST OF\nA COOK STIRS\nAN EMPTY\nPOT.",
+     "lookReveals": false,
+     "item": 3,
+     "take": {
+      "on": true,
+      "text": "YOU PICK UP\nA SMALL\nBRASS CRANK."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": true,
+      "item": 4,
+      "text": "THE COOK\nBEAMS AND\nFADES.\nSOMETHING\nDROPS TO THE\nFLOOR!"
+     },
+     "talk": {
+      "on": true,
+      "needUsed": null,
+      "ok": "",
+      "no": "\"SO\nHUNGRY...\nBRING ME\nBREAD,\nDEARIE.\""
+     },
+     "sets": 2,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "SOMEONE HERE\nWANTS SOME\nBREAD.\nTHEN TAKE A\nCRANK.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Pantry",
+     "desc": "YOU ARE IN\nTHE PANTRY.",
+     "look": "EMPTY JARS,\nAND ONE\nSTALE LOAF\nOF BREAD.",
+     "lookReveals": true,
+     "item": 4,
+     "take": {
+      "on": true,
+      "text": "YOU TAKE THE\nBREAD."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE\nSOME BREAD.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": true,
+      "item": 0,
+      "text": "PITCH BLACK.\nSOMETHING\nSCUTTLES."
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Porch",
+     "desc": "YOU ARE ON A\nCREAKING\nPORCH.",
+     "look": "A HEAVY\nFRONT DOOR,\nITS LOCK\nGREEN WITH\nAGE.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": true,
+      "item": 1,
+      "text": "THE LOCK\nTURNS WITH A\nGROAN. THE\nDOOR SWINGS\nOPEN.",
+      "setsEvent": true,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": 0,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "USE A BRASS\nKEY HERE.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "room",
+     "name": "Garden",
+     "desc": "YOU ARE IN\nAN OVERGROWN\nGARDEN.",
+     "look": "DEAD ROSES.\nSOMETHING\nGLINTS IN\nTHE FLOWER\nBED.",
+     "lookReveals": true,
+     "item": 1,
+     "take": {
+      "on": true,
+      "text": "YOU BRUSH\nOFF THE\nBRASS KEY."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE A\nBRASS KEY.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Iron gates",
+     "desc": "YOU STAND AT\nTHE RUSTY\nGATES OF\nHOLLOW\nMANOR.",
+     "look": "A PATH RUNS\nNORTH TO THE\nHOUSE. A\nSHED LEANS\nTO THE EAST.\nA GARDEN\nLIES WEST.",
+     "lookReveals": false,
+     "item": null,
+     "take": {
+      "on": false,
+      "text": ""
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "room",
+     "name": "Tool shed",
+     "desc": "YOU ARE IN A\nCRAMPED TOOL\nSHED.",
+     "look": "COBWEBS\nEVERYWHERE.\nAN OLD\nLANTERN\nHANGS ON A\nNAIL.",
+     "lookReveals": true,
+     "item": 0,
+     "take": {
+      "on": true,
+      "text": "YOU LIGHT\nTHE LANTERN.\nIT GLOWS A\nWARM YELLOW."
+     },
+     "use": {
+      "on": false,
+      "item": null,
+      "text": "",
+      "setsEvent": false,
+      "consumes": false
+     },
+     "give": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "talk": {
+      "on": false,
+      "needUsed": null,
+      "ok": "",
+      "no": ""
+     },
+     "sets": null,
+     "door": {
+      "on": false,
+      "needEvent": null,
+      "text": ""
+     },
+     "ending": false,
+     "alt": {
+      "on": false,
+      "event": null,
+      "desc": "",
+      "look": ""
+     },
+     "deadly": false,
+     "verbs": [
+      {
+       "verb": 2,
+       "needItem": null,
+       "needEvent": null,
+       "gives": null,
+       "sets": null,
+       "consumes": false,
+       "text": "LOOK\nCLOSELY,\nTHEN TAKE A\nLANTERN.",
+       "fail": "",
+       "done": ""
+      }
+     ],
+     "dark": {
+      "on": false,
+      "item": null,
+      "text": ""
+     },
+     "colors": {
+      "on": false,
+      "bg": 0,
+      "text": 14
+     },
+     "endTune": ""
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 130,
+    "text": 14,
+    "menuBg": 100,
+    "menuText": 14
+   }
+  },
+  {
+   "name": "Map B",
+   "width": 6,
+   "rows": 5,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 130,
+    "text": 14,
+    "menuBg": 100,
+    "menuText": 14
+   }
+  },
+  {
+   "name": "Map C",
+   "width": 6,
+   "rows": 5,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 130,
+    "text": 14,
+    "menuBg": 100,
+    "menuText": 14
+   }
+  },
+  {
+   "name": "Map D",
+   "width": 6,
+   "rows": 5,
+   "cells": [
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    },
+    {
+     "type": "wall",
+     "text": "YOU CAN'T GO\nTHAT WAY."
+    }
+   ],
+   "colors": {
+    "bg": 130,
+    "text": 14,
+    "menuBg": 100,
+    "menuText": 14
+   }
+  }
+ ],
+ "picture": {
+  "on": true,
+  "rowH": 2,
+  "color": 12,
+  "height": 28,
+  "rows": [
+   "000000000000000000000000",
+   "000000000080000000000000",
+   "000000400000002004000080",
+   "080000e0000080000e000ff8",
+   "000000e00003e0000e001ffc",
+   "000001f0000ff8001f003ffe",
+   "000203f8003ffe003f801ffc",
+   "000007fc00ffff807fc00ff8",
+   "000007fc03ffffe07fc00080",
+   "02000ffe0ffffff8ffe00000",
+   "000103fc3ffffffe3fc00000",
+   "000203fcffffffffbfc00000",
+   "040403ffffffffffffc00020",
+   "0204031ffffffffff1c00000",
+   "0128031ffffffffff1c00000",
+   "00b0031fc7c7f1f1f1c00000",
+   "00a003ffc7c7f1f1ffc00000",
+   "086003ffc7c7f1f1ffc00000",
+   "046003ffc7c7f1f1ffc00000",
+   "034003ffffffffffffc00000",
+   "00c003ffffffffffffc00000",
+   "004003ffc7c411f1ffc00000",
+   "004003ffc7c411f1ffc00000",
+   "004003ffc7c411f1ffc00000",
+   "008003ffc7c411f1ffc00000",
+   "008003fffffc1fffffc00000",
+   "008003fffffc1fffffc00000",
+   "ffffffffffffffffffffffff"
+  ]
+ },
+ "score": {
+  "on": true,
+  "points": [
+   5,
+   10,
+   10,
+   10,
+   15,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "ranks": [
+   {
+    "min": 0,
+    "title": "Nervous visitor"
+   },
+   {
+    "min": 25,
+    "title": "Ghost hunter"
+   },
+   {
+    "min": 50,
+    "title": "Friend of the family"
+   }
+  ]
+ },
+ "print": {
+  "author": "",
+  "year": "",
+  "story": "Great Aunt Edith has left you her old house on the hill.\n\nThey say she still walks the halls at night, and cannot rest. Perhaps you can help her.",
+  "notes": "",
+  "labelW": 84,
+  "labelH": 64,
+  "labelStyle": "picture",
+  "tagline": "GHOST STORY",
+  "code": "ACW-01",
+  "map": "blank",
+  "box": true
+ }
+}

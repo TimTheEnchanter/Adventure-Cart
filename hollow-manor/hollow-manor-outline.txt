@@ -1,0 +1,92 @@
+Title: Hollow Manor
+Cart: 16K
+Start: Iron gates
+Ends when: Aunt at rest
+
+Iron gates
+  You stand at the rusty gates of Hollow Manor.
+  Look: A path runs north to the house. A shed leans to the east. A garden lies west.
+  North: Porch
+  East: Tool shed
+  West: Garden
+
+Tool shed
+  You are in a cramped tool shed.
+  Look: Cobwebs everywhere. An old lantern hangs on a nail.
+  Item: a lantern (look)
+  Take: You light the lantern. It glows a warm yellow.
+
+Garden
+  You are in an overgrown garden.
+  Look: Dead roses. Something glints in the flower bed.
+  Item: a brass key (look)
+  Take: You brush off the brass key.
+
+Porch
+  You are on a creaking porch.
+  Look: A heavy front door, its lock green with age.
+  Use a brass key: The lock turns with a groan. The door swings open. [sets Door unlocked]
+  North: Great hall (locked until Door unlocked: The front door is locked.)
+
+Great hall
+  You are in the great hall. Dust covers everything.
+  Look: A portrait of a stern old woman watches you.
+  Talk: Only echoes answer.
+  West: Library
+  East: Kitchen
+  North: Staircase
+
+Library
+  You are in the library.
+  Dark unless a lantern: It is too dark to see. You hear pages rustle.
+  Look: Shelves of crumbling books. A diary lies open on a desk.
+  Item: a diary (look)
+  Take: You take the diary.
+  Read: The last page says: MY SILVER KEY IS IN THE CLOCK. [needs a diary] [sets Clue found] [refused: There is nothing here to read.] [done: MY SILVER KEY IS IN THE CLOCK.]
+
+Kitchen
+  You are in a cold kitchen.
+  Look: The ghost of a cook stirs an empty pot.
+  Talk: "So hungry... bring me bread, dearie."
+  Give some bread: The cook beams and fades. Something drops to the floor! [sets Cook fed]
+  Item: a crank
+  Take: You pick up a small brass crank.
+  East: Pantry
+
+Pantry
+  You are in the pantry.
+  Dark unless a lantern: Pitch black. Something scuttles.
+  Look: Empty jars, and one stale loaf of bread.
+  Item: some bread (look)
+  Take: You take the bread.
+
+Staircase
+  You are on a grand staircase.
+  Look: The steps groan. A clock ticks somewhere above.
+  South: Great hall
+  North: Landing
+
+Landing
+  You are on the upstairs landing.
+  Look: A grandfather clock stands here. A door leads east.
+  Open: You open the clock. Inside hangs a tiny silver key! [needs Clue found] [gives a silver key] [refused: The clock is shut tight. How odd.] [done: The clock is empty now.]
+  Use a silver key: The bedroom door clicks open. [sets Bedroom open]
+  East: Bedroom (locked until Bedroom open: The bedroom door is locked.)
+  North: Attic
+
+Bedroom
+  You are in Great Aunt Edith's bedroom.
+  Colours: $C2 $CE
+  Look: A pale figure floats beside a dusty music box.
+  Talk: "My music box... it has lost its crank. I cannot rest."
+  Use a crank: You wind the music box. A sweet tune fills the room. Aunt Edith smiles and is gone. [sets Aunt at rest]
+
+Attic
+  You are in the attic.
+  Dark unless a lantern: Darkness. The floor creaks oddly.
+  Look: Old trunks. The boards to the west look rotten.
+  West: Rotten floor
+
+Rotten floor
+  The boards give way! You fall into the dark...
+  Ending: game over

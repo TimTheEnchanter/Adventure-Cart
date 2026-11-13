@@ -1,0 +1,28 @@
+Hollow Manor: the shortest way through (26 steps)
+
+1. Iron gates: go east
+2. Tool shed: take
+3. Tool shed: go west
+4. Iron gates: go west
+5. Garden: take
+6. Garden: go east
+7. Iron gates: go north
+8. Porch: use a brass key
+9. Porch: go north
+10. Great hall: go east
+11. Kitchen: go east
+12. Pantry: take
+13. Pantry: go west
+14. Kitchen: give some bread
+15. Kitchen: take
+16. Kitchen: go west
+17. Great hall: go west
+18. Library: take
+19. Library: read
+20. Library: go east
+21. Great hall: go north
+22. Staircase: go north
+23. Landing: open
+24. Landing: use a silver key
+25. Landing: go east
+26. Bedroom: use a crank
